@@ -8,9 +8,6 @@ import {IAssetToken} from "./IAssetToken.sol";
 import {AssetToken} from "./AssetToken.sol";
 import {IRWATokenization} from "./IRWATokenization.sol";
 
-
-
-
 contract RWATokenization is Ownable {
 
     IERC20 public usdt = IERC20(0xdCdC73413C6136c9ABcC3E8d250af42947aC2Fc7);
