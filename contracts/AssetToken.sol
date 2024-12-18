@@ -8,26 +8,37 @@ import {ERC1155Supply} from "@openzeppelin/contracts/token/ERC1155/extensions/ER
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IAssetToken} from "./IAssetToken.sol";
 import {IRWATokenization} from "./IRWATokenization.sol";
+import "hardhat/console.sol";
+
 
 
 contract AssetToken is IAssetToken, ERC1155, Ownable, ERC1155Pausable, ERC1155Supply {
 
     IRWATokenization public rwaContract;
 
+    modifier onlyOwnerOrRWAContract() {
+        require(msg.sender == owner() || msg.sender == address(rwaContract), "Not authorized");
+        _;
+    }
+
     constructor(
-        address initialOwner, 
-        address account, 
-        uint256 id, 
-        uint256 amount, 
-        bytes memory data, 
+        address initialOwner,
         string memory uri_,
-        address rwaAddress
+        address _rwaContract
     )
         ERC1155(uri_)
         Ownable(initialOwner)
     {
+        rwaContract = IRWATokenization(_rwaContract);
+    }
+
+    function mint(
+        address account,
+        uint256 id,
+        uint256 amount,
+        bytes memory data
+    ) external onlyOwnerOrRWAContract {
         _mint(account, id, amount, data);
-        rwaContract = IRWATokenization(rwaAddress); // Store RWATokenization contract reference
     }
 
     function setURI(string memory newuri) external onlyOwner {
@@ -48,7 +59,11 @@ contract AssetToken is IAssetToken, ERC1155, Ownable, ERC1155Pausable, ERC1155Su
         internal
         override(ERC1155, ERC1155Pausable, ERC1155Supply)
     {
+        require(address(rwaContract).code.length > 0, "Target address is not a contract");
+
         super._update(from, to, ids, values);
+        
+        //console.log("rwaContract", rwaContract);
 
         // Notify external contracts of balance changes
         for (uint256 i = 0; i < ids.length; i++) {

@@ -7,10 +7,12 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IAssetToken} from "./IAssetToken.sol";
 import {AssetToken} from "./AssetToken.sol";
 import {IRWATokenization} from "./IRWATokenization.sol";
+import "hardhat/console.sol";
+
 
 contract RWATokenization is Ownable {
 
-    IERC20 public usdt = IERC20(0xdCdC73413C6136c9ABcC3E8d250af42947aC2Fc7);
+    IERC20 public usdt = IERC20(0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9);
     IERC20 public fexse;
 
     // Asset struct to store asset information
@@ -47,48 +49,13 @@ contract RWATokenization is Ownable {
         admin = msg.sender;
     } 
 
-    // // Override the URI function to construct the URI dynamically
-    // function uri(uint256 tokenId) public view override returns (string memory) {
-    //     //return string(abi.encodePacked(baseURI,Strings.toHexString(tokenId), ".json"));
-
-    //     // Convert tokenId to hexadecimal string
-    //     string memory hexTokenId = Strings.toHexString(tokenId);
-        
-    //     // Remove the "0x" prefix by slicing the string
-    //     string memory trimmedHexTokenId = substring(hexTokenId, 2, bytes(hexTokenId).length);
-        
-    //     // Concatenate base URI with the trimmed hexadecimal tokenId
-    //     return string(abi.encodePacked(baseURI, trimmedHexTokenId, ".json"));
-
-    // }
-
-    // // Helper function to slice a string
-    // function substring(string memory str, uint256 startIndex, uint256 endIndex) internal pure returns (string memory) {
-    //     bytes memory strBytes = bytes(str);
-    //     bytes memory result = new bytes(endIndex - startIndex);
-    //     for (uint256 i = startIndex; i < endIndex; i++) {
-    //         result[i - startIndex] = strBytes[i];
-    //     }
-    //     return string(result);
-    // }
-    
-    // // Override URI function to return asset-specific URI
-    // // function uri(uint256 assetId) public view override returns (string memory) {
-    // //     return assets[assetId].uri;
-    // // }
-
-    // // Function to update the base URI (optional)
-    // function setBaseURI(string memory _newBaseURI) public onlyOwner{
-    //     baseURI = _newBaseURI;
-    // }
-
     // Function to create a new asset and issue tokens to the admin
     function createAsset(
         uint256 assetId,
         uint256 totalTokens,
         uint256 tokenPrice,
         string memory assetUri
-    ) public onlyOwner {
+    ) external onlyOwner {
 
         require(assets[assetId].id == 0, "Asset already exists");
         require(totalTokens > 0, "Total tokens must be greater than zero");
@@ -97,13 +64,13 @@ contract RWATokenization is Ownable {
         // Deploy a new instance of AssetToken
         AssetToken token = new AssetToken(
             admin,          // Owner of the new token
-            admin,          // Initial account to receive minted tokens
-            assetId,        // Token ID
-            totalTokens,    // Amount to mint
-            "",             // Data (can be empty)
             assetUri,       // URI for metadata
-            address(this)   // Token contract address (this contract)
+            address(this) 
         );
+
+        address tokenAddress = address(token);
+
+        console.log("tokenAddress", tokenAddress);        
 
         // Store the deployed contract information in the mapping
         Asset storage newAsset = assets[assetId];
@@ -111,22 +78,32 @@ contract RWATokenization is Ownable {
         newAsset.totalTokens = totalTokens;
         newAsset.tokenPrice = tokenPrice;
         newAsset.uri = assetUri;
-        newAsset.tokenContract = token;
+        newAsset.tokenContract = IAssetToken(tokenAddress);
+
+        token.mint( admin, assetId, totalTokens, "");
 
         emit AssetCreated(assetId, address(token), totalTokens, tokenPrice);
     }
 
+    
+
     // Function to retrieve the deployed token contract address for an asset
-    function getTokenContract(uint256 assetId) public view returns (IAssetToken) {
+    function getTokenContract(uint256 assetId) public view returns (address) {
         
         require(assets[assetId].id != 0, "Asset does not exist");
-        return assets[assetId].tokenContract;
+        return address(assets[assetId].tokenContract);
     }
 
     // Function to allow users to buy tokens from the admin address
     function buyTokens(uint256 assetId, uint256 tokenAmount) public payable {
         Asset storage asset = assets[assetId];
         uint256 cost = asset.tokenPrice *tokenAmount;
+
+
+        console.log("buyTokens");
+        console.log("cost", cost);
+        console.log("msg.sender", msg.sender);
+        console.log("admin", admin);
 
         /*TODO: frontend Approve*/
         require(usdt.transferFrom(msg.sender, admin, cost), "USDT transfer failed");
@@ -204,9 +181,18 @@ contract RWATokenization is Ownable {
     }
 
     function updateHoldings(address account, uint256 assetId, uint256 balance) external {
-        require(msg.sender == address(assets[assetId].tokenContract), "Unauthorized");
 
         Asset storage asset = assets[assetId];
+
+        address tokenContract = address(assets[assetId].tokenContract);
+
+        console.log("msg.sender", msg.sender);
+        console.log("address(this)", address(this));
+        console.log("tokenContract", tokenContract);
+
+        require((msg.sender == address(assets[assetId].tokenContract)) || 
+                (msg.sender == address(this)), "Unauthorized");
+
 
         // Check if balance is zero, remove holder
         if (balance == 0 && asset.holdings[account] > 0) {

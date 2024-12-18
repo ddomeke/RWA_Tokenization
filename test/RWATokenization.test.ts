@@ -1,13 +1,14 @@
 import { expect } from "chai";
 const { ethers } = require("hardhat");
 import hre from "hardhat";
-import { IERC20 } from "../typechain-types";
+import { IERC20, RWATokenization__factory } from "../typechain-types";
 import { log } from './logger';
 
 import {
   AssetToken,
   Fexse,
   RWATokenization,
+  SwapEthToUsdt,
 } from "../typechain-types";
 
 //const params = require('./parameters.json');
@@ -30,6 +31,7 @@ describe("RWATokenization Test", function () {
   let rwaTokenization: RWATokenization;
   let assetToken: AssetToken;
   let fexse: Fexse;
+  let swapEthToUsdt: SwapEthToUsdt;  
   let usdtContract: any;
 
   const ADDR_COUNT = params.ADDR_COUNT;
@@ -40,6 +42,7 @@ describe("RWATokenization Test", function () {
   
   
   const My_ADDRESS = params.My_ADDRESS;
+  const My_ADDRESS2 = params.My_ADDRESS2;
   const FEXSE_ADDRESS = params.FEXSE_ADDRESS;
   const ZERO_ADDRESS = params.ZERO_ADDRESS;
   const TEST_CHAIN = params.TEST_CHAIN;
@@ -64,8 +67,10 @@ describe("RWATokenization Test", function () {
   }
   
   let USDT_ADDRESS: string;
+  let UNISWAP_V3_ROUTER: string;
   
   USDT_ADDRESS = '';
+  UNISWAP_V3_ROUTER = '';
 
   if (TEST_CHAIN === 'polygon') {
     USDT_ADDRESS = '0xc2132D05D31c914a87C6611C10748AEb04B58e8F';
@@ -73,6 +78,8 @@ describe("RWATokenization Test", function () {
       USDT_ADDRESS = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
   } else if (TEST_CHAIN === 'arbitrum') {
       USDT_ADDRESS = '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9';
+      UNISWAP_V3_ROUTER = '0xe592427a0aece92de3edee1f18e0157c05861564';
+      
   }
 
   before(async function () {
@@ -94,25 +101,40 @@ describe("RWATokenization Test", function () {
     rwaTokenization = await hre.ethers.deployContract("RWATokenization",[addresses[0]]);
     const rwaTokenizationAddress = await rwaTokenization.getAddress();
     await log('INFO', `1  - rwaTokenization Address-> ${rwaTokenizationAddress}`);
-    await gasPriceCalc(rwaTokenization.deploymentTransaction());  
+    //await gasPriceCalc(rwaTokenization.deploymentTransaction());  
+
+    //await waitSec(3);
 
     //--------------------- 2. createAsset.sol deploy  ---------------------------------------------
-    await rwaTokenization.createAsset(ASSET_ID,TOTALTOKENS,TOKENPRICE,ASSETURI);
+    const createTx = await rwaTokenization.createAsset(ASSET_ID,TOTALTOKENS,TOKENPRICE,ASSETURI);
+    await createTx.wait();
 
     const assetTokenAddress = await rwaTokenization.getTokenContract(ASSET_ID);    
-    assetToken = await hre.ethers.getContractAt("AssetToken", assetTokenAddress) as AssetToken;
-    
+    assetToken = await hre.ethers.getContractAt("AssetToken", assetTokenAddress) as AssetToken;    
     await log('INFO', `2  - assetToken Address -> ${assetTokenAddress}`);
 
     //--------------------- 3. Fexse.sol deploy  ---------------------------------------------
     fexse = await hre.ethers.deployContract("Fexse",[addresses[0]]);
     const fexseAddress = await fexse.getAddress();
-    await log('INFO', `1  - fexse Address-> ${fexseAddress}`);
-    await gasPriceCalc(fexse.deploymentTransaction()); 
+    await log('INFO', `3  - fexse Address-> ${fexseAddress}`);
+    //await gasPriceCalc(fexse.deploymentTransaction()); 
 
     await rwaTokenization.setFexseAddress(fexseAddress);
+
+    //--------------------- 4. SwapEthToUsdt.sol deploy  ---------------------------------------------
+    // swapEthToUsdt = await hre.ethers.deployContract("SwapEthToUsdt",[UNISWAP_V3_ROUTER]);
+    // const swapEthToUsdtAddress = await swapEthToUsdt.getAddress();
+    // await log('INFO', `4  - swapEthToUsdt Address-> ${swapEthToUsdtAddress}`);
+    // //await gasPriceCalc(swapEthToUsdt.deploymentTransaction()); 
+
+    // const tx = await swapEthToUsdt.swapEthForUsdt(
+    //     ethers.parseUnits("500", 6), // Minimum 50 USDT alınmalı
+    //     Math.floor(Date.now() / 1000) + 60 * 10, // 10 dakika içinde tamamlanmalı
+    //     { value: ethers.parseEther("1000"),gasLimit: 500000, } // 1 ETH gönder
+    // );
+    // await tx.wait();
     
-    //--------------------- 4. USDT ERC20   ---------------------------------------------
+    //--------------------- 5. USDT ERC20   ---------------------------------------------
     usdtContract = (await hre.ethers.getContractAt(ERC20_ABI, USDT_ADDRESS)) as unknown as IERC20;
 
     log('INFO', "---------------------------TRANSFER - APPROVE----------------------------------------");
@@ -123,9 +145,15 @@ describe("RWATokenization Test", function () {
 
     const impersonatedSigner = await hre.ethers.getSigner(My_ADDRESS);
 
-    const amountUSDC = 150000; // Amount to transfer (in USDC smallest unit, i.e., without decimals)
+    const amountUSDC = 1500000000; // Amount to transfer (in USDC smallest unit, i.e., without decimals)
     const amountETH = ethers.parseEther("0.0001");
-    const amountPecto = ethers.parseEther("1000");
+    const amountFexse = ethers.parseEther("1000");
+
+    await hre.network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [My_ADDRESS2],
+    });
+    const buyer = await hre.ethers.getSigner(My_ADDRESS2);
 
     let idx = 1;
 
@@ -134,20 +162,35 @@ describe("RWATokenization Test", function () {
     log('INFO', ``);
 
     await getProject_All_Balances(impersonatedSigner, 0);
+    await getProject_All_Balances(buyer, 0);
+    await getProject_All_Balances(addresses[0], 0);
 
     for (const addr of addresses) {
 
       await usdtContract.connect(impersonatedSigner).transfer(addr.address, amountUSDC); // Transfer USDC
-      await fexse.connect(addresses[0]).transfer(addr.address, amountPecto); // Transfer fexse
-
-      await usdtContract.connect(impersonatedSigner).approve(rwaTokenizationAddress, hre.ethers.MaxUint256);
+      await fexse.connect(addresses[0]).transfer(addr.address, amountFexse); // Transfer fexse
       await usdtContract.connect(addr).approve(rwaTokenizationAddress, hre.ethers.MaxUint256);
-      await fexse.connect(impersonatedSigner).approve(rwaTokenizationAddress, hre.ethers.MaxUint256);
       await fexse.connect(addr).approve(rwaTokenizationAddress, hre.ethers.MaxUint256);
 
-      log('INFO', `Approval successful for WETH and USDC ${addr.address}`);
+      log('INFO', `Approval successful for fexse and USDt ${addr.address}`);
       idx++;
     }    
+
+    
+    
+    await fexse.connect(addresses[0]).transfer(buyer, amountFexse); // Transfer fexse
+    await fexse.connect(addresses[0]).transfer(impersonatedSigner, amountFexse); // Transfer fexse
+
+    await assetToken.connect(addresses[0]).setApprovalForAll(rwaTokenizationAddress, true); // Transfer fexse
+
+    await usdtContract.connect(addresses[0]).approve(rwaTokenizationAddress, hre.ethers.MaxUint256);
+    await usdtContract.connect(impersonatedSigner).approve(rwaTokenizationAddress, hre.ethers.MaxUint256);
+    await fexse.connect(addresses[0]).approve(rwaTokenizationAddress, hre.ethers.MaxUint256);
+    await fexse.connect(impersonatedSigner).approve(rwaTokenizationAddress, hre.ethers.MaxUint256);
+
+    await getProject_All_Balances(impersonatedSigner, 0);
+    await getProject_All_Balances(buyer, 0);
+    await getProject_All_Balances(addresses[0], 0);
 
   });
 
@@ -281,10 +324,21 @@ describe("RWATokenization Test", function () {
         log('INFO', "-------------------------buyTokens-------------------------------");
         log('INFO', ``);
 
+        await hre.network.provider.request({
+            method: "hardhat_impersonateAccount",
+            params: [My_ADDRESS],
+        });
+        const buyer = await hre.ethers.getSigner(My_ADDRESS);
 
-        await expect(rwaTokenization.buyTokens(ASSET_ID, 15))
+        await getProject_All_Balances(buyer, 0);
+
+        const rwaTokenizationAddress = await rwaTokenization.getAddress();
+        const buyerUsdtallowance = await usdtContract.connect(buyer).allowance(buyer, rwaTokenizationAddress);
+        log('INFO', `buyerUsdtallowance : ${buyerUsdtallowance} ...`);
+
+        await expect(rwaTokenization.connect(buyer).buyTokens(ASSET_ID, 15))
             .to.emit(rwaTokenization, "TokensPurchased")
-            .withArgs(addresses[0], ASSET_ID,15,15000);
+            .withArgs(buyer, ASSET_ID,15,15000);
 
        
     });

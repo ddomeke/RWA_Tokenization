@@ -6,7 +6,8 @@
     "ASSETURI":"https://tan-central-cockroach-433.mypinata.cloud/ipfs/bafkreidyghuvsnxhw4hasuv6gfbdvybixzprrmbx7wj2q57igrudnaiewu",
     "ZERO_ADDRESS": "0x0000000000000000000000000000000000000000",
     "FEXSE_ADDRESS": "0x9896a5CbCda7c64D73244BdA128Dd70b612E952e", 
-    "My_ADDRESS": "0x4Cbffa74B9809542272600B2983b494940199EfA",
+    "My_ADDRESS": "0xF977814e90dA44bFA03b6295A0616a897441aceC",
+    "My_ADDRESS2": "0xe985972821d0918C12A9B412834c6e5578860aAd",
     "dateNow": 1732515086,
     "TEST_CHAIN":"arbitrum"
 }
