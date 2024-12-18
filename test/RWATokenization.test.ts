@@ -150,12 +150,6 @@ describe("RWATokenization Test", function () {
     const amountETH = ethers.parseEther("0.0001");
     const amountFexse = ethers.parseEther("1000");
 
-    await hre.network.provider.request({
-        method: "hardhat_impersonateAccount",
-        params: [My_ADDRESS2],
-    });
-    const buyer = await hre.ethers.getSigner(My_ADDRESS2);
-
     let idx = 1;
 
     log('INFO', ``);
@@ -163,7 +157,6 @@ describe("RWATokenization Test", function () {
     log('INFO', ``);
 
     await getProject_All_Balances(impersonatedSigner, 0);
-    await getProject_All_Balances(buyer, 0);
     await getProject_All_Balances(addresses[0], 0);
 
     for (const addr of addresses) {
@@ -175,11 +168,8 @@ describe("RWATokenization Test", function () {
 
       log('INFO', `Approval successful for fexse and USDt ${addr.address}`);
       idx++;
-    }    
-
+    }        
     
-    
-    await fexse.connect(addresses[0]).transfer(buyer, amountFexse); // Transfer fexse
     await fexse.connect(addresses[0]).transfer(impersonatedSigner, amountFexse); // Transfer fexse
 
     await assetToken.connect(addresses[0]).setApprovalForAll(rwaTokenizationAddress, true); // Transfer fexse
@@ -190,7 +180,6 @@ describe("RWATokenization Test", function () {
     await fexse.connect(impersonatedSigner).approve(rwaTokenizationAddress, hre.ethers.MaxUint256);
 
     await getProject_All_Balances(impersonatedSigner, 0);
-    await getProject_All_Balances(buyer, 0);
     await getProject_All_Balances(addresses[0], 0);
 
   });
@@ -369,10 +358,12 @@ describe("RWATokenization Test", function () {
             params: [My_ADDRESS],
         });
         const buyer = await hre.ethers.getSigner(My_ADDRESS);
+        
+        const rwaTokenizationAddress = await rwaTokenization.getAddress();
 
         await getProject_All_Balances(buyer, 0);
+        await getProject_All_Balances(addresses[0], 0);
 
-        const rwaTokenizationAddress = await rwaTokenization.getAddress();
         const buyerUsdtallowance = await usdtContract.connect(buyer).allowance(buyer, rwaTokenizationAddress);
         log('INFO', `buyerUsdtallowance : ${buyerUsdtallowance} `);
 
@@ -380,7 +371,8 @@ describe("RWATokenization Test", function () {
             .to.emit(rwaTokenization, "TokensPurchased")
             .withArgs(buyer, ASSET_ID,15,15000);
 
-        await getProject_All_Balances(buyer, 0);
+        await getProject_All_Balances(buyer, 0);        
+        await getProject_All_Balances(addresses[0], 0);
        
     });
 

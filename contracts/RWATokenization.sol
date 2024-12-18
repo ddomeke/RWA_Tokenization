@@ -68,9 +68,7 @@ contract RWATokenization is Ownable {
             address(this) 
         );
 
-        address tokenAddress = address(token);
-
-        console.log("tokenAddress", tokenAddress);        
+        address tokenAddress = address(token);     
 
         // Store the deployed contract information in the mapping
         Asset storage newAsset = assets[assetId];
@@ -153,12 +151,6 @@ contract RWATokenization is Ownable {
         Asset storage asset = assets[assetId];
         uint256 cost = asset.tokenPrice *tokenAmount;
 
-
-        console.log("buyTokens");
-        console.log("cost", cost);
-        console.log("msg.sender", msg.sender);
-        console.log("admin", admin);
-
         /*TODO: frontend Approve*/
         require(usdt.transferFrom(msg.sender, admin, cost), "USDT transfer failed");
 
@@ -238,11 +230,11 @@ contract RWATokenization is Ownable {
 
         Asset storage asset = assets[assetId];
 
-        address tokenContract = address(assets[assetId].tokenContract);
+        // address tokenContract = address(assets[assetId].tokenContract);
 
-        console.log("msg.sender", msg.sender);
-        console.log("address(this)", address(this));
-        console.log("tokenContract", tokenContract);
+        // console.log("msg.sender", msg.sender);
+        // console.log("address(this)", address(this));
+        // console.log("tokenContract", tokenContract);
 
         require((msg.sender == address(assets[assetId].tokenContract)) || 
                 (msg.sender == address(this)), "Unauthorized");
