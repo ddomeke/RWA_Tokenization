@@ -312,7 +312,7 @@ describe("RWATokenization Test", function () {
     it("  1  -------------->Should createAsset", async function () {
 
         log('INFO', ``);
-        log('INFO', "-------------------------createAsset-------------------------------");
+        log('INFO', "-----------------------------------------------createAsset-----------------------------------------------------");
         log('INFO', ``);
 
         const ASSETID_V2 = ASSET_ID+5;
@@ -350,7 +350,7 @@ describe("RWATokenization Test", function () {
     it("  2  -------------->Should buyTokens", async function () {
 
         log('INFO', ``);
-        log('INFO', "-------------------------buyTokens-------------------------------");
+        log('INFO', "-----------------------------------------------buyTokens-----------------------------------------------------");
         log('INFO', ``);
 
         await hre.network.provider.request({
@@ -373,6 +373,19 @@ describe("RWATokenization Test", function () {
 
         await getProject_All_Balances(buyer, 0);        
         await getProject_All_Balances(addresses[0], 0);
+
+        for (const addr of addresses) {
+
+            await getProject_All_Balances(addr, 0);
+            await getProject_All_Balances(addresses[0], 0);
+
+            await expect(rwaTokenization.connect(addr).buyTokens(ASSET_ID, 15))
+            .to.emit(rwaTokenization, "TokensPurchased")
+            .withArgs(addr, ASSET_ID,15,15000);
+
+            await getProject_All_Balances(addr, 0);        
+            await getProject_All_Balances(addresses[0], 0);
+        }   
        
     });
 
@@ -382,7 +395,7 @@ describe("RWATokenization Test", function () {
     it("  3  -------------->Should getTokenContract", async function () {
 
         log('INFO', ``);
-        log('INFO', "-------------------------getTokenContract-------------------------------");
+        log('INFO', "-----------------------------------------------getTokenContract-----------------------------------------------------");
         log('INFO', ``);
 
         const TokenContract = await rwaTokenization.getTokenContractAddress(ASSET_ID);
@@ -394,7 +407,76 @@ describe("RWATokenization Test", function () {
        
     });
 
- 
-   
+    /*-----------------------------------------------------------------------------------------------
+    -------------------distributeProfit-----------------------------------------------------------
+    -----------------------------------------------------------------------------------------------*/
+    it("  4  -------------->Should distributeProfit", async function () {
+
+        log('INFO', ``);
+        log('INFO', "-----------------------------------------------distributeProfit-----------------------------------------------------");
+        log('INFO', ``);
+
+        await hre.network.provider.request({
+            method: "hardhat_impersonateAccount",
+            params: [My_ADDRESS],
+        });
+        const buyer = await hre.ethers.getSigner(My_ADDRESS);
+
+        await expect(rwaTokenization.connect(addresses[0]).distributeProfit(ASSET_ID, 700000))
+            .to.emit(rwaTokenization, "ProfitDistributed")
+            .withArgs(ASSET_ID, 700000,1000);
+
+        for (const addr of addresses) {
+
+            const pendingProfit = await rwaTokenization.getPendingProfit(addr);
+            log('INFO', `pendingProfit for addr: ${addr.address} amount: ${pendingProfit}  `);
+        }          
+    });
+
+
+    /*-----------------------------------------------------------------------------------------------
+    -------------------claimProfit-----------------------------------------------------------
+    -----------------------------------------------------------------------------------------------*/
+    it("  5  -------------->Should claimProfit", async function () {
+
+        log('INFO', ``);
+        log('INFO', "-----------------------------------------------claimProfit-----------------------------------------------------");
+        log('INFO', ``);
+
+        await hre.network.provider.request({
+            method: "hardhat_impersonateAccount",
+            params: [My_ADDRESS],
+        });
+        const buyer = await hre.ethers.getSigner(My_ADDRESS);
+
+        rwaTokenization.connect(buyer).claimProfit();
+        await getProject_All_Balances(buyer, 0);
+
+        for (const addr of addresses) {
+            await rwaTokenization.connect(addr).claimProfit();
+            await getProject_All_Balances(addr, 0);
+        }          
+    });   
+
+    /*-----------------------------------------------------------------------------------------------
+    -------------------updateAsset-----------------------------------------------------------
+    -----------------------------------------------------------------------------------------------*/
+    it("  6  -------------->Should updateAsset", async function () {
+
+        log('INFO', ``);
+        log('INFO', "-----------------------------------------------updateAsset-----------------------------------------------------");
+        log('INFO', ``);
+         
+        const TokenPrice                = await rwaTokenization.getTokenPrice(ASSET_ID);   
+        log('INFO', `TokenPrice : ${TokenPrice}`); 
+        
+        await expect(rwaTokenization.connect(addresses[0]).updateAsset(ASSET_ID, 1111))
+        .to.emit(rwaTokenization, "AssetUpdated")
+        .withArgs(ASSET_ID,1111);   
+
+        const NewTokenPrice             = await rwaTokenization.getTokenPrice(ASSET_ID);   
+        log('INFO', `NewTokenPrice : ${NewTokenPrice}`);
+        
+    }); 
 
 });

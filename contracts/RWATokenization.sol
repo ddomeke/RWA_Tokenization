@@ -189,6 +189,10 @@ contract RWATokenization is Ownable {
         emit ProfitDistributed(assetId, profitAmount, profitPerToken);
     }
 
+    function getPendingProfit(address account) external view returns (uint256) {
+        return pendingProfits[account];
+    }
+
     // Holders can claim profits themselves
     function claimProfit() public {
         uint256 amount = pendingProfits[msg.sender];
@@ -198,12 +202,9 @@ contract RWATokenization is Ownable {
         // TODO: fexse tranfer fiyta dönüşümü chainlink integration
         uint256 fexse_amount = ((amount * 10 ** 10 ) / 45 * 10 ** 3);
 
-        fexse.transferFrom(admin, msg.sender, fexse_amount);
-    }
+        console.log("fexse_amount", fexse_amount);
 
-    // Function to get the balance of tokens for a user
-    function getTokenBalance(uint256 assetId, address user) public view returns (uint256) {
-        return assets[assetId].holdings[user];
+        fexse.transferFrom(admin, msg.sender, fexse_amount);
     }
 
     // New function to update the token price for an existing asset
