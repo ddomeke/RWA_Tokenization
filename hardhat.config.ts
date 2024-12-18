@@ -1,8 +1,11 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "@typechain/hardhat";
-import "dotenv/config";
+import * as dotenv from "dotenv";
 import path from "path";
+
+// .env dosyasındaki değerleri içe aktarır
+dotenv.config();
 
 const RPC_URL = process.env.RPC_URL || "";
 const PRIVATE_KEY = process.env.PRIVATE_KEY || "";
@@ -29,7 +32,7 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       forking: {
-        url: process.env.RPC_URL || "",        
+        url: RPC_URL || "",        
         blockNumber: 278070393,
       },
       accounts: {

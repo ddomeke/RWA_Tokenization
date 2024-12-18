@@ -272,4 +272,21 @@ describe("RWATokenization Test", function () {
       await delay(time * 1000); // Wait for specified seconds
   }
 
+    /*-----------------------------------------------------------------------------------------------
+    -------------------buyTokens-----------------------------------------------------------
+    -----------------------------------------------------------------------------------------------*/
+    it("  1  -------------->Should buyTokens", async function () {
+
+        log('INFO', ``);
+        log('INFO', "-------------------------buyTokens-------------------------------");
+        log('INFO', ``);
+
+
+        await expect(rwaTokenization.buyTokens(ASSET_ID, 15))
+            .to.emit(rwaTokenization, "TokensPurchased")
+            .withArgs(addresses[0], ASSET_ID,15,15000);
+
+       
+    });
+
 });
