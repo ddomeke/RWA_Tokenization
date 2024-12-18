@@ -30,6 +30,7 @@ describe("RWATokenization Test", function () {
 
   let rwaTokenization: RWATokenization;
   let assetToken: AssetToken;
+  let assetToken_sample: AssetToken;  
   let fexse: Fexse;
   let swapEthToUsdt: SwapEthToUsdt;  
   let usdtContract: any;
@@ -109,7 +110,7 @@ describe("RWATokenization Test", function () {
     const createTx = await rwaTokenization.createAsset(ASSET_ID,TOTALTOKENS,TOKENPRICE,ASSETURI);
     await createTx.wait();
 
-    const assetTokenAddress = await rwaTokenization.getTokenContract(ASSET_ID);    
+    const assetTokenAddress = await rwaTokenization.getTokenContractAddress(ASSET_ID);    
     assetToken = await hre.ethers.getContractAt("AssetToken", assetTokenAddress) as AssetToken;    
     await log('INFO', `2  - assetToken Address -> ${assetTokenAddress}`);
 
@@ -315,10 +316,49 @@ describe("RWATokenization Test", function () {
       await delay(time * 1000); // Wait for specified seconds
   }
 
+
+    /*-----------------------------------------------------------------------------------------------
+    -------------------createAsset-----------------------------------------------------------
+    -----------------------------------------------------------------------------------------------*/
+    it("  1  -------------->Should createAsset", async function () {
+
+        log('INFO', ``);
+        log('INFO', "-------------------------createAsset-------------------------------");
+        log('INFO', ``);
+
+        const ASSETID_V2 = ASSET_ID+5;
+
+        const createTx1 = await rwaTokenization.createAsset(ASSETID_V2,TOTALTOKENS,TOKENPRICE,ASSETURI);
+        await createTx1.wait();        
+    
+        const AssetId                   = await rwaTokenization.getAssetId(ASSETID_V2);  
+        const TotalTokens               = await rwaTokenization.getTotalTokens(ASSETID_V2);   
+        const TokenPrice                = await rwaTokenization.getTokenPrice(ASSETID_V2);   
+        const TotalProfit               = await rwaTokenization.getTotalProfit(ASSETID_V2);   
+        const LastDistributed           = await rwaTokenization.getLastDistributed(ASSETID_V2);   
+        const Uri                       = await rwaTokenization.getUri(ASSETID_V2);   
+        const TokenContractAddress      = await rwaTokenization.getTokenContractAddress(ASSETID_V2);   
+        const TokenHolders              = await rwaTokenization.getTokenHolders(ASSETID_V2);   
+        const HolderBalance             = await rwaTokenization.getHolderBalance(ASSETID_V2, addresses[0]); 
+
+        log('INFO', `AssetId                            : ${AssetId}`);   
+        log('INFO', `TotalTokens                        : ${TotalTokens}`);   
+        log('INFO', `TokenPrice                         : ${TokenPrice}`);   
+        log('INFO', `TotalProfit                        : ${TotalProfit}`);   
+        log('INFO', `LastDistributed                    : ${LastDistributed}`);   
+        log('INFO', `Uri                                : ${Uri}`);   
+        log('INFO', `TokenCoTokenContractAddressntract  : ${TokenContractAddress}`);   
+        log('INFO', `TokenHolders                       : ${TokenHolders}`);   
+        log('INFO', `HolderBalance                      : ${HolderBalance}`);   
+
+        assetToken_sample = await hre.ethers.getContractAt("AssetToken", TokenContractAddress) as AssetToken;
+        
+    });
+
     /*-----------------------------------------------------------------------------------------------
     -------------------buyTokens-----------------------------------------------------------
     -----------------------------------------------------------------------------------------------*/
-    it("  1  -------------->Should buyTokens", async function () {
+    it("  2  -------------->Should buyTokens", async function () {
 
         log('INFO', ``);
         log('INFO', "-------------------------buyTokens-------------------------------");
@@ -334,13 +374,35 @@ describe("RWATokenization Test", function () {
 
         const rwaTokenizationAddress = await rwaTokenization.getAddress();
         const buyerUsdtallowance = await usdtContract.connect(buyer).allowance(buyer, rwaTokenizationAddress);
-        log('INFO', `buyerUsdtallowance : ${buyerUsdtallowance} ...`);
+        log('INFO', `buyerUsdtallowance : ${buyerUsdtallowance} `);
 
         await expect(rwaTokenization.connect(buyer).buyTokens(ASSET_ID, 15))
             .to.emit(rwaTokenization, "TokensPurchased")
             .withArgs(buyer, ASSET_ID,15,15000);
 
+        await getProject_All_Balances(buyer, 0);
        
     });
+
+    /*-----------------------------------------------------------------------------------------------
+    -------------------getTokenContract-----------------------------------------------------------
+    -----------------------------------------------------------------------------------------------*/
+    it("  3  -------------->Should getTokenContract", async function () {
+
+        log('INFO', ``);
+        log('INFO', "-------------------------getTokenContract-------------------------------");
+        log('INFO', ``);
+
+        const TokenContract = await rwaTokenization.getTokenContractAddress(ASSET_ID);
+        log('INFO', `TokenContract : ${TokenContract} `);
+
+        const assetTokennAddress = await assetToken.getAddress();
+
+        expect(TokenContract).to.equal(assetTokennAddress);
+       
+    });
+
+ 
+   
 
 });

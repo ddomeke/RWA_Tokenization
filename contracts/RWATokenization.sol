@@ -83,15 +83,69 @@ contract RWATokenization is Ownable {
         token.mint( admin, assetId, totalTokens, "");
 
         emit AssetCreated(assetId, address(token), totalTokens, tokenPrice);
+    } 
+
+    // Function to get the ID of an asset
+    function getAssetId(uint256 assetId) external view returns (uint256) {
+        Asset storage asset = assets[assetId];
+        require(asset.id != 0, "Asset does not exist");
+        return asset.id;
     }
 
-    
+    // Function to get the total tokens of an asset
+    function getTotalTokens(uint256 assetId) external view returns (uint256) {
+        Asset storage asset = assets[assetId];
+        require(asset.id != 0, "Asset does not exist");
+        return asset.totalTokens;
+    }
 
-    // Function to retrieve the deployed token contract address for an asset
-    function getTokenContract(uint256 assetId) public view returns (address) {
-        
-        require(assets[assetId].id != 0, "Asset does not exist");
-        return address(assets[assetId].tokenContract);
+    // Function to get the token price of an asset
+    function getTokenPrice(uint256 assetId) external view returns (uint256) {
+        Asset storage asset = assets[assetId];
+        require(asset.id != 0, "Asset does not exist");
+        return asset.tokenPrice;
+    }
+
+    // Function to get the total profit of an asset
+    function getTotalProfit(uint256 assetId) external view returns (uint256) {
+        Asset storage asset = assets[assetId];
+        require(asset.id != 0, "Asset does not exist");
+        return asset.totalProfit;
+    }
+
+    // Function to get the last distributed timestamp of an asset
+    function getLastDistributed(uint256 assetId) external view returns (uint256) {
+        Asset storage asset = assets[assetId];
+        require(asset.id != 0, "Asset does not exist");
+        return asset.lastDistributed;
+    }
+
+    // Function to get the URI of an asset
+    function getUri(uint256 assetId) external view returns (string memory) {
+        Asset storage asset = assets[assetId];
+        require(asset.id != 0, "Asset does not exist");
+        return string(abi.encodePacked(asset.uri));
+    }
+
+    // Function to get the token contract address of an asset
+    function getTokenContractAddress(uint256 assetId) external view returns (address) {
+        Asset storage asset = assets[assetId];
+        require(asset.id != 0, "Asset does not exist");
+        return address(asset.tokenContract);
+    }
+
+    // Function to get the token holders of an asset
+    function getTokenHolders(uint256 assetId) external view returns (address[] memory) {
+        Asset storage asset = assets[assetId];
+        require(asset.id != 0, "Asset does not exist");
+        return asset.tokenHolders;
+    }
+
+    // Function to get the holdings of a specific holder for an asset
+    function getHolderBalance(uint256 assetId, address holder) external view returns (uint256) {
+        Asset storage asset = assets[assetId];
+        require(asset.id != 0, "Asset does not exist");
+        return asset.holdings[holder];
     }
 
     // Function to allow users to buy tokens from the admin address
