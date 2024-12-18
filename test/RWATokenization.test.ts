@@ -286,6 +286,31 @@ describe("RWATokenization Test", function () {
       log('INFO', ``);
   }
 
+  async function logAssetDetails(  assetId: string, holderAddress: string) {
+
+        const AssetId = await rwaTokenization.getAssetId(assetId);
+        const TotalTokens = await rwaTokenization.getTotalTokens(assetId);
+        const TokenPrice = await rwaTokenization.getTokenPrice(assetId);
+        const TotalProfit = await rwaTokenization.getTotalProfit(assetId);
+        const LastDistributed = await rwaTokenization.getLastDistributed(assetId);
+        const Uri = await rwaTokenization.getUri(assetId);
+        const TokenContractAddress = await rwaTokenization.getTokenContractAddress(assetId);
+        const TokenHolders = await rwaTokenization.getTokenHolders(assetId);
+        const HolderBalance = await rwaTokenization.getHolderBalance(assetId, holderAddress);
+        const PendingProfits = await rwaTokenization.getPendingProfits(assetId, holderAddress);
+    
+        log("INFO", `AssetId                            : ${AssetId}`);
+        log("INFO", `TotalTokens                        : ${TotalTokens}`);
+        log("INFO", `TokenPrice                         : ${TokenPrice}`);
+        log("INFO", `TotalProfit                        : ${TotalProfit}`);
+        log("INFO", `LastDistributed                    : ${LastDistributed}`);
+        log("INFO", `Uri                                : ${Uri}`);
+        log("INFO", `TokenContractAddress               : ${TokenContractAddress}`);
+        log("INFO", `TokenHolders                       : ${TokenHolders.join(", ")}`);
+        log("INFO", `HolderBalance                      : ${HolderBalance}`);
+        log("INFO", `PendingProfits                     : ${PendingProfits}`);
+}
+
   /**
    * Pauses execution for a specified number of seconds.
    *
@@ -318,28 +343,11 @@ describe("RWATokenization Test", function () {
         const ASSETID_V2 = ASSET_ID+5;
 
         const createTx1 = await rwaTokenization.createAsset(ASSETID_V2,TOTALTOKENS,TOKENPRICE,ASSETURI);
-        await createTx1.wait();        
+        await createTx1.wait();   
     
-        const AssetId                   = await rwaTokenization.getAssetId(ASSETID_V2);  
-        const TotalTokens               = await rwaTokenization.getTotalTokens(ASSETID_V2);   
-        const TokenPrice                = await rwaTokenization.getTokenPrice(ASSETID_V2);   
-        const TotalProfit               = await rwaTokenization.getTotalProfit(ASSETID_V2);   
-        const LastDistributed           = await rwaTokenization.getLastDistributed(ASSETID_V2);   
-        const Uri                       = await rwaTokenization.getUri(ASSETID_V2);   
-        const TokenContractAddress      = await rwaTokenization.getTokenContractAddress(ASSETID_V2);   
-        const TokenHolders              = await rwaTokenization.getTokenHolders(ASSETID_V2);   
-        const HolderBalance             = await rwaTokenization.getHolderBalance(ASSETID_V2, addresses[0]); 
+        await logAssetDetails(ASSETID_V2,addresses[0])
 
-        log('INFO', `AssetId                            : ${AssetId}`);   
-        log('INFO', `TotalTokens                        : ${TotalTokens}`);   
-        log('INFO', `TokenPrice                         : ${TokenPrice}`);   
-        log('INFO', `TotalProfit                        : ${TotalProfit}`);   
-        log('INFO', `LastDistributed                    : ${LastDistributed}`);   
-        log('INFO', `Uri                                : ${Uri}`);   
-        log('INFO', `TokenCoTokenContractAddressntract  : ${TokenContractAddress}`);   
-        log('INFO', `TokenHolders                       : ${TokenHolders}`);   
-        log('INFO', `HolderBalance                      : ${HolderBalance}`);   
-
+        const TokenContractAddress = await rwaTokenization.getTokenContractAddress(ASSETID_V2);
         assetToken_sample = await hre.ethers.getContractAt("AssetToken", TokenContractAddress) as AssetToken;
         
     });
@@ -387,6 +395,8 @@ describe("RWATokenization Test", function () {
                 await getProject_All_Balances(addresses[0], 0);
             }
         }   
+
+        await logAssetDetails(ASSET_ID,addresses[0]);
        
     });
 
@@ -426,7 +436,9 @@ describe("RWATokenization Test", function () {
 
             const pendingProfit = await rwaTokenization.getPendingProfits(ASSET_ID, addr);
             log('INFO', `pendingProfit for addr: ${addr.address} amount: ${pendingProfit}  `);
-        }          
+        }
+        
+        await logAssetDetails(ASSET_ID,addresses[0]);
     });
 
 

@@ -173,19 +173,13 @@ contract RWATokenization is Ownable {
         
         // Calculate profit per token
         uint256 profitPerToken = profitAmount / asset.totalTokens;
-        console.log("totalTokens: ",asset.totalTokens);
 
         // Distribute profit to each holder
-        for (uint256 i = 0; i < asset.tokenHolders.length; i++) {
-            console.log("i----->",i);            
+        for (uint256 i = 0; i < asset.tokenHolders.length; i++) {  
             address holder = asset.tokenHolders[i];
-            console.log("holder: ",holder);
             uint256 holderTokens = asset.holdings[holder];
-            console.log("holderTokens: ",holderTokens);
-            uint256 holderProfit = holderTokens*profitPerToken;            
-            console.log("holderProfit",holderProfit);
+            uint256 holderProfit = holderTokens*profitPerToken;   
             asset.pendingProfits[holder] = asset.pendingProfits[holder] + holderProfit;
-            console.log("pendingProfits[holder]",asset.pendingProfits[holder]);
         }
 
         asset.totalProfit = asset.totalProfit + profitAmount;
