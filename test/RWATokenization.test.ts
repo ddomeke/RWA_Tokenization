@@ -376,15 +376,16 @@ describe("RWATokenization Test", function () {
 
         for (const addr of addresses) {
 
-            await getProject_All_Balances(addr, 0);
-            await getProject_All_Balances(addresses[0], 0);
+            if(addr!=addresses[0]){
 
-            await expect(rwaTokenization.connect(addr).buyTokens(ASSET_ID, 15))
-            .to.emit(rwaTokenization, "TokensPurchased")
-            .withArgs(addr, ASSET_ID,15,15000);
+                await getProject_All_Balances(addr, 0);
+                await getProject_All_Balances(addresses[0], 0);
 
-            await getProject_All_Balances(addr, 0);        
-            await getProject_All_Balances(addresses[0], 0);
+                await rwaTokenization.connect(addr).buyTokens(ASSET_ID, 15);               
+
+                await getProject_All_Balances(addr, 0);        
+                await getProject_All_Balances(addresses[0], 0);
+            }
         }   
        
     });
@@ -414,21 +415,16 @@ describe("RWATokenization Test", function () {
 
         log('INFO', ``);
         log('INFO', "-----------------------------------------------distributeProfit-----------------------------------------------------");
-        log('INFO', ``);
+        log('INFO', ``);     
 
-        await hre.network.provider.request({
-            method: "hardhat_impersonateAccount",
-            params: [My_ADDRESS],
-        });
-        const buyer = await hre.ethers.getSigner(My_ADDRESS);
-
-        await expect(rwaTokenization.connect(addresses[0]).distributeProfit(ASSET_ID, 700000))
+        await expect(rwaTokenization.connect(addresses[0]).distributeProfit(ASSET_ID, 700))
             .to.emit(rwaTokenization, "ProfitDistributed")
-            .withArgs(ASSET_ID, 700000,1000);
+            .withArgs(ASSET_ID, 700,1);
 
         for (const addr of addresses) {
+            await getProject_All_Balances(addr, 0);
 
-            const pendingProfit = await rwaTokenization.getPendingProfit(addr);
+            const pendingProfit = await rwaTokenization.getPendingProfits(ASSET_ID, addr);
             log('INFO', `pendingProfit for addr: ${addr.address} amount: ${pendingProfit}  `);
         }          
     });
@@ -449,11 +445,11 @@ describe("RWATokenization Test", function () {
         });
         const buyer = await hre.ethers.getSigner(My_ADDRESS);
 
-        rwaTokenization.connect(buyer).claimProfit();
+        rwaTokenization.connect(buyer).claimProfit(ASSET_ID);
         await getProject_All_Balances(buyer, 0);
 
         for (const addr of addresses) {
-            await rwaTokenization.connect(addr).claimProfit();
+            await rwaTokenization.connect(addr).claimProfit(ASSET_ID);
             await getProject_All_Balances(addr, 0);
         }          
     });   

@@ -26,6 +26,7 @@ contract RWATokenization is Ownable {
         IAssetToken tokenContract;
         address[] tokenHolders;      // List of token holders for profit sharing
         mapping(address => uint256) holdings; // User's holdings in the asset
+        mapping(address => uint256) pendingProfits;
     }
 
     // Admin address for managing token transfers
@@ -34,7 +35,6 @@ contract RWATokenization is Ownable {
 
     // Mapping to store assets by ID
     mapping(uint256 => Asset) public assets;
-    mapping(address => uint256) public pendingProfits;
 
     // Event to log profit distribution
     event ProfitDistributed(uint256 assetId, uint256 totalProfit, uint256 amountPerToken);
@@ -146,6 +146,13 @@ contract RWATokenization is Ownable {
         return asset.holdings[holder];
     }
 
+        // Function to get the pending Profits of a specific holder for an asset
+    function getPendingProfits(uint256 assetId, address holder) external view returns (uint256) {
+        Asset storage asset = assets[assetId];
+        require(asset.id != 0, "Asset does not exist");
+        return asset.pendingProfits[holder];
+    }
+
     // Function to allow users to buy tokens from the admin address
     function buyTokens(uint256 assetId, uint256 tokenAmount) public payable {
         Asset storage asset = assets[assetId];
@@ -154,16 +161,8 @@ contract RWATokenization is Ownable {
         /*TODO: frontend Approve*/
         require(usdt.transferFrom(msg.sender, admin, cost), "USDT transfer failed");
 
-        // Transfer tokens from the admin to the buyer
+        // TODO: frontend Approve Transfer tokens from the admin to the buyer
         IAssetToken(asset.tokenContract).safeTransferFrom(admin, msg.sender, assetId, tokenAmount, "");
-
-        // Record the purchase
-        asset.holdings[msg.sender] = asset.holdings[msg.sender] + tokenAmount;
-
-        // Add the buyer to the tokenHolders list if they haven't been added yet
-        if (asset.holdings[msg.sender] == tokenAmount) {
-            asset.tokenHolders.push(msg.sender);
-        }
 
         emit TokensPurchased(msg.sender, assetId, tokenAmount, cost);
     }
@@ -174,13 +173,19 @@ contract RWATokenization is Ownable {
         
         // Calculate profit per token
         uint256 profitPerToken = profitAmount / asset.totalTokens;
+        console.log("totalTokens: ",asset.totalTokens);
 
         // Distribute profit to each holder
         for (uint256 i = 0; i < asset.tokenHolders.length; i++) {
+            console.log("i----->",i);            
             address holder = asset.tokenHolders[i];
+            console.log("holder: ",holder);
             uint256 holderTokens = asset.holdings[holder];
-            uint256 holderProfit = holderTokens*profitPerToken;
-            pendingProfits[holder] = pendingProfits[holder] + holderProfit;
+            console.log("holderTokens: ",holderTokens);
+            uint256 holderProfit = holderTokens*profitPerToken;            
+            console.log("holderProfit",holderProfit);
+            asset.pendingProfits[holder] = asset.pendingProfits[holder] + holderProfit;
+            console.log("pendingProfits[holder]",asset.pendingProfits[holder]);
         }
 
         asset.totalProfit = asset.totalProfit + profitAmount;
@@ -189,15 +194,15 @@ contract RWATokenization is Ownable {
         emit ProfitDistributed(assetId, profitAmount, profitPerToken);
     }
 
-    function getPendingProfit(address account) external view returns (uint256) {
-        return pendingProfits[account];
-    }
 
     // Holders can claim profits themselves
-    function claimProfit() public {
-        uint256 amount = pendingProfits[msg.sender];
+    function claimProfit(uint256 assetId) public {
+
+        Asset storage asset = assets[assetId];
+
+        uint256 amount = asset.pendingProfits[msg.sender];
         require(amount > 0, "No profit to claim");
-        pendingProfits[msg.sender] = 0;
+        asset.pendingProfits[msg.sender] = 0;
 
         // TODO: fexse tranfer fiyta dönüşümü chainlink integration
         uint256 fexse_amount = ((amount * 10 ** 10 ) / 45 * 10 ** 3);
@@ -231,22 +236,22 @@ contract RWATokenization is Ownable {
 
         Asset storage asset = assets[assetId];
 
-        // address tokenContract = address(assets[assetId].tokenContract);
-
-        // console.log("msg.sender", msg.sender);
-        // console.log("address(this)", address(this));
-        // console.log("tokenContract", tokenContract);
-
         require((msg.sender == address(assets[assetId].tokenContract)) || 
                 (msg.sender == address(this)), "Unauthorized");
+       
+        uint256 currentBalance = asset.holdings[account];
 
+        // Eğer balance değişmemişse işlemi atla
+        if (currentBalance == balance) {
+            return;
+        }
 
         // Check if balance is zero, remove holder
-        if (balance == 0 && asset.holdings[account] > 0) {
-            _removeHolder(assetId, account);
+        if (balance == 0 && currentBalance > 0) {
+            clearHolderData(assetId, account);
         }
         // If balance > 0 and not already a holder, add holder
-        else if (balance > 0 && asset.holdings[account] == 0) {
+        else if (balance > 0 && currentBalance == 0) {
             asset.tokenHolders.push(account);
         }
 
@@ -265,6 +270,29 @@ contract RWATokenization is Ownable {
                 break;
             }
         }
+    }
+
+    // Function to remove holdings of a specific address
+    function _removeHoldings(uint256 assetId, address holder) internal {
+        Asset storage asset = assets[assetId];
+        require(asset.holdings[holder] > 0, "No holdings to remove");
+
+        delete asset.holdings[holder];
+    }
+
+    // Function to remove pending profits of a specific address
+    function _removePendingProfits(uint256 assetId, address holder) internal {
+        Asset storage asset = assets[assetId];
+        require(asset.pendingProfits[holder] > 0, "No pending profits to remove");
+
+        delete asset.pendingProfits[holder];
+    }
+
+    // Function to clear all mappings and arrays for a specific holder
+    function clearHolderData(uint256 assetId, address holder) internal {
+        _removeHolder(assetId, holder);
+        _removeHoldings(assetId, holder);
+        _removePendingProfits(assetId, holder);
     }
 }
 
