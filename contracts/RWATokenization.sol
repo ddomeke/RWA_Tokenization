@@ -33,6 +33,11 @@ contract RWATokenization is Ownable {
     address public admin;
     string private baseURI;
 
+    uint256 private constant USDT_DECIMALS = 10**6; // 6 decimals for USDT
+    uint256 private constant FEXSE_DECIMALS = 10**18; // 18 decimals for FEXSE
+    uint256 private constant FEXSE_PRICE_IN_USDT = 45; // 0.045 USDT represented as 45 (scaled by 10^3)
+
+
     // Mapping to store assets by ID
     mapping(uint256 => Asset) public assets;
 
@@ -199,7 +204,7 @@ contract RWATokenization is Ownable {
         asset.pendingProfits[msg.sender] = 0;
 
         // TODO: fexse tranfer fiyta dönüşümü chainlink integration
-        uint256 fexse_amount = ((amount * 10 ** 10 ) / 45 * 10 ** 3);
+        uint256 fexse_amount = (amount * FEXSE_DECIMALS) / (FEXSE_PRICE_IN_USDT * (10**3));
 
         console.log("fexse_amount", fexse_amount);
 
