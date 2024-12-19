@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IAssetToken} from "./IAssetToken.sol";
 import {AssetToken} from "./AssetToken.sol";
@@ -10,7 +11,7 @@ import {IRWATokenization} from "./IRWATokenization.sol";
 import "hardhat/console.sol";
 
 
-contract RWATokenization is Ownable {
+contract RWATokenization is Ownable, ReentrancyGuard  {
 
     IERC20 public usdt = IERC20(0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9);
     IERC20 public fexse;
@@ -60,7 +61,7 @@ contract RWATokenization is Ownable {
         uint256 totalTokens,
         uint256 tokenPrice,
         string memory assetUri
-    ) external onlyOwner {
+    ) external onlyOwner nonReentrant  {
 
         require(assets[assetId].id == 0, "Asset already exists");
         require(totalTokens > 0, "Total tokens must be greater than zero");
@@ -159,7 +160,7 @@ contract RWATokenization is Ownable {
     }
 
     // Function to allow users to buy tokens from the admin address
-    function buyTokens(uint256 assetId, uint256 tokenAmount) public payable {
+    function buyTokens(uint256 assetId, uint256 tokenAmount) public payable nonReentrant  {
         Asset storage asset = assets[assetId];
         uint256 cost = asset.tokenPrice *tokenAmount;
 
@@ -173,7 +174,7 @@ contract RWATokenization is Ownable {
     }
 
     // Function to distribute profit to token holders
-    function distributeProfit(uint256 assetId, uint256 profitAmount) public onlyOwner {
+    function distributeProfit(uint256 assetId, uint256 profitAmount) public onlyOwner nonReentrant  {
         Asset storage asset = assets[assetId];
         
         // Calculate profit per token
@@ -195,7 +196,7 @@ contract RWATokenization is Ownable {
 
 
     // Holders can claim profits themselves
-    function claimProfit(uint256 assetId) public {
+    function claimProfit(uint256 assetId) public nonReentrant  {
 
         Asset storage asset = assets[assetId];
 
@@ -206,13 +207,13 @@ contract RWATokenization is Ownable {
         // TODO: fexse tranfer fiyta dönüşümü chainlink integration
         uint256 fexse_amount = (amount * FEXSE_DECIMALS) / (FEXSE_PRICE_IN_USDT * (10**3));
 
-        console.log("fexse_amount", fexse_amount);
+        //console.log("fexse_amount", fexse_amount);
 
         fexse.transferFrom(admin, msg.sender, fexse_amount);
     }
 
     // New function to update the token price for an existing asset
-    function updateAsset(uint256 assetId, uint256 newTokenPrice) public onlyOwner {
+    function updateAsset(uint256 assetId, uint256 newTokenPrice) public onlyOwner nonReentrant  {
         require(assets[assetId].id != 0, "Asset does not exist");
 
         Asset storage asset = assets[assetId];
@@ -223,7 +224,7 @@ contract RWATokenization is Ownable {
 
     function setFexseAddress(
         IERC20 _fexseToken
-    ) external onlyOwner {
+    ) external onlyOwner nonReentrant  {
         require(
             address(_fexseToken) != address(0),
             "Invalid _fexseToken address"
