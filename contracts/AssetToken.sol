@@ -15,6 +15,8 @@ import "hardhat/console.sol";
 contract AssetToken is IAssetToken, ERC1155, Ownable, ERC1155Pausable, ERC1155Supply {
 
     IRWATokenization public rwaContract;
+    
+    event RWATokenizationContractUpdated(address oldContract, address newContract);
 
     modifier onlyOwnerOrRWAContract() {
         require(msg.sender == owner() || msg.sender == address(rwaContract), "Not authorized");
@@ -75,5 +77,14 @@ contract AssetToken is IAssetToken, ERC1155, Ownable, ERC1155Pausable, ERC1155Su
                 rwaContract.updateHoldings(to, id, balanceOf(to, id));
             }
         }
+    }
+
+    function updateRWATokenizationContract(address newContract) external onlyOwner {
+        require(newContract != address(0), "Invalid RWA contract address");
+
+        address oldContract = address(rwaContract);
+        rwaContract = IRWATokenization(newContract);
+
+        emit RWATokenizationContractUpdated(oldContract, newContract);
     }
 }

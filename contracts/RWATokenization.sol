@@ -47,6 +47,7 @@ contract RWATokenization is Ownable, ReentrancyGuard  {
     event AssetUpdated(uint256 assetId, uint256 newTokenPrice);
     event TokensPurchased(address buyer, uint256 assetId, uint256 amount, uint256 cost);
     event AssetCreated(uint256 assetId, address tokenContract, uint256 totalTokens, uint256 tokenPrice);
+    event fexseContractUpdated(address oldToken, address newToken);
 
 
     constructor(address initialOwner)
@@ -230,6 +231,11 @@ contract RWATokenization is Ownable, ReentrancyGuard  {
             "Invalid _fexseToken address"
         );
         fexse = _fexseToken;
+
+        address oldContract = address(fexse);
+        fexse = _fexseToken;
+
+        emit fexseContractUpdated(oldContract, address(_fexseToken));
     }
 
     function updateHoldings(address account, uint256 assetId, uint256 balance) external {
