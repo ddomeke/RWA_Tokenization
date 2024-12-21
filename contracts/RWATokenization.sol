@@ -230,8 +230,7 @@ contract RWATokenization is Ownable, ReentrancyGuard  {
             address(_fexseToken) != address(0),
             "Invalid _fexseToken address"
         );
-        fexse = _fexseToken;
-
+        
         address oldContract = address(fexse);
         fexse = _fexseToken;
 
