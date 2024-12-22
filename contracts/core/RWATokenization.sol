@@ -5,9 +5,9 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IAssetToken} from "./IAssetToken.sol";
 import {AssetToken} from "./AssetToken.sol";
-import {IRWATokenization} from "./IRWATokenization.sol";
+import {IAssetToken} from "../interfaces/IAssetToken.sol";
+import {IRWATokenization} from "../interfaces/IRWATokenization.sol";
 import "hardhat/console.sol";
 
 
