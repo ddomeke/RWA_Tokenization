@@ -29,6 +29,8 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard  {
         address[] tokenHolders;      // List of token holders for profit sharing
         mapping(address => uint256) holdings; // User's holdings in the asset
         mapping(address => uint256) pendingProfits;
+        mapping(address => uint256) tokensForSale;
+        mapping(address => uint256) salePrices;
     }
 
     // Admin address for managing token transfers
@@ -47,6 +49,8 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard  {
     event ProfitDistributed(uint256 assetId, uint256 totalProfit, uint256 amountPerToken);
     event AssetUpdated(uint256 assetId, uint256 newTokenPrice);
     event TokensPurchased(address buyer, uint256 assetId, uint256 amount, uint256 cost);
+    event TokensSold(address buyer, address seller, uint256 assetId, uint256 amount, uint256 cost);
+    event TokensListedForSale(address seller, uint256 assetId, uint256 amount, uint256 price);
     event AssetCreated(uint256 assetId, address tokenContract, uint256 totalTokens, uint256 tokenPrice);
     event fexseContractUpdated(address oldToken, address newToken);
 
@@ -162,18 +166,38 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard  {
     }
 
     // Function to allow users to buy tokens from the admin address
-    function buyTokens(uint256 assetId, uint256 tokenAmount) public payable nonReentrant  {
+    function buyTokens(uint256 assetId, uint256 tokenAmount, address seller) public payable nonReentrant  {
         Asset storage asset = assets[assetId];
-        uint256 cost = asset.tokenPrice *tokenAmount;
+        uint256 cost;
 
-        /*TODO: frontend Approve*/
-        require(usdt.transferFrom(msg.sender, admin, cost), "USDT transfer failed");
+        if (seller == address(this)) {
+            cost = asset.tokenPrice * tokenAmount;
+            require(usdt.transferFrom(msg.sender, admin, cost), "USDT transfer failed");
+            IAssetToken(asset.tokenContract).safeTransferFrom(admin, msg.sender, assetId, tokenAmount, "");
+        } else {
+            cost = asset.salePrices[seller] * tokenAmount;
+            require(asset.tokensForSale[seller] >= tokenAmount, "Insufficient tokens for sale");
+            require(usdt.transferFrom(msg.sender, seller, cost), "USDT transfer to seller failed");
 
-        // TODO: frontend Approve Transfer tokens from the admin to the buyer
-        IAssetToken(asset.tokenContract).safeTransferFrom(admin, msg.sender, assetId, tokenAmount, "");
+            asset.tokensForSale[seller] -= tokenAmount;
+            IAssetToken(asset.tokenContract).safeTransferFrom(seller, msg.sender, assetId, tokenAmount, "");
+
+            emit TokensSold(msg.sender, seller, assetId, tokenAmount, cost);
+        }
 
         emit TokensPurchased(msg.sender, assetId, tokenAmount, cost);
     }
+
+    function sellTokens(uint256 assetId, uint256 tokenAmount, uint256 salePrice) external nonReentrant  {
+        Asset storage asset = assets[assetId];
+        require(asset.holdings[msg.sender] >= tokenAmount, "Insufficient token balance");
+
+        asset.tokensForSale[msg.sender] += tokenAmount;
+        asset.salePrices[msg.sender] = salePrice;
+
+        emit TokensListedForSale(msg.sender, assetId, tokenAmount, salePrice);
+    }
+
 
     // Function to distribute profit to token holders
     function distributeProfit(uint256 assetId, uint256 profitAmount) public onlyOwner nonReentrant  {

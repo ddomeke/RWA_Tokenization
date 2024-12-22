@@ -375,7 +375,7 @@ describe("RWATokenization Test", function () {
         const buyerUsdtallowance = await usdtContract.connect(buyer).allowance(buyer, rwaTokenizationAddress);
         log('INFO', `buyerUsdtallowance : ${buyerUsdtallowance} `);
 
-        await expect(rwaTokenization.connect(buyer).buyTokens(ASSET_ID, 15))
+        await expect(rwaTokenization.connect(buyer).buyTokens(ASSET_ID, 15,rwaTokenizationAddress))
             .to.emit(rwaTokenization, "TokensPurchased")
             .withArgs(buyer, ASSET_ID,15,15000);
 
@@ -389,7 +389,7 @@ describe("RWATokenization Test", function () {
                 await getProject_All_Balances(addr, 0);
                 await getProject_All_Balances(addresses[0], 0);
 
-                await rwaTokenization.connect(addr).buyTokens(ASSET_ID, 15);               
+                await rwaTokenization.connect(addr).buyTokens(ASSET_ID, 15,rwaTokenizationAddress);               
 
                 await getProject_All_Balances(addr, 0);        
                 await getProject_All_Balances(addresses[0], 0);
