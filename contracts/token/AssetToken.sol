@@ -2,10 +2,10 @@
 // Compatible with OpenZeppelin Contracts ^5.0.0
 pragma solidity ^0.8.24;
 
-import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
-import {ERC1155Pausable} from "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Pausable.sol";
-import {ERC1155Supply} from "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Supply.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ERC1155} from "./ERC1155/ERC1155.sol";
+import {ERC1155Pausable} from "./ERC1155/extensions/ERC1155Pausable.sol";
+import {ERC1155Supply} from "./ERC1155/extensions/ERC1155Supply.sol";
+import {Ownable} from "../utils/Ownable.sol";
 import {IAssetToken} from "../interfaces/IAssetToken.sol";
 import {IRWATokenization} from "../interfaces/IRWATokenization.sol";
 import "hardhat/console.sol";

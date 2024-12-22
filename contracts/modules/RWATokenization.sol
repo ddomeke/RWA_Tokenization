@@ -1,17 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/utils/Strings.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {AssetToken} from "./AssetToken.sol";
+import "../utils/AccessControl.sol";
+import "../token/ERC20/IERC20.sol";
+import "../utils/Strings.sol";
+import "../utils/ReentrancyGuard.sol";
+import "../utils/Ownable.sol";
+import {AssetToken} from "../token/AssetToken.sol";
 import {IAssetToken} from "../interfaces/IAssetToken.sol";
 import {IRWATokenization} from "../interfaces/IRWATokenization.sol";
 import "hardhat/console.sol";
 
 
-contract RWATokenization is Ownable, ReentrancyGuard  {
+contract RWATokenization is AccessControl, Ownable, ReentrancyGuard  {
 
     IERC20 public usdt = IERC20(0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9);
     IERC20 public fexse;

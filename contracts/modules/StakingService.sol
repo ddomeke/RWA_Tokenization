@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "../token/ERC20/IERC20.sol";
+import "../utils/ReentrancyGuard.sol";
+import "../utils/Ownable.sol";
+import "../utils/AccessControl.sol";
 
-contract StakingService is ReentrancyGuard, Ownable {
+contract StakingService is AccessControl, ReentrancyGuard, Ownable {
 
     IERC20 public governenceToken;
     uint256 public rewardRate;
