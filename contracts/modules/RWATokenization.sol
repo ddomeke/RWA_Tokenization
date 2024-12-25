@@ -170,6 +170,10 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard  {
         Asset storage asset = assets[assetId];
         uint256 cost;
 
+        /*TODO: frontend Approve*/
+
+        // TODO: frontend Approve Transfer tokens from the admin to the buyer
+
         if (seller == address(this)) {
             cost = asset.tokenPrice * tokenAmount;
             require(usdt.transferFrom(msg.sender, admin, cost), "USDT transfer failed");
@@ -191,6 +195,10 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard  {
     function sellTokens(uint256 assetId, uint256 tokenAmount, uint256 salePrice) external nonReentrant  {
         Asset storage asset = assets[assetId];
         require(asset.holdings[msg.sender] >= tokenAmount, "Insufficient token balance");
+
+        /*TODO: frontend Approve*/
+
+        // TODO: frontend Approve Transfer tokens from the admin to the buyer
 
         asset.tokensForSale[msg.sender] += tokenAmount;
         asset.salePrices[msg.sender] = salePrice;
@@ -216,7 +224,7 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard  {
 
         asset.totalProfit = asset.totalProfit + profitAmount;
         asset.lastDistributed = block.timestamp;
-
+        //TODO: fexse miktarını atalım profit amount olarak.
         emit ProfitDistributed(assetId, profitAmount, profitPerToken);
     }
 
@@ -236,6 +244,8 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard  {
         //console.log("fexse_amount", fexse_amount);
 
         fexse.transferFrom(admin, msg.sender, fexse_amount);
+
+        // TODO: emit claimed(assetid array, )
     }
 
     // New function to update the token price for an existing asset
