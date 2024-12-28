@@ -15,6 +15,13 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
     IERC20 public usdt = IERC20(0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9);
     IERC20 public fexse;
 
+    struct UserTokenInfo {
+        uint256 holdings;         // User's holdings in the asset
+        uint256 pendingProfits;   // Pending profits for the user
+        uint256 tokensForSale;    // Number of tokens put for sale by the user
+        uint256 salePrices;       // Sale price set by the user
+    }
+
     // Asset struct to store asset information
     struct Asset {
         uint256 id; // Unique ID for the asset
@@ -25,10 +32,7 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
         string uri; // URI for metadata
         IAssetToken tokenContract;
         address[] tokenHolders; // List of token holders for profit sharing
-        mapping(address => uint256) holdings; // User's holdings in the asset
-        mapping(address => uint256) pendingProfits;
-        mapping(address => uint256) tokensForSale;
-        mapping(address => uint256) salePrices;
+        mapping(address => UserTokenInfo) userTokenInfo;
     }
 
     // Admin address for managing token transfers
@@ -190,7 +194,7 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
     ) external view returns (uint256) {
         Asset storage asset = assets[assetId];
         require(asset.id != 0, "Asset does not exist");
-        return asset.holdings[holder];
+        return asset.userTokenInfo[holder].holdings;
     }
 
     // Function to get the pending Profits of a specific holder for an asset
@@ -200,9 +204,19 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
     ) external view returns (uint256) {
         Asset storage asset = assets[assetId];
         require(asset.id != 0, "Asset does not exist");
-        return asset.pendingProfits[holder];
+        return asset.userTokenInfo[holder].pendingProfits;
     }
 
+    /**
+     * @notice Transfers a specified amount of asset tokens from a sender to a buyer.
+     * @dev This function handles the transfer of asset tokens and the corresponding FEXSE token payment.
+     *      It requires the caller to be the contract owner and is protected against reentrancy.
+     * @param sender The address of the current token holder who is transferring the tokens.
+     * @param buyer The address of the recipient who is buying the tokens.
+     * @param assetId The unique identifier of the asset whose tokens are being transferred.
+     * @param tokenAmount The number of tokens to be transferred.
+     * @param tokenPrice The price per token in USDT.
+     */
     function transferAsset(
         address sender,
         address buyer,
@@ -210,16 +224,10 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
         uint256 tokenAmount,
         uint256 tokenPrice
     ) external onlyOwner nonReentrant {
-
-        require(
-            address(sender) != address(0),
-            "Invalid sender address"
-        );
-
-        require(
-            address(buyer) != address(0),
-            "Invalid buyer address"
-        );
+        require(address(sender) != address(0), "Invalid sender address");
+        require(address(buyer) != address(0), "Invalid buyer address");
+        require(tokenAmount > 0, "Token amount must be greater than zero");
+        require(tokenPrice > 0, "Token price must be greater than zero");
 
         Asset storage asset = assets[assetId];
         uint256 cost = tokenPrice * tokenAmount;
@@ -277,9 +285,9 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
                 ""
             );
         } else {
-            cost = asset.salePrices[seller] * tokenAmount;
+            cost = asset.userTokenInfo[seller].salePrices * tokenAmount;
             require(
-                asset.tokensForSale[seller] >= tokenAmount,
+                asset.userTokenInfo[seller].tokensForSale >= tokenAmount,
                 "Insufficient tokens for sale"
             );
             require(
@@ -287,7 +295,7 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
                 "USDT transfer to seller failed"
             );
 
-            asset.tokensForSale[seller] -= tokenAmount;
+            asset.userTokenInfo[seller].tokensForSale -= tokenAmount;
             IAssetToken(asset.tokenContract).safeTransferFrom(
                 seller,
                 msg.sender,
@@ -309,7 +317,7 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
     ) external nonReentrant {
         Asset storage asset = assets[assetId];
         require(
-            asset.holdings[msg.sender] >= tokenAmount,
+            asset.userTokenInfo[msg.sender].holdings >= tokenAmount,
             "Insufficient token balance"
         );
 
@@ -317,8 +325,8 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
 
         // TODO: frontend Approve Transfer tokens from the admin to the buyer
 
-        asset.tokensForSale[msg.sender] += tokenAmount;
-        asset.salePrices[msg.sender] = salePrice;
+        asset.userTokenInfo[msg.sender].tokensForSale += tokenAmount;
+        asset.userTokenInfo[msg.sender].salePrices = salePrice;
 
         emit TokensListedForSale(msg.sender, assetId, tokenAmount, salePrice);
     }
@@ -336,10 +344,10 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
         // Distribute profit to each holder
         for (uint256 i = 0; i < asset.tokenHolders.length; i++) {
             address holder = asset.tokenHolders[i];
-            uint256 holderTokens = asset.holdings[holder];
+            uint256 holderTokens = asset.userTokenInfo[holder].holdings;
             uint256 holderProfit = holderTokens * profitPerToken;
-            asset.pendingProfits[holder] =
-                asset.pendingProfits[holder] +
+            asset.userTokenInfo[holder].pendingProfits =
+                asset.userTokenInfo[holder].pendingProfits +
                 holderProfit;
         }
 
@@ -353,9 +361,9 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
     function claimProfit(uint256 assetId) public nonReentrant {
         Asset storage asset = assets[assetId];
 
-        uint256 amount = asset.pendingProfits[msg.sender];
+        uint256 amount = asset.userTokenInfo[msg.sender].pendingProfits;
         require(amount > 0, "No profit to claim");
-        asset.pendingProfits[msg.sender] = 0;
+        asset.userTokenInfo[msg.sender].pendingProfits = 0;
 
         // TODO: fexse tranfer fiyta dönüşümü chainlink integration
         uint256 fexse_amount = (amount * FEXSE_DECIMALS) /
@@ -408,7 +416,7 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
             "Unauthorized"
         );
 
-        uint256 currentBalance = asset.holdings[account];
+        uint256 currentBalance = asset.userTokenInfo[account].holdings;
 
         // Eğer balance değişmemişse işlemi atla
         if (currentBalance == balance) {
@@ -425,7 +433,7 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
         }
 
         // Update holdings
-        asset.holdings[account] = balance;
+        asset.userTokenInfo[account].holdings = balance;
     }
 
     function _removeHolder(uint256 assetId, address holder) internal {
@@ -444,20 +452,20 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
     // Function to remove holdings of a specific address
     function _removeHoldings(uint256 assetId, address holder) internal {
         Asset storage asset = assets[assetId];
-        require(asset.holdings[holder] > 0, "No holdings to remove");
+        require(asset.userTokenInfo[holder].holdings > 0, "No holdings to remove");
 
-        delete asset.holdings[holder];
+        delete asset.userTokenInfo[holder].holdings;
     }
 
     // Function to remove pending profits of a specific address
     function _removePendingProfits(uint256 assetId, address holder) internal {
         Asset storage asset = assets[assetId];
         require(
-            asset.pendingProfits[holder] > 0,
+            asset.userTokenInfo[holder].pendingProfits > 0,
             "No pending profits to remove"
         );
 
-        delete asset.pendingProfits[holder];
+        delete asset.userTokenInfo[holder].pendingProfits;
     }
 
     // Function to clear all mappings and arrays for a specific holder
