@@ -45,13 +45,34 @@ contract AssetToken is IAssetToken, ERC1155, Ownable, ERC1155Pausable, ERC1155Su
         address from,
         address to,
         uint256 id,
-        uint256 amount,
+        uint256 value,
         bytes memory data
     ) public override(ERC1155, IERC1155){
         uint256 balance = balanceOf(from, id);
         uint256 locked = lockedTokens[id][from];
-        require(balance - locked >= amount, "Insufficient unlocked balance");
-        super.safeTransferFrom(from, to, id, amount, data);
+        require(balance - locked >= value, "Insufficient unlocked balance");
+        super.safeTransferFrom(from, to, id, value, data);
+    }
+
+    // Override safeBatchTransferFrom to block locked tokens
+    function safeBatchTransferFrom(
+        address from,
+        address to,
+        uint256[] memory ids,
+        uint256[] memory values,
+        bytes memory data
+    ) public override(ERC1155, IERC1155) {
+        require(ids.length == values.length, "IDs and amounts length mismatch");
+
+        for (uint256 i = 0; i < ids.length; i++) {
+            uint256 id = ids[i];
+            uint256 amount = values[i];
+            uint256 balance = balanceOf(from, id);
+            uint256 locked = lockedTokens[id][from];
+            require(balance - locked >= amount, "Insufficient unlocked balance for one of the tokens");
+        }
+
+        super.safeBatchTransferFrom(from, to, ids, values, data);
     }
 
     // Lock a specific amount of tokens
@@ -68,16 +89,10 @@ contract AssetToken is IAssetToken, ERC1155, Ownable, ERC1155Pausable, ERC1155Su
         emit TokensUnlocked(account, id, amount);
     }
 
-    // Get the number of locked tokens for an account
-    // function getLockedTokens(address account, uint256 id) external view returns (uint256) {
-    //     return lockedTokens[id][account];
-    // }
-
-    // function getLockedTokens(address account, uint256 id) external view override returns (uint256, bool) {
-    //     uint256 locked = lockedTokens[id][account];
-    //     bool exists = (locked > 0); // Example logic to match the expected return type
-    //     return (locked, exists);
-    // }
+    //Get the number of locked tokens for an account
+    function getLockedTokens(address account, uint256 id) external view returns (uint256) {
+        return lockedTokens[id][account];
+    }
 
     function mint(
         address account,
