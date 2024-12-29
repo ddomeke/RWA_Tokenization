@@ -8,6 +8,7 @@ import "../utils/ReentrancyGuard.sol";
 import "../utils/Ownable.sol";
 import {AssetToken} from "../token/AssetToken.sol";
 import {IAssetToken} from "../interfaces/IAssetToken.sol";
+import {IFexse} from "../interfaces/IFexse.sol";
 import {IRWATokenization} from "../interfaces/IRWATokenization.sol";
 import "hardhat/console.sol";
 
@@ -15,13 +16,13 @@ import "hardhat/console.sol";
 
 contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
     IERC20 public usdt = IERC20(0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9);
-    IERC20 public fexse;
+    IFexse public fexse;
 
     struct UserTokenInfo {
-        uint256 holdings;         // User's holdings in the asset
-        uint256 pendingProfits;   // Pending profits for the user
-        uint256 tokensForSale;    // Number of tokens put for sale by the user
-        uint256 salePrices;       // Sale price set by the user
+        uint256 holdings; // User's holdings in the asset
+        uint256 pendingProfits; // Pending profits for the user
+        uint256 tokensForSale; // Number of tokens put for sale by the user
+        uint256 salePrices; // Sale price set by the user
     }
 
     // Asset struct to store asset information
@@ -68,12 +69,20 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
         uint256 amount,
         uint256 cost
     );
-    event TokensListedForSale(
+    event TokensLockedForSale(
         address seller,
         uint256 assetId,
         uint256 amount,
         uint256 price
     );
+    event TokensUnlocked(
+        address seller,
+        uint256 assetId,
+        uint256 amount,
+        uint256 price
+    );
+    event Fexselocked(address sender, uint256 fexseLockedAmount);
+    event FexseUnlocked(address sender, uint256 fexseLockedAmount);
     event AssetCreated(
         uint256 assetId,
         address tokenContract,
@@ -237,9 +246,18 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
         // TODO: fexse tranfer fiyta dönüşümü chainlink integration
         uint256 fexse_amount = (cost * FEXSE_DECIMALS) /
             (FEXSE_PRICE_IN_USDT * (10 ** 3));
+
+        // TODO: unlock fexse
+
         require(
             fexse.transferFrom(buyer, sender, fexse_amount),
             "FEXSE transfer failed"
+        );
+
+        IAssetToken(asset.tokenContract).unlockTokens(
+            sender,
+            assetId,
+            tokenAmount
         );
 
         IAssetToken(asset.tokenContract).safeTransferFrom(
@@ -261,60 +279,33 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
     }
 
     // Function to allow users to buy tokens from the admin address
-    function buyTokens(
-        uint256 assetId,
-        uint256 tokenAmount,
-        address seller
-    ) public payable nonReentrant {
-        Asset storage asset = assets[assetId];
-        uint256 cost;
+    function lockFexseToBeBought(
+        uint256 fexseLockedAmount
+    ) public nonReentrant {
+        uint256 fexseAmount = fexse.balanceOf(msg.sender);
+
+        require(fexseAmount >= fexseLockedAmount, "Insufficient fexse balance");
 
         /*TODO: frontend Approve*/
 
-        // TODO: alıcının fexse kilitlencek
+        fexse.lock(fexseLockedAmount);
 
-        // TODO: frontend Approve Transfer tokens from the admin to the buyer
-
-        if (seller == address(this)) {
-            cost = asset.tokenPrice * tokenAmount;
-            require(
-                usdt.transferFrom(msg.sender, admin, cost),
-                "USDT transfer failed"
-            );
-            IAssetToken(asset.tokenContract).safeTransferFrom(
-                admin,
-                msg.sender,
-                assetId,
-                tokenAmount,
-                ""
-            );
-        } else {
-            cost = asset.userTokenInfo[seller].salePrices * tokenAmount;
-            require(
-                asset.userTokenInfo[seller].tokensForSale >= tokenAmount,
-                "Insufficient tokens for sale"
-            );
-            require(
-                usdt.transferFrom(msg.sender, seller, cost),
-                "USDT transfer to seller failed"
-            );
-
-            asset.userTokenInfo[seller].tokensForSale -= tokenAmount;
-            IAssetToken(asset.tokenContract).safeTransferFrom(
-                seller,
-                msg.sender,
-                assetId,
-                tokenAmount,
-                ""
-            );
-
-            emit TokensSold(msg.sender, seller, assetId, tokenAmount, cost);
-        }
-
-        emit TokensPurchased(msg.sender, assetId, tokenAmount, cost);
+        emit Fexselocked(msg.sender, fexseLockedAmount);
     }
 
-    function sellTokens(
+    function unlockFexseToBeSold(
+        uint256 fexseLockedAmount
+    ) external nonReentrant {
+        uint256 fexseAmount = fexse.balanceOf(msg.sender);
+
+        require(fexseAmount >= fexseLockedAmount, "Insufficient token balance");
+
+        fexse.unlock(fexseLockedAmount);
+
+        emit FexseUnlocked(msg.sender, fexseLockedAmount);
+    }
+
+    function lockTokensToBeSold(
         uint256 assetId,
         uint256 tokenAmount,
         uint256 salePrice
@@ -327,18 +318,43 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
 
         /*TODO: frontend Approve*/
 
-        // TODO: satıcının satacağı token kilitlencek
-
-        // TODO: frontend Approve Transfer tokens from the admin to the buyer
+        IAssetToken(asset.tokenContract).lockTokens(
+            msg.sender,
+            assetId,
+            tokenAmount
+        );
 
         asset.userTokenInfo[msg.sender].tokensForSale += tokenAmount;
         asset.userTokenInfo[msg.sender].salePrices = salePrice;
 
-        emit TokensListedForSale(msg.sender, assetId, tokenAmount, salePrice);
+        emit TokensLockedForSale(msg.sender, assetId, tokenAmount, salePrice);
     }
 
-    // TODO: cancel sell function ----> unlock token
-    // TODO: cancel buy function ------> unlock fexse
+    function unlockTokensToBeSold(
+        uint256 assetId,
+        uint256 tokenAmount,
+        uint256 salePrice
+    ) external nonReentrant {
+        Asset storage asset = assets[assetId];
+
+        require(
+            asset.userTokenInfo[msg.sender].holdings >= tokenAmount,
+            "Insufficient token balance"
+        );
+
+        /*TODO: frontend Approve*/
+
+        IAssetToken(asset.tokenContract).unlockTokens(
+            msg.sender,
+            assetId,
+            tokenAmount
+        );
+
+        asset.userTokenInfo[msg.sender].tokensForSale -= tokenAmount;
+        asset.userTokenInfo[msg.sender].salePrices = 0;
+
+        emit TokensUnlocked(msg.sender, assetId, tokenAmount, salePrice);
+    }
 
     // Function to distribute profit to token holders
     function distributeProfit(
@@ -399,7 +415,7 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
     }
 
     function setFexseAddress(
-        IERC20 _fexseToken
+        IFexse _fexseToken
     ) external onlyOwner nonReentrant {
         require(
             address(_fexseToken) != address(0),
@@ -461,7 +477,10 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
     // Function to remove holdings of a specific address
     function _removeHoldings(uint256 assetId, address holder) internal {
         Asset storage asset = assets[assetId];
-        require(asset.userTokenInfo[holder].holdings > 0, "No holdings to remove");
+        require(
+            asset.userTokenInfo[holder].holdings > 0,
+            "No holdings to remove"
+        );
 
         delete asset.userTokenInfo[holder].holdings;
     }

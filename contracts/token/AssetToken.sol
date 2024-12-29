@@ -90,9 +90,9 @@ contract AssetToken is IAssetToken, ERC1155, Ownable, ERC1155Pausable, ERC1155Su
     }
 
     //Get the number of locked tokens for an account
-    function getLockedTokens(address account, uint256 id) external view returns (uint256) {
-        return lockedTokens[id][account];
-    }
+    // function getLockedTokens(address account, uint256 id) external view returns (uint256) {
+    //     return lockedTokens[id][account];
+    // }
 
     function mint(
         address account,
