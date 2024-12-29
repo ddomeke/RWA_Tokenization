@@ -7,7 +7,7 @@ import "../utils/ReentrancyGuard.sol";
 import {AssetToken} from "../token/AssetToken.sol";
 import {IAssetToken} from "../interfaces/IAssetToken.sol";
 import {IFexse} from "../interfaces/IFexse.sol";
-import {IRWATokenization} from "../interfaces/IRWATokenization.sol";
+import {IMarketPlace} from "../interfaces/IMarketPlace.sol";
 import "hardhat/console.sol";
 
 contract Marketplace is AccessControl, ReentrancyGuard {

@@ -8,6 +8,7 @@ import {
   AssetToken,
   Fexse,
   RWATokenization,
+  MarketPlace,
   SwapEthToUsdt,
 } from "../typechain-types";
 
@@ -29,6 +30,7 @@ describe("RWATokenization Test", function () {
   this.timeout(200000);
 
   let rwaTokenization: RWATokenization;
+  let marketPlace: MarketPlace;
   let assetToken: AssetToken;
   let assetToken_sample: AssetToken;  
   let fexse: Fexse;
@@ -98,8 +100,16 @@ describe("RWATokenization Test", function () {
     log('INFO', "--------------------------------DEPLOY--------------------------------");
 
 
+    //--------------------- 0. MarketPlace.sol deploy  ---------------------------------------------
+    marketPlace = await hre.ethers.deployContract("MarketPlace");
+    const marketPlaceAddress = await marketPlace.getAddress();
+    await log('INFO', `1  - MarketPlace Address-> ${marketPlaceAddress}`);
+    //await gasPriceCalc(marketPlace.deploymentTransaction());  
+
+    //await waitSec(3);
+
     //--------------------- 1. RWATokenization.sol deploy  ---------------------------------------------
-    rwaTokenization = await hre.ethers.deployContract("RWATokenization",[addresses[0]]);
+    rwaTokenization = await hre.ethers.deployContract("RWATokenization",[marketPlaceAddress]);
     const rwaTokenizationAddress = await rwaTokenization.getAddress();
     await log('INFO', `1  - rwaTokenization Address-> ${rwaTokenizationAddress}`);
     //await gasPriceCalc(rwaTokenization.deploymentTransaction());  

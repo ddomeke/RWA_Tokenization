@@ -10,6 +10,7 @@ import {IAssetToken} from "../interfaces/IAssetToken.sol";
 import {IERC1155} from "./ERC1155/IERC1155.sol";
 import {IERC165} from "../interfaces/IERC165.sol";
 import {IRWATokenization} from "../interfaces/IRWATokenization.sol";
+import {IMarketPlace} from "../interfaces/IMarketPlace.sol";
 import "hardhat/console.sol";
 
 
@@ -18,20 +19,27 @@ contract AssetToken is AccessControl, IAssetToken, ERC1155, ERC1155Pausable, ERC
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
     IRWATokenization public rwaContract;
+    IMarketPlace public marketContract;
 
     mapping(uint256 => mapping(address => uint256)) public lockedTokens;  // assetId -> user -> amount locked
 
     event RWATokenizationContractUpdated(address oldContract, address newContract);
+    event MarketPlaceContractUpdated(address oldContract, address newContract);
     event TokensLocked(address indexed account, uint256 assetId, uint256 amount);
     event TokensUnlocked(address indexed account, uint256 assetId, uint256 amount);
 
     constructor(
         string memory uri_,
-        address _rwaContract
+        address _rwaContract,
+        address _marketContract
     )
         ERC1155(uri_)
     {
         rwaContract = IRWATokenization(_rwaContract);
+        marketContract = IMarketPlace(_marketContract);
+        _grantRole(ADMIN_ROLE, _rwaContract);
+        _grantRole(ADMIN_ROLE, _marketContract);
+        _grantRole(ADMIN_ROLE, msg.sender);
     }
 
 
@@ -151,5 +159,14 @@ contract AssetToken is AccessControl, IAssetToken, ERC1155, ERC1155Pausable, ERC
         rwaContract = IRWATokenization(newContract);
 
         emit RWATokenizationContractUpdated(oldContract, newContract);
+    }
+
+    function updateMarketPlaceContract(address newContract) external onlyRole(ADMIN_ROLE) {
+        require(newContract != address(0), "Invalid Market contract address");
+
+        address oldContract = address(marketContract);
+        marketContract = IMarketPlace(newContract);
+
+        emit MarketPlaceContractUpdated(oldContract, newContract);
     }
 }

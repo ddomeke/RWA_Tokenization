@@ -9,12 +9,14 @@ import {AssetToken} from "../token/AssetToken.sol";
 import {IAssetToken} from "../interfaces/IAssetToken.sol";
 import {IFexse} from "../interfaces/IFexse.sol";
 import {IRWATokenization} from "../interfaces/IRWATokenization.sol";
+import {IMarketPlace} from "../interfaces/IMarketPlace.sol";
 import "hardhat/console.sol";
 
 contract RWATokenization is AccessControl, ReentrancyGuard {
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
     IFexse public fexse;
+    IMarketPlace public marketContract;
 
     struct UserTokenInfo {
         uint256 holdings; // User's holdings in the asset
@@ -78,8 +80,11 @@ contract RWATokenization is AccessControl, ReentrancyGuard {
         uint256 fexseAmount
     );
 
-    constructor() {
+    constructor(
+        address _marketContract
+    ) {
         admin = msg.sender;
+        marketContract = IMarketPlace(_marketContract);
         _grantRole(ADMIN_ROLE, msg.sender);
     }
 
@@ -97,7 +102,8 @@ contract RWATokenization is AccessControl, ReentrancyGuard {
         // Deploy a new instance of AssetToken
         AssetToken token = new AssetToken(
             assetUri, // URI for metadata
-            address(this)
+            address(this),
+            address(marketContract)
         );
 
         address tokenAddress = address(token);
