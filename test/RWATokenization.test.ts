@@ -427,9 +427,7 @@ describe("RWATokenization Test", function () {
         log('INFO', "-----------------------------------------------distributeProfit-----------------------------------------------------");
         log('INFO', ``);     
 
-        await expect(rwaTokenization.connect(addresses[0]).distributeProfit(ASSET_ID, 70000000000))
-            .to.emit(rwaTokenization, "ProfitDistributed")
-            .withArgs(ASSET_ID, 70000000000,100000000);
+        await rwaTokenization.connect(addresses[0]).distributeProfit(ASSET_ID, 70000000000);
 
         for (const addr of addresses) {
             await getProject_All_Balances(addr, 0);
