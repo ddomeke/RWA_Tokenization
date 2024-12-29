@@ -247,7 +247,7 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
         uint256 fexse_amount = (cost * FEXSE_DECIMALS) /
             (FEXSE_PRICE_IN_USDT * (10 ** 3));
 
-        // TODO: unlock fexse
+        fexse.unlock(buyer, fexse_amount);
 
         require(
             fexse.transferFrom(buyer, sender, fexse_amount),
@@ -280,6 +280,7 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
 
     // Function to allow users to buy tokens from the admin address
     function lockFexseToBeBought(
+        address owner,
         uint256 fexseLockedAmount
     ) public nonReentrant {
         uint256 fexseAmount = fexse.balanceOf(msg.sender);
@@ -288,19 +289,20 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
 
         /*TODO: frontend Approve*/
 
-        fexse.lock(fexseLockedAmount);
+        fexse.lock(owner, fexseLockedAmount);
 
         emit Fexselocked(msg.sender, fexseLockedAmount);
     }
 
-    function unlockFexseToBeSold(
+    function unlockFexse(
+        address owner,
         uint256 fexseLockedAmount
     ) external nonReentrant {
         uint256 fexseAmount = fexse.balanceOf(msg.sender);
 
         require(fexseAmount >= fexseLockedAmount, "Insufficient token balance");
 
-        fexse.unlock(fexseLockedAmount);
+        fexse.unlock(owner, fexseLockedAmount);
 
         emit FexseUnlocked(msg.sender, fexseLockedAmount);
     }

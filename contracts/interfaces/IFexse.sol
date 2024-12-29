@@ -7,6 +7,6 @@ import {IERC20} from "../token/ERC20/IERC20.sol";
 
 interface IFexse is IERC20 {
 
-    function lock(uint256 amount) external;
-    function unlock(uint256 amount) external;
+    function lock(address owner,uint256 amount) external;
+    function unlock(address owner,uint256 amount) external;
 }
