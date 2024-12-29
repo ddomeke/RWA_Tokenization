@@ -2,20 +2,17 @@
 pragma solidity ^0.8.24;
 
 import "../utils/AccessControl.sol";
-import "../token/ERC20/IERC20.sol";
 import "../utils/Strings.sol";
 import "../utils/ReentrancyGuard.sol";
-import "../utils/Ownable.sol";
 import {AssetToken} from "../token/AssetToken.sol";
 import {IAssetToken} from "../interfaces/IAssetToken.sol";
 import {IFexse} from "../interfaces/IFexse.sol";
 import {IRWATokenization} from "../interfaces/IRWATokenization.sol";
 import "hardhat/console.sol";
 
-// TODO : market module yap. transertoken, buy sell cancelbuy cancelsell hepsini oraya koy
-
-contract Marketplace is AccessControl, Ownable, ReentrancyGuard {
-   IFexse public fexse;
+contract Marketplace is AccessControl, ReentrancyGuard {
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+    IFexse public fexse;
 
     struct UserTokenInfo {
         uint256 holdings; // User's holdings in the asset
@@ -71,8 +68,9 @@ contract Marketplace is AccessControl, Ownable, ReentrancyGuard {
         uint256 fexseAmount,
         uint256 cost
     );
-    constructor(address initialOwner) Ownable(initialOwner) {
+    constructor()  {
         admin = msg.sender;
+        _grantRole(ADMIN_ROLE, msg.sender);
     }
 
 
@@ -92,7 +90,7 @@ contract Marketplace is AccessControl, Ownable, ReentrancyGuard {
         uint256 assetId,
         uint256 tokenAmount,
         uint256 tokenPrice
-    ) external onlyOwner nonReentrant {
+    ) external nonReentrant onlyRole(ADMIN_ROLE) {
         require(address(sender) != address(0), "Invalid sender address");
         require(address(buyer) != address(0), "Invalid buyer address");
         require(tokenAmount > 0, "Token amount must be greater than zero");
@@ -140,7 +138,7 @@ contract Marketplace is AccessControl, Ownable, ReentrancyGuard {
     function lockFexseToBeBought(
         address owner,
         uint256 fexseLockedAmount
-    ) public nonReentrant {
+    ) public nonReentrant onlyRole(ADMIN_ROLE){
         uint256 fexseAmount = fexse.balanceOf(owner);
 
         require(fexseAmount >= fexseLockedAmount, "Insufficient fexse balance");
@@ -153,7 +151,7 @@ contract Marketplace is AccessControl, Ownable, ReentrancyGuard {
     function unlockFexse(
         address owner,
         uint256 fexseLockedAmount
-    ) external nonReentrant {
+    ) external nonReentrant onlyRole(ADMIN_ROLE){
         uint256 fexseAmount = fexse.balanceOf(owner);
 
         require(fexseAmount >= fexseLockedAmount, "Insufficient token balance");
@@ -168,7 +166,7 @@ contract Marketplace is AccessControl, Ownable, ReentrancyGuard {
         uint256 assetId,
         uint256 tokenAmount,
         uint256 salePrice
-    ) external nonReentrant {
+    ) external nonReentrant onlyRole(ADMIN_ROLE){
         Asset storage asset = assets[assetId];
         require(
             asset.userTokenInfo[owner].holdings >= tokenAmount,
@@ -192,7 +190,7 @@ contract Marketplace is AccessControl, Ownable, ReentrancyGuard {
         uint256 assetId,
         uint256 tokenAmount,
         uint256 salePrice
-    ) external nonReentrant {
+    ) external nonReentrant onlyRole(ADMIN_ROLE){
         Asset storage asset = assets[assetId];
 
         require(
@@ -214,7 +212,7 @@ contract Marketplace is AccessControl, Ownable, ReentrancyGuard {
 
     function setFexseAddress(
         IFexse _fexseToken
-    ) external onlyOwner nonReentrant {
+    ) external nonReentrant onlyRole(ADMIN_ROLE){
         require(
             address(_fexseToken) != address(0),
             "Invalid _fexseToken address"

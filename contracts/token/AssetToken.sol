@@ -2,18 +2,20 @@
 // Compatible with OpenZeppelin Contracts ^5.0.0
 pragma solidity ^0.8.24;
 
+import "../utils/AccessControl.sol";
 import {ERC1155} from "./ERC1155/ERC1155.sol";
 import {ERC1155Pausable} from "./ERC1155/extensions/ERC1155Pausable.sol";
 import {ERC1155Supply} from "./ERC1155/extensions/ERC1155Supply.sol";
-import {Ownable} from "../utils/Ownable.sol";
 import {IAssetToken} from "../interfaces/IAssetToken.sol";
 import {IERC1155} from "./ERC1155/IERC1155.sol";
+import {IERC165} from "../interfaces/IERC165.sol";
 import {IRWATokenization} from "../interfaces/IRWATokenization.sol";
 import "hardhat/console.sol";
 
 
 
-contract AssetToken is IAssetToken, ERC1155, Ownable, ERC1155Pausable, ERC1155Supply {
+contract AssetToken is AccessControl, IAssetToken, ERC1155, ERC1155Pausable, ERC1155Supply {
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
     IRWATokenization public rwaContract;
 
@@ -23,18 +25,11 @@ contract AssetToken is IAssetToken, ERC1155, Ownable, ERC1155Pausable, ERC1155Su
     event TokensLocked(address indexed account, uint256 assetId, uint256 amount);
     event TokensUnlocked(address indexed account, uint256 assetId, uint256 amount);
 
-    modifier onlyOwnerOrRWAContract() {
-        require(msg.sender == owner() || msg.sender == address(rwaContract), "Not authorized");
-        _;
-    }
-
     constructor(
-        address initialOwner,
         string memory uri_,
         address _rwaContract
     )
         ERC1155(uri_)
-        Ownable(initialOwner)
     {
         rwaContract = IRWATokenization(_rwaContract);
     }
@@ -75,15 +70,25 @@ contract AssetToken is IAssetToken, ERC1155, Ownable, ERC1155Pausable, ERC1155Su
         super.safeBatchTransferFrom(from, to, ids, values, data);
     }
 
+    // Override required by Solidity
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(AccessControl, ERC1155, IERC165)
+        returns (bool)
+    {
+        return super.supportsInterface(interfaceId);
+    }
+
     // Lock a specific amount of tokens
-    function lockTokens(address account, uint256 id, uint256 amount) external onlyOwnerOrRWAContract {
+    function lockTokens(address account, uint256 id, uint256 amount) external onlyRole(ADMIN_ROLE) {
         require(balanceOf(account, id) >= lockedTokens[id][account] + amount, "Insufficient balance to lock");
         lockedTokens[id][account] += amount;
         emit TokensLocked(account, id, amount);
     }
 
     // Unlock a specific amount of tokens
-    function unlockTokens(address account, uint256 id, uint256 amount) external onlyOwnerOrRWAContract {
+    function unlockTokens(address account, uint256 id, uint256 amount) external onlyRole(ADMIN_ROLE) {
         require(lockedTokens[id][account] >= amount, "No enough tokens to unlock");
         lockedTokens[id][account] -= amount;
         emit TokensUnlocked(account, id, amount);
@@ -99,19 +104,19 @@ contract AssetToken is IAssetToken, ERC1155, Ownable, ERC1155Pausable, ERC1155Su
         uint256 id,
         uint256 amount,
         bytes memory data
-    ) external onlyOwnerOrRWAContract {
+    ) external onlyRole(ADMIN_ROLE) {
         _mint(account, id, amount, data);
     }
 
-    function setURI(string memory newuri) external onlyOwner {
+    function setURI(string memory newuri) external onlyRole(ADMIN_ROLE) {
         _setURI(newuri);
     }
 
-    function pause() external onlyOwner {
+    function pause() external onlyRole(ADMIN_ROLE) {
         _pause();
     }
 
-    function unpause() external onlyOwner {
+    function unpause() external onlyRole(ADMIN_ROLE) {
         _unpause();
     }
 
@@ -139,7 +144,7 @@ contract AssetToken is IAssetToken, ERC1155, Ownable, ERC1155Pausable, ERC1155Su
         }
     }
 
-    function updateRWATokenizationContract(address newContract) external onlyOwner {
+    function updateRWATokenizationContract(address newContract) external onlyRole(ADMIN_ROLE) {
         require(newContract != address(0), "Invalid RWA contract address");
 
         address oldContract = address(rwaContract);

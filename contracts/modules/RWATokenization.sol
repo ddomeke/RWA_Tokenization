@@ -5,17 +5,15 @@ import "../utils/AccessControl.sol";
 import "../token/ERC20/IERC20.sol";
 import "../utils/Strings.sol";
 import "../utils/ReentrancyGuard.sol";
-import "../utils/Ownable.sol";
 import {AssetToken} from "../token/AssetToken.sol";
 import {IAssetToken} from "../interfaces/IAssetToken.sol";
 import {IFexse} from "../interfaces/IFexse.sol";
 import {IRWATokenization} from "../interfaces/IRWATokenization.sol";
 import "hardhat/console.sol";
 
-// TODO : market module yap. transertoken, buy sell cancelbuy cancelsell hepsini oraya koy
+contract RWATokenization is AccessControl, ReentrancyGuard {
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
-contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
-    IERC20 public usdt = IERC20(0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9);
     IFexse public fexse;
 
     struct UserTokenInfo {
@@ -41,9 +39,7 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
 
     // Admin address for managing token transfers
     address public admin;
-    string private baseURI;
 
-    uint256 private constant USDT_DECIMALS = 10 ** 6; // 6 decimals for USDT
     uint256 private constant FEXSE_DECIMALS = 10 ** 18; // 18 decimals for FEXSE
     uint256 private constant FEXSE_PRICE_IN_USDT = 45; // 0.045 USDT represented as 45 (scaled by 10^3)
 
@@ -77,13 +73,14 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
         uint256 tokenPrice
     );
     event fexseContractUpdated(address oldToken, address newToken);
-
     event Claimed(
         address sender,
         uint256 fexseAmount
     );
-    constructor(address initialOwner) Ownable(initialOwner) {
+
+    constructor() {
         admin = msg.sender;
+        _grantRole(ADMIN_ROLE, msg.sender);
     }
 
     // Function to create a new asset and issue tokens to the admin
@@ -92,14 +89,13 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
         uint256 totalTokens,
         uint256 tokenPrice,
         string memory assetUri
-    ) external onlyOwner nonReentrant {
+    ) external nonReentrant onlyRole(ADMIN_ROLE) {
         require(assets[assetId].id == 0, "Asset already exists");
         require(totalTokens > 0, "Total tokens must be greater than zero");
         require(tokenPrice > 0, "Token price must be greater than zero");
 
         // Deploy a new instance of AssetToken
         AssetToken token = new AssetToken(
-            admin, // Owner of the new token
             assetUri, // URI for metadata
             address(this)
         );
@@ -205,7 +201,7 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
     function distributeProfit(
         uint256 assetId,
         uint256 profitAmount
-    ) public onlyOwner nonReentrant {
+    ) public nonReentrant onlyRole(ADMIN_ROLE) {
         Asset storage asset = assets[assetId];
 
         // Calculate profit per token
@@ -252,7 +248,7 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
     function updateAsset(
         uint256 assetId,
         uint256 newTokenPrice
-    ) public onlyOwner nonReentrant {
+    ) public nonReentrant onlyRole(ADMIN_ROLE) {
         require(assets[assetId].id != 0, "Asset does not exist");
 
         Asset storage asset = assets[assetId];
@@ -263,7 +259,7 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
 
     function setFexseAddress(
         IFexse _fexseToken
-    ) external onlyOwner nonReentrant {
+    ) external nonReentrant onlyRole(ADMIN_ROLE) {
         require(
             address(_fexseToken) != address(0),
             "Invalid _fexseToken address"
@@ -283,7 +279,7 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
         Asset storage asset = assets[assetId];
 
         require(
-            (msg.sender == address(assets[assetId].tokenContract)) ||
+            (msg.sender == address(asset.tokenContract)) ||
                 (msg.sender == address(this)),
             "Unauthorized"
         );
