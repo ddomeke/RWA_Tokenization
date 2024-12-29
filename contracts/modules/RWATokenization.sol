@@ -98,7 +98,10 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
         uint256 fexseAmount,
         uint256 cost
     );
-
+    event Claimed(
+        address sender,
+        uint256 fexseAmount
+    );
     constructor(address initialOwner) Ownable(initialOwner) {
         admin = msg.sender;
     }
@@ -283,56 +286,54 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
         address owner,
         uint256 fexseLockedAmount
     ) public nonReentrant {
-        uint256 fexseAmount = fexse.balanceOf(msg.sender);
+        uint256 fexseAmount = fexse.balanceOf(owner);
 
         require(fexseAmount >= fexseLockedAmount, "Insufficient fexse balance");
 
-        /*TODO: frontend Approve*/
-
         fexse.lock(owner, fexseLockedAmount);
 
-        emit Fexselocked(msg.sender, fexseLockedAmount);
+        emit Fexselocked(owner, fexseLockedAmount);
     }
 
     function unlockFexse(
         address owner,
         uint256 fexseLockedAmount
     ) external nonReentrant {
-        uint256 fexseAmount = fexse.balanceOf(msg.sender);
+        uint256 fexseAmount = fexse.balanceOf(owner);
 
         require(fexseAmount >= fexseLockedAmount, "Insufficient token balance");
 
         fexse.unlock(owner, fexseLockedAmount);
 
-        emit FexseUnlocked(msg.sender, fexseLockedAmount);
+        emit FexseUnlocked(owner, fexseLockedAmount);
     }
 
     function lockTokensToBeSold(
+        address owner,
         uint256 assetId,
         uint256 tokenAmount,
         uint256 salePrice
     ) external nonReentrant {
         Asset storage asset = assets[assetId];
         require(
-            asset.userTokenInfo[msg.sender].holdings >= tokenAmount,
+            asset.userTokenInfo[owner].holdings >= tokenAmount,
             "Insufficient token balance"
         );
 
-        /*TODO: frontend Approve*/
-
         IAssetToken(asset.tokenContract).lockTokens(
-            msg.sender,
+            owner,
             assetId,
             tokenAmount
         );
 
-        asset.userTokenInfo[msg.sender].tokensForSale += tokenAmount;
-        asset.userTokenInfo[msg.sender].salePrices = salePrice;
+        asset.userTokenInfo[owner].tokensForSale += tokenAmount;
+        asset.userTokenInfo[owner].salePrices = salePrice;
 
-        emit TokensLockedForSale(msg.sender, assetId, tokenAmount, salePrice);
+        emit TokensLockedForSale(owner, assetId, tokenAmount, salePrice);
     }
 
     function unlockTokensToBeSold(
+        address owner,
         uint256 assetId,
         uint256 tokenAmount,
         uint256 salePrice
@@ -340,22 +341,20 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
         Asset storage asset = assets[assetId];
 
         require(
-            asset.userTokenInfo[msg.sender].holdings >= tokenAmount,
+            asset.userTokenInfo[owner].holdings >= tokenAmount,
             "Insufficient token balance"
         );
 
-        /*TODO: frontend Approve*/
-
         IAssetToken(asset.tokenContract).unlockTokens(
-            msg.sender,
+            owner,
             assetId,
             tokenAmount
         );
 
-        asset.userTokenInfo[msg.sender].tokensForSale -= tokenAmount;
-        asset.userTokenInfo[msg.sender].salePrices = 0;
+        asset.userTokenInfo[owner].tokensForSale -= tokenAmount;
+        asset.userTokenInfo[owner].salePrices = 0;
 
-        emit TokensUnlocked(msg.sender, assetId, tokenAmount, salePrice);
+        emit TokensUnlocked(owner, assetId, tokenAmount, salePrice);
     }
 
     // Function to distribute profit to token holders
@@ -380,8 +379,12 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
 
         asset.totalProfit = asset.totalProfit + profitAmount;
         asset.lastDistributed = block.timestamp;
-        //TODO: fexse miktarını atalım profit amount olarak.
-        emit ProfitDistributed(assetId, profitAmount, profitPerToken);
+
+        // TODO: fexse tranfer fiyta dönüşümü chainlink integration
+        uint256 fexse_amount = (profitAmount * FEXSE_DECIMALS) /
+            (FEXSE_PRICE_IN_USDT * (10 ** 3));
+
+        emit ProfitDistributed(assetId, fexse_amount, profitPerToken);
     }
 
     // Holders can claim profits themselves
@@ -396,11 +399,9 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
         uint256 fexse_amount = (amount * FEXSE_DECIMALS) /
             (FEXSE_PRICE_IN_USDT * (10 ** 3));
 
-        //console.log("fexse_amount", fexse_amount);
-
         fexse.transferFrom(admin, msg.sender, fexse_amount);
 
-        // TODO: emit claimed(assetid array, )
+        emit Claimed(msg.sender, assetId);
     }
 
     // New function to update the token price for an existing asset

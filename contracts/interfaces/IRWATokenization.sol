@@ -67,12 +67,14 @@ interface IRWATokenization {
     ) external;
 
     function lockTokensToBeSold(
+        address owner,
         uint256 assetId,
         uint256 tokenAmount,
         uint256 salePrice
     ) external;
 
     function unlockTokensToBeSold(
+        address owner,
         uint256 assetId,
         uint256 tokenAmount,
         uint256 salePrice
