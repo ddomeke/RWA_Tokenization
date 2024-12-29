@@ -11,6 +11,8 @@ import {IAssetToken} from "../interfaces/IAssetToken.sol";
 import {IRWATokenization} from "../interfaces/IRWATokenization.sol";
 import "hardhat/console.sol";
 
+// TODO : market module yap. transertoken, buy sell cancelbuy cancelsell hepsini oraya koy
+
 contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
     IERC20 public usdt = IERC20(0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9);
     IERC20 public fexse;
@@ -269,6 +271,8 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
 
         /*TODO: frontend Approve*/
 
+        // TODO: alıcının fexse kilitlencek
+
         // TODO: frontend Approve Transfer tokens from the admin to the buyer
 
         if (seller == address(this)) {
@@ -323,6 +327,8 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
 
         /*TODO: frontend Approve*/
 
+        // TODO: satıcının satacağı token kilitlencek
+
         // TODO: frontend Approve Transfer tokens from the admin to the buyer
 
         asset.userTokenInfo[msg.sender].tokensForSale += tokenAmount;
@@ -330,6 +336,9 @@ contract RWATokenization is AccessControl, Ownable, ReentrancyGuard {
 
         emit TokensListedForSale(msg.sender, assetId, tokenAmount, salePrice);
     }
+
+    // TODO: cancel sell function ----> unlock token
+    // TODO: cancel buy function ------> unlock fexse
 
     // Function to distribute profit to token holders
     function distributeProfit(
