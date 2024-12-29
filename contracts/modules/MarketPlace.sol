@@ -10,7 +10,7 @@ import {IFexse} from "../interfaces/IFexse.sol";
 import {IMarketPlace} from "../interfaces/IMarketPlace.sol";
 import "hardhat/console.sol";
 
-contract Marketplace is AccessControl, ReentrancyGuard {
+contract MarketPlace is AccessControl, ReentrancyGuard {
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     IFexse public fexse;
 

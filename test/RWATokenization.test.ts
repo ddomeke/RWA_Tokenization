@@ -103,7 +103,7 @@ describe("RWATokenization Test", function () {
     //--------------------- 0. MarketPlace.sol deploy  ---------------------------------------------
     marketPlace = await hre.ethers.deployContract("MarketPlace");
     const marketPlaceAddress = await marketPlace.getAddress();
-    await log('INFO', `1  - MarketPlace Address-> ${marketPlaceAddress}`);
+    await log('INFO', `0  - MarketPlace Address-> ${marketPlaceAddress}`);
     //await gasPriceCalc(marketPlace.deploymentTransaction());  
 
     //await waitSec(3);
