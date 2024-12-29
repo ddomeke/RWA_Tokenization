@@ -37,9 +37,9 @@ contract AssetToken is AccessControl, IAssetToken, ERC1155, ERC1155Pausable, ERC
     {
         rwaContract = IRWATokenization(_rwaContract);
         marketContract = IMarketPlace(_marketContract);
+        _grantRole(ADMIN_ROLE, msg.sender);
         _grantRole(ADMIN_ROLE, _rwaContract);
         _grantRole(ADMIN_ROLE, _marketContract);
-        _grantRole(ADMIN_ROLE, msg.sender);
     }
 
 

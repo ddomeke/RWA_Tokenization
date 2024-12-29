@@ -125,7 +125,7 @@ describe("RWATokenization Test", function () {
     await log('INFO', `2  - assetToken Address -> ${assetTokenAddress}`);
 
     //--------------------- 3. Fexse.sol deploy  ---------------------------------------------
-    fexse = await hre.ethers.deployContract("Fexse",[addresses[0],rwaTokenizationAddress]);
+    fexse = await hre.ethers.deployContract("Fexse",[rwaTokenizationAddress,marketPlaceAddress]);
     const fexseAddress = await fexse.getAddress();
     await log('INFO', `3  - fexse Address-> ${fexseAddress}`);
     //await gasPriceCalc(fexse.deploymentTransaction()); 

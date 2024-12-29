@@ -79,6 +79,7 @@ contract RWATokenization is AccessControl, ReentrancyGuard {
         address sender,
         uint256 fexseAmount
     );
+    event MarketPlaceContractUpdated(address oldContract, address newContract);
 
     constructor(
         address _marketContract
@@ -350,5 +351,15 @@ contract RWATokenization is AccessControl, ReentrancyGuard {
         _removeHolder(assetId, holder);
         _removeHoldings(assetId, holder);
         _removePendingProfits(assetId, holder);
+    }
+
+
+    function updateMarketPlaceContract(address newContract) external onlyRole(ADMIN_ROLE) {
+        require(newContract != address(0), "Invalid Market contract address");
+
+        address oldContract = address(marketContract);
+        marketContract = IMarketPlace(newContract);
+
+        emit MarketPlaceContractUpdated(oldContract, newContract);
     }
 }
