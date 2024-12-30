@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "../utils/AccessControl.sol";
-import "../utils//ReentrancyGuard.sol";
+import "../core/abstracts/ModularInternal.sol";
 
 /**
  * @title Payment
  * @dev Tokenize edilmiş varlıkların ödemelerini yöneten akıllı kontrat.
  */
-contract Payment is AccessControl, ReentrancyGuard {
-    bytes32 public constant PAYMENT_MANAGER_ROLE = keccak256("PAYMENT_MANAGER_ROLE");
+contract Payment is ModularInternal {
+    using AppStorage for AppStorage.Layout;
     
     mapping(address => uint256) public balances;
 
@@ -17,7 +16,11 @@ contract Payment is AccessControl, ReentrancyGuard {
     event PaymentWithdrawn(address indexed to, uint256 amount);
     event PaymentDistributed(address indexed to, uint256 amount);
 
+    address immutable _this;
+
     constructor() {
+
+        _this = address(this);
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(PAYMENT_MANAGER_ROLE, msg.sender);
     }

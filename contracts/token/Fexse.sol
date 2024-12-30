@@ -20,27 +20,18 @@ contract Fexse is AccessControl, ERC20, ERC20Burnable, ERC20Pausable, ERC20Permi
 
     mapping(address => uint256) private _lockedBalances;
 
-    IRWATokenization public rwaContract;
-    IMarketPlace public marketContract;
-
     event TokensLocked(address indexed account, uint256 amount);
     event TokensUnlocked(address indexed account, uint256 amount);
-    event RWATokenizationContractUpdated(address oldContract, address newContract);
-    event MarketPlaceContractUpdated(address oldContract, address newContract);
 
     constructor(
-        address _rwaContract,
-        address _marketContract
+        address appAddress
     )
         ERC20("Fexse", "FeXSe")
         ERC20Permit("Fexse")
     {
         _mint(msg.sender, 270000000000 * 10 ** decimals());
-        rwaContract = IRWATokenization(_rwaContract);
-        marketContract = IMarketPlace(_marketContract);
         _grantRole(ADMIN_ROLE, msg.sender);
-        _grantRole(ADMIN_ROLE, _rwaContract);
-        _grantRole(ADMIN_ROLE, _marketContract);
+        _grantRole(ADMIN_ROLE, appAddress);
     }
 
     function pause() public onlyRole(ADMIN_ROLE) {
@@ -114,21 +105,4 @@ contract Fexse is AccessControl, ERC20, ERC20Burnable, ERC20Pausable, ERC20Permi
         return super.nonces(owner);
     }
 
-    function updateRWATokenizationContract(address newContract) external onlyRole(ADMIN_ROLE) {
-        require(newContract != address(0), "Invalid RWA contract address");
-
-        address oldContract = address(rwaContract);
-        rwaContract = IRWATokenization(newContract);
-
-        emit RWATokenizationContractUpdated(oldContract, newContract);
-    }
-
-    function updateMarketPlaceContract(address newContract) external onlyRole(ADMIN_ROLE) {
-        require(newContract != address(0), "Invalid Market contract address");
-
-        address oldContract = address(marketContract);
-        marketContract = IMarketPlace(newContract);
-
-        emit MarketPlaceContractUpdated(oldContract, newContract);
-    }
 }
