@@ -122,9 +122,8 @@ contract RWATokenization is ModularInternal {
 
         // Deploy a new instance of AssetToken
         AssetToken token = new AssetToken(
-            assetUri, // URI for metadata
-            address(this),
-            address(marketContract)
+            appAddress,
+            assetUri // URI for metadata
         );
 
         address tokenAddress = address(token);

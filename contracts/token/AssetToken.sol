@@ -18,30 +18,23 @@ import "hardhat/console.sol";
 contract AssetToken is AccessControl, IAssetToken, ERC1155, ERC1155Pausable, ERC1155Supply {
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
-    IRWATokenization public rwaContract;
-    IMarketPlace public marketContract;
+    address public appAddress;
 
     mapping(uint256 => mapping(address => uint256)) public lockedTokens;  // assetId -> user -> amount locked
 
-    event RWATokenizationContractUpdated(address oldContract, address newContract);
-    event MarketPlaceContractUpdated(address oldContract, address newContract);
     event TokensLocked(address indexed account, uint256 assetId, uint256 amount);
     event TokensUnlocked(address indexed account, uint256 assetId, uint256 amount);
 
     constructor(
-        string memory uri_,
-        address _rwaContract,
-        address _marketContract
+        address _appAddress,
+        string memory uri_
     )
         ERC1155(uri_)
     {
-        rwaContract = IRWATokenization(_rwaContract);
-        marketContract = IMarketPlace(_marketContract);
+        appAddress = _appAddress;
         _grantRole(ADMIN_ROLE, msg.sender);
-        _grantRole(ADMIN_ROLE, _rwaContract);
-        _grantRole(ADMIN_ROLE, _marketContract);
+        _grantRole(ADMIN_ROLE, appAddress);
     }
-
 
     // Override safeTransferFrom to block locked tokens
     function safeTransferFrom(
@@ -134,39 +127,33 @@ contract AssetToken is AccessControl, IAssetToken, ERC1155, ERC1155Pausable, ERC
         internal
         override(ERC1155, ERC1155Pausable, ERC1155Supply)
     {
-        require(address(rwaContract).code.length > 0, "Target address is not a contract");
+        require(address(appAddress).code.length > 0, "Target address is not a contract");
 
         super._update(from, to, ids, values);
         
-        //console.log("rwaContract", rwaContract);
-
         // Notify external contracts of balance changes
         for (uint256 i = 0; i < ids.length; i++) {
             uint256 id = ids[i];
             if (from != address(0)) {
-                rwaContract.updateHoldings(from, id, balanceOf(from, id));
+
+                (bool success, ) = appAddress.delegatecall(
+                    abi.encodeWithSignature("updateHoldings(address,uint256,uint256)", from, id, balanceOf(from, id))
+                );
+                require(success, "RWATokenization.updateHoldingscall failed");
+
+
+                //address(appAddress).updateHoldings(from, id, balanceOf(from, id));
             }
             if (to != address(0)) {
-                rwaContract.updateHoldings(to, id, balanceOf(to, id));
+
+                (bool success, ) = appAddress.delegatecall(
+                    abi.encodeWithSignature("updateHoldings(address,uint256,uint256)", to, id, balanceOf(to, id))
+                );
+                require(success, "RWATokenization.updateHoldingscall failed");
+
+
+                //appAddress.updateHoldings(to, id, balanceOf(to, id));
             }
         }
-    }
-
-    function updateRWATokenizationContract(address newContract) external onlyRole(ADMIN_ROLE) {
-        require(newContract != address(0), "Invalid RWA contract address");
-
-        address oldContract = address(rwaContract);
-        rwaContract = IRWATokenization(newContract);
-
-        emit RWATokenizationContractUpdated(oldContract, newContract);
-    }
-
-    function updateMarketPlaceContract(address newContract) external onlyRole(ADMIN_ROLE) {
-        require(newContract != address(0), "Invalid Market contract address");
-
-        address oldContract = address(marketContract);
-        marketContract = IMarketPlace(newContract);
-
-        emit MarketPlaceContractUpdated(oldContract, newContract);
     }
 }
