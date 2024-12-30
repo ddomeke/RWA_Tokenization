@@ -1,25 +1,59 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "../utils/AccessControl.sol";
+import "../core/abstracts/ModularInternal.sol";
 
 /**
  * @title Compliance
  * @dev Token transferleri ve kullanıcı etkileşimleri için KYC/AML uyumluluğunu yöneten akıllı kontrat.
  */
-contract Compliance is AccessControl {
-    bytes32 public constant COMPLIANCE_OFFICER_ROLE = keccak256("COMPLIANCE_OFFICER_ROLE");
-
-    mapping(address => bool) public isWhitelisted;
-    mapping(address => bool) public isBlacklisted;
+contract Compliance is ModularInternal {
+    using AppStorage for AppStorage.Layout;
 
     event AddressWhitelisted(address indexed account);
     event AddressBlacklisted(address indexed account);
     event AddressRemovedFromBlacklist(address indexed account);
 
-    constructor() {
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    address immutable _this;
+
+    constructor(
+        address appAddress
+    ) {
+
+        _this = address(this);
+        _grantRole(ADMIN_ROLE, msg.sender);
         _grantRole(COMPLIANCE_OFFICER_ROLE, msg.sender);
+        _grantRole(ADMIN_ROLE, appAddress);
+        _grantRole(COMPLIANCE_OFFICER_ROLE, appAddress);
+    }
+
+       /**
+     * @dev Returns an array of ⁠ FacetCut ⁠ structs, which define the functions (selectors)
+     *      provided by this module. This is used to register the module's functions
+     *      with the modular system.
+     * @return FacetCut[] Array of ⁠ FacetCut ⁠ structs representing function selectors.
+     */
+    function moduleFacets() external view returns (FacetCut[] memory) {
+        uint256 selectorIndex = 0;
+        bytes4[] memory selectors = new bytes4[](5);
+
+        // Add function selectors to the array
+        selectors[selectorIndex++] = this.whitelistAddress.selector;
+        selectors[selectorIndex++] = this.blacklistAddress.selector;
+        selectors[selectorIndex++] = this.removeFromBlacklist.selector;
+        selectors[selectorIndex++] = this.preTransferCheck.selector;
+        selectors[selectorIndex++] = this.isAddressBlacklisted.selector;
+
+        // Create a FacetCut array with a single element
+        FacetCut[] memory facetCuts = new FacetCut[](1);
+
+        // Set the facetCut target, action, and selectors
+        facetCuts[0] = FacetCut({
+            target: _this,
+            action: FacetCutAction.ADD,
+            selectors: selectors
+        });
+        return facetCuts;
     }
 
     /**
@@ -27,8 +61,11 @@ contract Compliance is AccessControl {
      * @param account Beyaz listeye eklenecek adres.
      */
     function whitelistAddress(address account) external onlyRole(COMPLIANCE_OFFICER_ROLE) {
-        require(!isBlacklisted[account], "Address is blacklisted");
-        isWhitelisted[account] = true;
+
+        AppStorage.Layout storage data = AppStorage.layout();
+
+        require(!data.isBlacklisted[account], "Address is blacklisted");
+        data.isWhitelisted[account] = true;
         emit AddressWhitelisted(account);
     }
 
@@ -37,8 +74,11 @@ contract Compliance is AccessControl {
      * @param account Kara listeye eklenecek adres.
      */
     function blacklistAddress(address account) external onlyRole(COMPLIANCE_OFFICER_ROLE) {
-        isBlacklisted[account] = true;
-        isWhitelisted[account] = false;
+
+        AppStorage.Layout storage data = AppStorage.layout();
+
+        data.isBlacklisted[account] = true;
+        data.isWhitelisted[account] = false;
         emit AddressBlacklisted(account);
     }
 
@@ -47,8 +87,11 @@ contract Compliance is AccessControl {
      * @param account Kara listeden çıkarılacak adres.
      */
     function removeFromBlacklist(address account) external onlyRole(COMPLIANCE_OFFICER_ROLE) {
-        require(isBlacklisted[account], "Address is not blacklisted");
-        isBlacklisted[account] = false;
+
+        AppStorage.Layout storage data = AppStorage.layout();
+
+        require(data.isBlacklisted[account], "Address is not blacklisted");
+        data.isBlacklisted[account] = false;
         emit AddressRemovedFromBlacklist(account);
     }
 
@@ -58,10 +101,13 @@ contract Compliance is AccessControl {
      * @param to Alıcı adres.
      */
     function preTransferCheck(address from, address to) external view {
-        require(!isBlacklisted[from], "Sender address is blacklisted");
-        require(!isBlacklisted[to], "Recipient address is blacklisted");
-        require(isWhitelisted[from], "Sender is not whitelisted");
-        require(isWhitelisted[to], "Recipient is not whitelisted");
+
+        AppStorage.Layout storage data = AppStorage.layout();
+
+        require(!data.isBlacklisted[from], "Sender address is blacklisted");
+        require(!data.isBlacklisted[to], "Recipient address is blacklisted");
+        require(data.isWhitelisted[from], "Sender is not whitelisted");
+        require(data.isWhitelisted[to], "Recipient is not whitelisted");
     }
 
     /**
@@ -70,6 +116,9 @@ contract Compliance is AccessControl {
      * @return bool Kara listede olup olmadığı.
      */
     function isAddressBlacklisted(address account) external view returns (bool) {
-        return isBlacklisted[account];
+
+        AppStorage.Layout storage data = AppStorage.layout();
+
+        return data.isBlacklisted[account];
     }
 }

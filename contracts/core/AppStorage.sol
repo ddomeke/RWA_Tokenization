@@ -32,6 +32,8 @@ library AppStorage {
         mapping(bytes4 => bytes32) facets; // Mapping of function selectors to facets
         mapping(uint256 => bytes32) selectorSlots; // Mapping of selector slots for functions
         mapping(uint256 => Asset) assets; // Mapping of asset
+        mapping(address => bool) isWhitelisted;
+        mapping(address => bool) isBlacklisted;
     }
     /**
      * @dev Retrieves the application's storage layout.

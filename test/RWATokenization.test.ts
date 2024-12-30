@@ -9,6 +9,7 @@ App,
   AssetToken,
   Fexse,
   RWATokenization,
+  Compliance,
   MarketPlace,
   SwapEthToUsdt,
 } from "../typechain-types";
@@ -33,6 +34,8 @@ describe("RWATokenization Test", function () {
   let app: App;
   let rwaTokenization: RWATokenization;
   let _rwaTokenization: RWATokenization;
+  let compliance: Compliance;
+  let _compliance: Compliance;
   let marketPlace: MarketPlace;
   let _marketPlace: MarketPlace;
   let assetToken: AssetToken;
@@ -128,26 +131,36 @@ describe("RWATokenization Test", function () {
     rwaTokenization = await hre.ethers.getContractAt("RWATokenization", appAddress) as RWATokenization;
 
 
-    //--------------------- 4. createAsset.sol deploy  ---------------------------------------------
+    //--------------------- 4. Compliance.sol deploy --------------------------------------------------------
+    _compliance = await hre.ethers.deployContract("Compliance", [appAddress]);
+    const _complianceAddress = await _compliance.getAddress();
+    await log('INFO', `4  - _compliance Address-> ${_complianceAddress}`);
+    gasPriceCalc(_compliance.deploymentTransaction());
+
+    await app.installModule(_complianceAddress);
+    compliance = await hre.ethers.getContractAt("Compliance", appAddress) as Compliance;
+
+
+    //--------------------- 5. createAsset.sol deploy  ---------------------------------------------
     const createTx = await rwaTokenization.createAsset(ASSET_ID,TOTALTOKENS,TOKENPRICE,ASSETURI);
     await createTx.wait();
 
     const assetTokenAddress = await rwaTokenization.getTokenContractAddress(ASSET_ID);    
     assetToken = await hre.ethers.getContractAt("AssetToken", assetTokenAddress) as AssetToken;    
-    await log('INFO', `4  - assetToken Address -> ${assetTokenAddress}`);
+    await log('INFO', `5  - assetToken Address -> ${assetTokenAddress}`);
 
-    //--------------------- 5. Fexse.sol deploy  ---------------------------------------------
+    //--------------------- 6. Fexse.sol deploy  ---------------------------------------------
     fexse = await hre.ethers.deployContract("Fexse",[_rwaTokenizationAddress,_marketPlaceAddress]);
     const fexseAddress = await fexse.getAddress();
-    await log('INFO', `5  - fexse Address-> ${fexseAddress}`);
+    await log('INFO', `6  - fexse Address-> ${fexseAddress}`);
     await gasPriceCalc(fexse.deploymentTransaction()); 
 
     await marketPlace.setFexseAddress(fexseAddress);
 
-    //--------------------- 6. SwapEthToUsdt.sol deploy  ---------------------------------------------
+    //--------------------- 7. SwapEthToUsdt.sol deploy  ---------------------------------------------
     // swapEthToUsdt = await hre.ethers.deployContract("SwapEthToUsdt",[UNISWAP_V3_ROUTER]);
     // const swapEthToUsdtAddress = await swapEthToUsdt.getAddress();
-    // await log('INFO', `4  - swapEthToUsdt Address-> ${swapEthToUsdtAddress}`);
+    // await log('INFO', `7  - swapEthToUsdt Address-> ${swapEthToUsdtAddress}`);
     // //await gasPriceCalc(swapEthToUsdt.deploymentTransaction()); 
 
     // const tx = await swapEthToUsdt.swapEthForUsdt(
@@ -157,7 +170,7 @@ describe("RWATokenization Test", function () {
     // );
     // await tx.wait();
     
-    //--------------------- 7. USDT ERC20   ---------------------------------------------
+    //--------------------- 8. USDT ERC20   ---------------------------------------------
     usdtContract = (await hre.ethers.getContractAt(ERC20_ABI, USDT_ADDRESS)) as unknown as IERC20;
 
     log('INFO', "---------------------------TRANSFER - APPROVE----------------------------------------");
