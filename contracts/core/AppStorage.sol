@@ -31,14 +31,6 @@ library AppStorage {
         mapping(uint256 => bytes32) selectorSlots; // Mapping of selector slots for functions
         mapping(uint256 => Asset) assets; // Mapping of asset
     }
-
-    // struct Layout {
-    //     mapping(uint256 => Asset) asset; // Mapping of pool IDs to Pool structures.
-    // }
-
-
-
-
     /**
      * @dev Retrieves the application's storage layout.
      * @return base The storage layout.

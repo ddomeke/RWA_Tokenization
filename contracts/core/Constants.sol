@@ -5,6 +5,8 @@ pragma solidity ^0.8.24;
 import {IAssetToken} from "../interfaces/IAssetToken.sol";
 
 
+    bytes32 constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+
     // Asset struct to store asset information
     struct Asset {
         uint256 id; // Unique ID for the asset

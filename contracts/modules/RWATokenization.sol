@@ -14,8 +14,6 @@ import "hardhat/console.sol";
 contract RWATokenization is ModularInternal {
     using AppStorage for AppStorage.Layout;
 
-    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
-
     IFexse public fexse;
     IMarketPlace public marketContract;
 
@@ -411,7 +409,7 @@ contract RWATokenization is ModularInternal {
         
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
-        
+
         require(
             asset.userTokenInfo[holder].pendingProfits > 0,
             "No pending profits to remove"

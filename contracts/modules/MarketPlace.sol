@@ -1,39 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "../utils/AccessControl.sol";
+import "../core/abstracts/ModularInternal.sol";
 import "../utils/Strings.sol";
-import "../utils/ReentrancyGuard.sol";
 import {AssetToken} from "../token/AssetToken.sol";
 import {IAssetToken} from "../interfaces/IAssetToken.sol";
 import {IFexse} from "../interfaces/IFexse.sol";
 import {IMarketPlace} from "../interfaces/IMarketPlace.sol";
 import "hardhat/console.sol";
 
-contract MarketPlace is AccessControl, ReentrancyGuard {
-    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+contract MarketPlace is ModularInternal {
+
+    using AppStorage for AppStorage.Layout;
+
     IFexse public fexse;
-
-    struct UserTokenInfo {
-        uint256 holdings; // User's holdings in the asset
-        uint256 pendingProfits; // Pending profits for the user
-        uint256 tokensForSale; // Number of tokens put for sale by the user
-        uint256 salePrices; // Sale price set by the user
-    }
-
-    // Asset struct to store asset information
-    struct Asset {
-        uint256 id; // Unique ID for the asset
-        uint256 totalTokens; // Total number of tokens representing the asset
-        uint256 tokenPrice; // Price per token in USDT (scaled by 10^18 for precision)
-        uint256 totalProfit; // Total profit accumulated by the asset
-        uint256 profitPeriod; // Total profit accumulated by the asset
-        uint256 lastDistributed; // Last distribution timestamp
-        string uri; // URI for metadata
-        IAssetToken tokenContract;
-        address[] tokenHolders; // List of token holders for profit sharing
-        mapping(address => UserTokenInfo) userTokenInfo;
-    }
 
     // Admin address for managing token transfers
     address public admin;
@@ -68,10 +48,46 @@ contract MarketPlace is AccessControl, ReentrancyGuard {
         uint256 fexseAmount,
         uint256 cost
     );
+
+    address immutable _this;
+
     constructor()  {
+        _this = address(this);
         admin = msg.sender;
         _grantRole(ADMIN_ROLE, msg.sender);
     }
+
+
+    /**
+     * @dev Returns an array of ⁠ FacetCut ⁠ structs, which define the functions (selectors)
+     *      provided by this module. This is used to register the module's functions
+     *      with the modular system.
+     * @return FacetCut[] Array of ⁠ FacetCut ⁠ structs representing function selectors.
+     */
+    function moduleFacets() external view returns (FacetCut[] memory) {
+        uint256 selectorIndex = 0;
+        bytes4[] memory selectors = new bytes4[](6);
+
+        // Add function selectors to the array
+        selectors[selectorIndex++] = this.transferAsset.selector;
+        selectors[selectorIndex++] = this.lockFexseToBeBought.selector;
+        selectors[selectorIndex++] = this.unlockFexse.selector;
+        selectors[selectorIndex++] = this.lockTokensToBeSold.selector;
+        selectors[selectorIndex++] = this.unlockTokensToBeSold.selector;
+        selectors[selectorIndex++] = this.setFexseAddress.selector;
+
+        // Create a FacetCut array with a single element
+        FacetCut[] memory facetCuts = new FacetCut[](1);
+
+        // Set the facetCut target, action, and selectors
+        facetCuts[0] = FacetCut({
+            target: _this,
+            action: FacetCutAction.ADD,
+            selectors: selectors
+        });
+        return facetCuts;
+    }
+
 
 
     /**
@@ -96,7 +112,10 @@ contract MarketPlace is AccessControl, ReentrancyGuard {
         require(tokenAmount > 0, "Token amount must be greater than zero");
         require(tokenPrice > 0, "Token price must be greater than zero");
 
-        Asset storage asset = assets[assetId];
+       
+        AppStorage.Layout storage data = AppStorage.layout();
+        Asset storage asset = data.assets[assetId];
+
         uint256 cost = tokenPrice * tokenAmount;
 
         // TODO: fexse tranfer fiyta dönüşümü chainlink integration
@@ -167,7 +186,10 @@ contract MarketPlace is AccessControl, ReentrancyGuard {
         uint256 tokenAmount,
         uint256 salePrice
     ) external nonReentrant onlyRole(ADMIN_ROLE){
-        Asset storage asset = assets[assetId];
+        
+        AppStorage.Layout storage data = AppStorage.layout();
+        Asset storage asset = data.assets[assetId];
+
         require(
             asset.userTokenInfo[owner].holdings >= tokenAmount,
             "Insufficient token balance"
@@ -191,7 +213,9 @@ contract MarketPlace is AccessControl, ReentrancyGuard {
         uint256 tokenAmount,
         uint256 salePrice
     ) external nonReentrant onlyRole(ADMIN_ROLE){
-        Asset storage asset = assets[assetId];
+        
+        AppStorage.Layout storage data = AppStorage.layout();
+        Asset storage asset = data.assets[assetId];
 
         require(
             asset.userTokenInfo[owner].holdings >= tokenAmount,
