@@ -1,43 +1,23 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "../utils/AccessControl.sol";
+
+import "../core/abstracts/ModularInternal.sol";
 import "../token/ERC20/IERC20.sol";
 import "../utils/Strings.sol";
-import "../utils/ReentrancyGuard.sol";
 import {AssetToken} from "../token/AssetToken.sol";
-import {IAssetToken} from "../interfaces/IAssetToken.sol";
 import {IFexse} from "../interfaces/IFexse.sol";
 import {IRWATokenization} from "../interfaces/IRWATokenization.sol";
 import {IMarketPlace} from "../interfaces/IMarketPlace.sol";
 import "hardhat/console.sol";
 
-contract RWATokenization is AccessControl, ReentrancyGuard {
+contract RWATokenization is ModularInternal {
+    using AppStorage for AppStorage.Layout;
+
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
     IFexse public fexse;
     IMarketPlace public marketContract;
-
-    struct UserTokenInfo {
-        uint256 holdings; // User's holdings in the asset
-        uint256 pendingProfits; // Pending profits for the user
-        uint256 tokensForSale; // Number of tokens put for sale by the user
-        uint256 salePrices; // Sale price set by the user
-    }
-
-    // Asset struct to store asset information
-    struct Asset {
-        uint256 id; // Unique ID for the asset
-        uint256 totalTokens; // Total number of tokens representing the asset
-        uint256 tokenPrice; // Price per token in USDT (scaled by 10^18 for precision)
-        uint256 totalProfit; // Total profit accumulated by the asset
-        uint256 profitPeriod; // Total profit accumulated by the asset
-        uint256 lastDistributed; // Last distribution timestamp
-        string uri; // URI for metadata
-        IAssetToken tokenContract;
-        address[] tokenHolders; // List of token holders for profit sharing
-        mapping(address => UserTokenInfo) userTokenInfo;
-    }
 
     // Admin address for managing token transfers
     address public admin;
@@ -46,7 +26,6 @@ contract RWATokenization is AccessControl, ReentrancyGuard {
     uint256 private constant FEXSE_PRICE_IN_USDT = 45; // 0.045 USDT represented as 45 (scaled by 10^3)
 
     // Mapping to store assets by ID
-    mapping(uint256 => Asset) public assets;
 
     // Event to log profit distribution
     event ProfitDistributed(
@@ -81,12 +60,56 @@ contract RWATokenization is AccessControl, ReentrancyGuard {
     );
     event MarketPlaceContractUpdated(address oldContract, address newContract);
 
+    address immutable _this;
+
     constructor(
         address _marketContract
     ) {
+        _this = address(this);
         admin = msg.sender;
         marketContract = IMarketPlace(_marketContract);
         _grantRole(ADMIN_ROLE, msg.sender);
+    }
+
+    /**
+     * @dev Returns an array of ⁠ FacetCut ⁠ structs, which define the functions (selectors)
+     *      provided by this module. This is used to register the module's functions
+     *      with the modular system.
+     * @return FacetCut[] Array of ⁠ FacetCut ⁠ structs representing function selectors.
+     */
+    function moduleFacets() external view returns (FacetCut[] memory) {
+        uint256 selectorIndex = 0;
+        bytes4[] memory selectors = new bytes4[](17);
+
+        // Add function selectors to the array
+        selectors[selectorIndex++] = this.createAsset.selector;
+        selectors[selectorIndex++] = this.getAssetId.selector;
+        selectors[selectorIndex++] = this.getTotalTokens.selector;
+        selectors[selectorIndex++] = this.getTokenPrice.selector;
+        selectors[selectorIndex++] = this.getTotalProfit.selector;
+        selectors[selectorIndex++] = this.getLastDistributed.selector;
+        selectors[selectorIndex++] = this.getUri.selector;
+        selectors[selectorIndex++] = this.getTokenContractAddress.selector;
+        selectors[selectorIndex++] = this.getTokenHolders.selector;
+        selectors[selectorIndex++] = this.getHolderBalance.selector;
+        selectors[selectorIndex++] = this.getPendingProfits.selector;
+        selectors[selectorIndex++] = this.distributeProfit.selector;
+        selectors[selectorIndex++] = this.claimProfit.selector;
+        selectors[selectorIndex++] = this.updateAsset.selector;
+        selectors[selectorIndex++] = this.setFexseAddress.selector;
+        selectors[selectorIndex++] = this.updateHoldings.selector;
+        selectors[selectorIndex++] = this.updateMarketPlaceContract.selector;
+
+        // Create a FacetCut array with a single element
+        FacetCut[] memory facetCuts = new FacetCut[](1);
+
+        // Set the facetCut target, action, and selectors
+        facetCuts[0] = FacetCut({
+            target: _this,
+            action: FacetCutAction.ADD,
+            selectors: selectors
+        });
+        return facetCuts;
     }
 
     // Function to create a new asset and issue tokens to the admin
@@ -96,7 +119,11 @@ contract RWATokenization is AccessControl, ReentrancyGuard {
         uint256 tokenPrice,
         string memory assetUri
     ) external nonReentrant onlyRole(ADMIN_ROLE) {
-        require(assets[assetId].id == 0, "Asset already exists");
+
+        AppStorage.Layout storage data = AppStorage.layout();
+        Asset storage asset = data.assets[assetId];
+
+        require(asset.id == 0, "Asset already exists");
         require(totalTokens > 0, "Total tokens must be greater than zero");
         require(tokenPrice > 0, "Token price must be greater than zero");
 
@@ -110,12 +137,11 @@ contract RWATokenization is AccessControl, ReentrancyGuard {
         address tokenAddress = address(token);
 
         // Store the deployed contract information in the mapping
-        Asset storage newAsset = assets[assetId];
-        newAsset.id = assetId;
-        newAsset.totalTokens = totalTokens;
-        newAsset.tokenPrice = tokenPrice;
-        newAsset.uri = assetUri;
-        newAsset.tokenContract = IAssetToken(tokenAddress);
+        asset.id = assetId;
+        asset.totalTokens = totalTokens;
+        asset.tokenPrice = tokenPrice;
+        asset.uri = assetUri;
+        asset.tokenContract = IAssetToken(tokenAddress);
 
         token.mint(admin, assetId, totalTokens, "");
 
@@ -124,28 +150,40 @@ contract RWATokenization is AccessControl, ReentrancyGuard {
 
     // Function to get the ID of an asset
     function getAssetId(uint256 assetId) external view returns (uint256) {
-        Asset storage asset = assets[assetId];
+        
+        AppStorage.Layout storage data = AppStorage.layout();
+        Asset storage asset = data.assets[assetId];
+
         require(asset.id != 0, "Asset does not exist");
         return asset.id;
     }
 
     // Function to get the total tokens of an asset
     function getTotalTokens(uint256 assetId) external view returns (uint256) {
-        Asset storage asset = assets[assetId];
+        
+        AppStorage.Layout storage data = AppStorage.layout();
+        Asset storage asset = data.assets[assetId];
+
         require(asset.id != 0, "Asset does not exist");
         return asset.totalTokens;
     }
 
     // Function to get the token price of an asset
     function getTokenPrice(uint256 assetId) external view returns (uint256) {
-        Asset storage asset = assets[assetId];
+        
+        AppStorage.Layout storage data = AppStorage.layout();
+        Asset storage asset = data.assets[assetId];
+
         require(asset.id != 0, "Asset does not exist");
         return asset.tokenPrice;
     }
 
     // Function to get the total profit of an asset
     function getTotalProfit(uint256 assetId) external view returns (uint256) {
-        Asset storage asset = assets[assetId];
+        
+        AppStorage.Layout storage data = AppStorage.layout();
+        Asset storage asset = data.assets[assetId];
+
         require(asset.id != 0, "Asset does not exist");
         return asset.totalProfit;
     }
@@ -154,14 +192,20 @@ contract RWATokenization is AccessControl, ReentrancyGuard {
     function getLastDistributed(
         uint256 assetId
     ) external view returns (uint256) {
-        Asset storage asset = assets[assetId];
+        
+        AppStorage.Layout storage data = AppStorage.layout();
+        Asset storage asset = data.assets[assetId];
+
         require(asset.id != 0, "Asset does not exist");
         return asset.lastDistributed;
     }
 
     // Function to get the URI of an asset
     function getUri(uint256 assetId) external view returns (string memory) {
-        Asset storage asset = assets[assetId];
+        
+        AppStorage.Layout storage data = AppStorage.layout();
+        Asset storage asset = data.assets[assetId];
+
         require(asset.id != 0, "Asset does not exist");
         return string(abi.encodePacked(asset.uri));
     }
@@ -170,7 +214,10 @@ contract RWATokenization is AccessControl, ReentrancyGuard {
     function getTokenContractAddress(
         uint256 assetId
     ) external view returns (address) {
-        Asset storage asset = assets[assetId];
+
+        AppStorage.Layout storage data = AppStorage.layout();
+        Asset storage asset = data.assets[assetId];
+
         require(asset.id != 0, "Asset does not exist");
         return address(asset.tokenContract);
     }
@@ -179,7 +226,10 @@ contract RWATokenization is AccessControl, ReentrancyGuard {
     function getTokenHolders(
         uint256 assetId
     ) external view returns (address[] memory) {
-        Asset storage asset = assets[assetId];
+        
+        AppStorage.Layout storage data = AppStorage.layout();
+        Asset storage asset = data.assets[assetId];
+
         require(asset.id != 0, "Asset does not exist");
         return asset.tokenHolders;
     }
@@ -189,7 +239,10 @@ contract RWATokenization is AccessControl, ReentrancyGuard {
         uint256 assetId,
         address holder
     ) external view returns (uint256) {
-        Asset storage asset = assets[assetId];
+        
+        AppStorage.Layout storage data = AppStorage.layout();
+        Asset storage asset = data.assets[assetId];
+
         require(asset.id != 0, "Asset does not exist");
         return asset.userTokenInfo[holder].holdings;
     }
@@ -199,7 +252,10 @@ contract RWATokenization is AccessControl, ReentrancyGuard {
         uint256 assetId,
         address holder
     ) external view returns (uint256) {
-        Asset storage asset = assets[assetId];
+        
+        AppStorage.Layout storage data = AppStorage.layout();
+        Asset storage asset = data.assets[assetId];
+
         require(asset.id != 0, "Asset does not exist");
         return asset.userTokenInfo[holder].pendingProfits;
     }
@@ -209,7 +265,9 @@ contract RWATokenization is AccessControl, ReentrancyGuard {
         uint256 assetId,
         uint256 profitAmount
     ) public nonReentrant onlyRole(ADMIN_ROLE) {
-        Asset storage asset = assets[assetId];
+        
+        AppStorage.Layout storage data = AppStorage.layout();
+        Asset storage asset = data.assets[assetId];
 
         // Calculate profit per token
         uint256 profitPerToken = profitAmount / asset.totalTokens;
@@ -236,7 +294,9 @@ contract RWATokenization is AccessControl, ReentrancyGuard {
 
     // Holders can claim profits themselves
     function claimProfit(uint256 assetId) public nonReentrant {
-        Asset storage asset = assets[assetId];
+        
+        AppStorage.Layout storage data = AppStorage.layout();
+        Asset storage asset = data.assets[assetId];
 
         uint256 amount = asset.userTokenInfo[msg.sender].pendingProfits;
         require(amount > 0, "No profit to claim");
@@ -256,9 +316,12 @@ contract RWATokenization is AccessControl, ReentrancyGuard {
         uint256 assetId,
         uint256 newTokenPrice
     ) public nonReentrant onlyRole(ADMIN_ROLE) {
-        require(assets[assetId].id != 0, "Asset does not exist");
 
-        Asset storage asset = assets[assetId];
+        AppStorage.Layout storage data = AppStorage.layout();
+        Asset storage asset = data.assets[assetId];
+        
+        require(asset.id != 0, "Asset does not exist");
+
         asset.tokenPrice = newTokenPrice;
 
         emit AssetUpdated(assetId, newTokenPrice);
@@ -283,7 +346,9 @@ contract RWATokenization is AccessControl, ReentrancyGuard {
         uint256 assetId,
         uint256 balance
     ) external {
-        Asset storage asset = assets[assetId];
+
+        AppStorage.Layout storage data = AppStorage.layout();
+        Asset storage asset = data.assets[assetId];
 
         require(
             (msg.sender == address(asset.tokenContract)) ||
@@ -312,7 +377,10 @@ contract RWATokenization is AccessControl, ReentrancyGuard {
     }
 
     function _removeHolder(uint256 assetId, address holder) internal {
-        Asset storage asset = assets[assetId];
+        
+        AppStorage.Layout storage data = AppStorage.layout();
+        Asset storage asset = data.assets[assetId];
+
         uint256 length = asset.tokenHolders.length;
 
         for (uint256 i = 0; i < length; i++) {
@@ -326,7 +394,10 @@ contract RWATokenization is AccessControl, ReentrancyGuard {
 
     // Function to remove holdings of a specific address
     function _removeHoldings(uint256 assetId, address holder) internal {
-        Asset storage asset = assets[assetId];
+        
+        AppStorage.Layout storage data = AppStorage.layout();
+        Asset storage asset = data.assets[assetId];
+
         require(
             asset.userTokenInfo[holder].holdings > 0,
             "No holdings to remove"
@@ -337,7 +408,10 @@ contract RWATokenization is AccessControl, ReentrancyGuard {
 
     // Function to remove pending profits of a specific address
     function _removePendingProfits(uint256 assetId, address holder) internal {
-        Asset storage asset = assets[assetId];
+        
+        AppStorage.Layout storage data = AppStorage.layout();
+        Asset storage asset = data.assets[assetId];
+        
         require(
             asset.userTokenInfo[holder].pendingProfits > 0,
             "No pending profits to remove"

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+import "./Constants.sol";
 import "../utils/Context.sol";
 import "../libs/AddressLib.sol";
 import "../libs/TransferLib.sol";
@@ -28,7 +29,15 @@ library AppStorage {
         address fallbackAddress; // Fallback address for contract call
         mapping(bytes4 => bytes32) facets; // Mapping of function selectors to facets
         mapping(uint256 => bytes32) selectorSlots; // Mapping of selector slots for functions
+        mapping(uint256 => Asset) assets; // Mapping of asset
     }
+
+    // struct Layout {
+    //     mapping(uint256 => Asset) asset; // Mapping of pool IDs to Pool structures.
+    // }
+
+
+
 
     /**
      * @dev Retrieves the application's storage layout.

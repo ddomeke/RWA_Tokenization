@@ -4,13 +4,14 @@ pragma solidity ^0.8.24;
 import "../AppStorage.sol";
 import "../../interfaces/IModularInternal.sol";
 import "../../utils/AccessControl.sol";
+import "../../utils/ReentrancyGuard.sol";
 
 /**
  * @title ModularInternal
  * @dev This abstract contract provides the internal functions for managing facets (modules) in a diamond storage pattern,
  *      allowing dynamic addition, replacement, and removal of functionality within the contract.
  */
-abstract contract ModularInternal is IModularInternal {
+abstract contract ModularInternal is IModularInternal, AccessControl, ReentrancyGuard {
     using AddressLib for address;
 
     // Constants for managing address and selector masks

@@ -4,9 +4,6 @@ pragma solidity ^0.8.24;
 
 import "./ModularInternal.sol";
 import "../../interfaces/IModular.sol";
-import "../../utils/AccessControl.sol";
-import "../../utils/ReentrancyGuard.sol";
-import "../../utils/ReentrancyGuard.sol";
 import {IERC165, ERC165} from "../../utils/ERC165.sol";
 
 /**
@@ -15,7 +12,7 @@ import {IERC165, ERC165} from "../../utils/ERC165.sol";
  *      enabling the addition and management of different modules (facets) and handling fallback logic
  *      for delegate calls.
  */
-abstract contract Modular is ModularInternal, IModular, AccessControl, ReentrancyGuard {
+abstract contract Modular is IModular, ModularInternal {
     using AppStorage for *;
     using AddressLib for address;
 
