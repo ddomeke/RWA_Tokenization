@@ -5,6 +5,7 @@ import "./Constants.sol";
 import "../utils/Context.sol";
 import "../libs/AddressLib.sol";
 import "../libs/TransferLib.sol";
+import "../interfaces/IFexse.sol";
 
 /**
  * @title AppStorage
@@ -27,6 +28,7 @@ library AppStorage {
         uint16 selectorCount; // Number of function selectors in the application
         address deployer; // Address of the contract deployer
         address fallbackAddress; // Fallback address for contract call
+        IFexse fexseToken; // Address of the fexse
         mapping(bytes4 => bytes32) facets; // Mapping of function selectors to facets
         mapping(uint256 => bytes32) selectorSlots; // Mapping of selector slots for functions
         mapping(uint256 => Asset) assets; // Mapping of asset

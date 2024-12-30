@@ -5,18 +5,11 @@ import "../core/abstracts/ModularInternal.sol";
 import "../utils/Strings.sol";
 import {AssetToken} from "../token/AssetToken.sol";
 import {IAssetToken} from "../interfaces/IAssetToken.sol";
-import {IFexse} from "../interfaces/IFexse.sol";
 import {IMarketPlace} from "../interfaces/IMarketPlace.sol";
 import "hardhat/console.sol";
 
 contract MarketPlace is ModularInternal {
-
     using AppStorage for AppStorage.Layout;
-
-    IFexse public fexse;
-
-    // Admin address for managing token transfers
-    address public admin;
 
     uint256 private constant FEXSE_DECIMALS = 10 ** 18; // 18 decimals for FEXSE
     uint256 private constant FEXSE_PRICE_IN_USDT = 45; // 0.045 USDT represented as 45 (scaled by 10^3)
@@ -51,12 +44,13 @@ contract MarketPlace is ModularInternal {
 
     address immutable _this;
 
-    constructor()  {
+    constructor(
+        address appAddress
+    ) {
         _this = address(this);
-        admin = msg.sender;
         _grantRole(ADMIN_ROLE, msg.sender);
+        _grantRole(ADMIN_ROLE, appAddress);
     }
-
 
     /**
      * @dev Returns an array of ⁠ FacetCut ⁠ structs, which define the functions (selectors)
@@ -88,8 +82,6 @@ contract MarketPlace is ModularInternal {
         return facetCuts;
     }
 
-
-
     /**
      * @notice Transfers a specified amount of asset tokens from a sender to a buyer.
      * @dev This function handles the transfer of asset tokens and the corresponding FEXSE token payment.
@@ -112,7 +104,6 @@ contract MarketPlace is ModularInternal {
         require(tokenAmount > 0, "Token amount must be greater than zero");
         require(tokenPrice > 0, "Token price must be greater than zero");
 
-       
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
 
@@ -122,10 +113,10 @@ contract MarketPlace is ModularInternal {
         uint256 fexse_amount = (cost * FEXSE_DECIMALS) /
             (FEXSE_PRICE_IN_USDT * (10 ** 3));
 
-        fexse.unlock(buyer, fexse_amount);
+        data.fexseToken.unlock(buyer, fexse_amount);
 
         require(
-            fexse.transferFrom(buyer, sender, fexse_amount),
+            data.fexseToken.transferFrom(buyer, sender, fexse_amount),
             "FEXSE transfer failed"
         );
 
@@ -153,16 +144,18 @@ contract MarketPlace is ModularInternal {
         );
     }
 
-    // Function to allow users to buy tokens from the admin address
+    // Function to allow users to buy tokens from the deployer address
     function lockFexseToBeBought(
         address owner,
         uint256 fexseLockedAmount
-    ) public nonReentrant onlyRole(ADMIN_ROLE){
-        uint256 fexseAmount = fexse.balanceOf(owner);
+    ) public nonReentrant onlyRole(ADMIN_ROLE) {
+        AppStorage.Layout storage data = AppStorage.layout();
+
+        uint256 fexseAmount = data.fexseToken.balanceOf(owner);
 
         require(fexseAmount >= fexseLockedAmount, "Insufficient fexse balance");
 
-        fexse.lock(owner, fexseLockedAmount);
+        data.fexseToken.lock(owner, fexseLockedAmount);
 
         emit Fexselocked(owner, fexseLockedAmount);
     }
@@ -170,12 +163,14 @@ contract MarketPlace is ModularInternal {
     function unlockFexse(
         address owner,
         uint256 fexseLockedAmount
-    ) external nonReentrant onlyRole(ADMIN_ROLE){
-        uint256 fexseAmount = fexse.balanceOf(owner);
+    ) external nonReentrant onlyRole(ADMIN_ROLE) {
+        AppStorage.Layout storage data = AppStorage.layout();
+
+        uint256 fexseAmount = data.fexseToken.balanceOf(owner);
 
         require(fexseAmount >= fexseLockedAmount, "Insufficient token balance");
 
-        fexse.unlock(owner, fexseLockedAmount);
+        data.fexseToken.unlock(owner, fexseLockedAmount);
 
         emit FexseUnlocked(owner, fexseLockedAmount);
     }
@@ -185,8 +180,7 @@ contract MarketPlace is ModularInternal {
         uint256 assetId,
         uint256 tokenAmount,
         uint256 salePrice
-    ) external nonReentrant onlyRole(ADMIN_ROLE){
-        
+    ) external nonReentrant onlyRole(ADMIN_ROLE) {
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
 
@@ -212,8 +206,7 @@ contract MarketPlace is ModularInternal {
         uint256 assetId,
         uint256 tokenAmount,
         uint256 salePrice
-    ) external nonReentrant onlyRole(ADMIN_ROLE){
-        
+    ) external nonReentrant onlyRole(ADMIN_ROLE) {
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
 
@@ -236,16 +229,18 @@ contract MarketPlace is ModularInternal {
 
     function setFexseAddress(
         IFexse _fexseToken
-    ) external nonReentrant onlyRole(ADMIN_ROLE){
+    ) external nonReentrant onlyRole(ADMIN_ROLE) {
         require(
             address(_fexseToken) != address(0),
             "Invalid _fexseToken address"
         );
 
-        address oldContract = address(fexse);
-        fexse = _fexseToken;
+        AppStorage.Layout storage data = AppStorage.layout();
+
+        address oldContract = address(data.fexseToken);
+
+        data.fexseToken = _fexseToken;
 
         emit fexseContractUpdated(oldContract, address(_fexseToken));
     }
-
 }

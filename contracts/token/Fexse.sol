@@ -32,7 +32,7 @@ contract Fexse is AccessControl, ERC20, ERC20Burnable, ERC20Pausable, ERC20Permi
         address _rwaContract,
         address _marketContract
     )
-        ERC20("Fexse", "FXS")
+        ERC20("Fexse", "FeXSe")
         ERC20Permit("Fexse")
     {
         _mint(msg.sender, 270000000000 * 10 ** decimals());

@@ -5,6 +5,7 @@ import { IERC20, RWATokenization__factory } from "../typechain-types";
 import { log } from './logger';
 
 import {
+App,
   AssetToken,
   Fexse,
   RWATokenization,
@@ -29,8 +30,11 @@ describe("RWATokenization Test", function () {
 
   this.timeout(200000);
 
+  let app: App;
   let rwaTokenization: RWATokenization;
+  let _rwaTokenization: RWATokenization;
   let marketPlace: MarketPlace;
+  let _marketPlace: MarketPlace;
   let assetToken: AssetToken;
   let assetToken_sample: AssetToken;  
   let fexse: Fexse;
@@ -99,40 +103,48 @@ describe("RWATokenization Test", function () {
 
     log('INFO', "--------------------------------DEPLOY--------------------------------");
 
+    //--------------------- 1. App.sol deploy  -------------------------------------------------------------
+    app = await hre.ethers.deployContract("App");
+    const appAddress = await app.getAddress();
+    await log('INFO', `1  - app Address-> ${appAddress}`);
+    await gasPriceCalc(app.deploymentTransaction());
 
-    //--------------------- 0. MarketPlace.sol deploy  ---------------------------------------------
-    marketPlace = await hre.ethers.deployContract("MarketPlace");
-    const marketPlaceAddress = await marketPlace.getAddress();
-    await log('INFO', `0  - MarketPlace Address-> ${marketPlaceAddress}`);
-    //await gasPriceCalc(marketPlace.deploymentTransaction());  
+    //--------------------- 2. MarketPlace.sol deploy --------------------------------------------------------
+    _marketPlace = await hre.ethers.deployContract("MarketPlace", [appAddress]);
+    const _marketPlaceAddress = await _marketPlace.getAddress();
+    await log('INFO', `2  - market Place Address-> ${_marketPlaceAddress}`);
+    gasPriceCalc(_marketPlace.deploymentTransaction());
 
-    //await waitSec(3);
+    await app.installModule(_marketPlaceAddress);
+    marketPlace = await hre.ethers.getContractAt("MarketPlace", appAddress) as MarketPlace;
 
-    //--------------------- 1. RWATokenization.sol deploy  ---------------------------------------------
-    rwaTokenization = await hre.ethers.deployContract("RWATokenization",[marketPlaceAddress]);
-    const rwaTokenizationAddress = await rwaTokenization.getAddress();
-    await log('INFO', `1  - rwaTokenization Address-> ${rwaTokenizationAddress}`);
-    //await gasPriceCalc(rwaTokenization.deploymentTransaction());  
+    //--------------------- 3. RWATokenization.sol deploy --------------------------------------------------------
+    _rwaTokenization = await hre.ethers.deployContract("RWATokenization",[appAddress, _marketPlaceAddress]);
+    const _rwaTokenizationAddress = await _rwaTokenization.getAddress();
+    await log('INFO', `3  - _mrwaTokenization Address-> ${_rwaTokenizationAddress}`);
+    gasPriceCalc(_rwaTokenization.deploymentTransaction());
 
-    //await waitSec(3);
+    await app.installModule(_rwaTokenizationAddress);
+    rwaTokenization = await hre.ethers.getContractAt("RWATokenization", appAddress) as RWATokenization;
 
-    //--------------------- 2. createAsset.sol deploy  ---------------------------------------------
+
+    //--------------------- 4. createAsset.sol deploy  ---------------------------------------------
     const createTx = await rwaTokenization.createAsset(ASSET_ID,TOTALTOKENS,TOKENPRICE,ASSETURI);
     await createTx.wait();
 
     const assetTokenAddress = await rwaTokenization.getTokenContractAddress(ASSET_ID);    
     assetToken = await hre.ethers.getContractAt("AssetToken", assetTokenAddress) as AssetToken;    
-    await log('INFO', `2  - assetToken Address -> ${assetTokenAddress}`);
+    await log('INFO', `4  - assetToken Address -> ${assetTokenAddress}`);
 
-    //--------------------- 3. Fexse.sol deploy  ---------------------------------------------
-    fexse = await hre.ethers.deployContract("Fexse",[rwaTokenizationAddress,marketPlaceAddress]);
+    //--------------------- 5. Fexse.sol deploy  ---------------------------------------------
+    fexse = await hre.ethers.deployContract("Fexse",[_rwaTokenizationAddress,_marketPlaceAddress]);
     const fexseAddress = await fexse.getAddress();
-    await log('INFO', `3  - fexse Address-> ${fexseAddress}`);
-    //await gasPriceCalc(fexse.deploymentTransaction()); 
+    await log('INFO', `5  - fexse Address-> ${fexseAddress}`);
+    await gasPriceCalc(fexse.deploymentTransaction()); 
 
-    await rwaTokenization.setFexseAddress(fexseAddress);
+    await marketPlace.setFexseAddress(fexseAddress);
 
-    //--------------------- 4. SwapEthToUsdt.sol deploy  ---------------------------------------------
+    //--------------------- 6. SwapEthToUsdt.sol deploy  ---------------------------------------------
     // swapEthToUsdt = await hre.ethers.deployContract("SwapEthToUsdt",[UNISWAP_V3_ROUTER]);
     // const swapEthToUsdtAddress = await swapEthToUsdt.getAddress();
     // await log('INFO', `4  - swapEthToUsdt Address-> ${swapEthToUsdtAddress}`);
@@ -145,7 +157,7 @@ describe("RWATokenization Test", function () {
     // );
     // await tx.wait();
     
-    //--------------------- 5. USDT ERC20   ---------------------------------------------
+    //--------------------- 7. USDT ERC20   ---------------------------------------------
     usdtContract = (await hre.ethers.getContractAt(ERC20_ABI, USDT_ADDRESS)) as unknown as IERC20;
 
     log('INFO', "---------------------------TRANSFER - APPROVE----------------------------------------");
@@ -173,8 +185,8 @@ describe("RWATokenization Test", function () {
 
       await usdtContract.connect(impersonatedSigner).transfer(addr.address, amountUSDC); // Transfer USDC
       await fexse.connect(addresses[0]).transfer(addr.address, amountFexse); // Transfer fexse
-      await usdtContract.connect(addr).approve(rwaTokenizationAddress, hre.ethers.MaxUint256);
-      await fexse.connect(addr).approve(rwaTokenizationAddress, hre.ethers.MaxUint256);
+      await usdtContract.connect(addr).approve(_rwaTokenizationAddress, hre.ethers.MaxUint256);
+      await fexse.connect(addr).approve(_rwaTokenizationAddress, hre.ethers.MaxUint256);
 
       log('INFO', `Approval successful for fexse and USDt ${addr.address}`);
       idx++;
@@ -182,12 +194,12 @@ describe("RWATokenization Test", function () {
     
     await fexse.connect(addresses[0]).transfer(impersonatedSigner, amountFexse); // Transfer fexse
 
-    await assetToken.connect(addresses[0]).setApprovalForAll(rwaTokenizationAddress, true); // Transfer fexse
+    await assetToken.connect(addresses[0]).setApprovalForAll(_rwaTokenizationAddress, true); // Transfer fexse
 
-    await usdtContract.connect(addresses[0]).approve(rwaTokenizationAddress, hre.ethers.MaxUint256);
-    await usdtContract.connect(impersonatedSigner).approve(rwaTokenizationAddress, hre.ethers.MaxUint256);
-    await fexse.connect(addresses[0]).approve(rwaTokenizationAddress, hre.ethers.MaxUint256);
-    await fexse.connect(impersonatedSigner).approve(rwaTokenizationAddress, hre.ethers.MaxUint256);
+    await usdtContract.connect(addresses[0]).approve(_rwaTokenizationAddress, hre.ethers.MaxUint256);
+    await usdtContract.connect(impersonatedSigner).approve(_rwaTokenizationAddress, hre.ethers.MaxUint256);
+    await fexse.connect(addresses[0]).approve(_rwaTokenizationAddress, hre.ethers.MaxUint256);
+    await fexse.connect(impersonatedSigner).approve(_rwaTokenizationAddress, hre.ethers.MaxUint256);
 
     await getProject_All_Balances(impersonatedSigner, 0);
     await getProject_All_Balances(addresses[0], 0);

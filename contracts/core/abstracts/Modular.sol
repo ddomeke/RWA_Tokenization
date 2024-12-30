@@ -25,6 +25,7 @@ abstract contract Modular is IModular, ModularInternal {
         AppStorage.Layout storage data = AppStorage.layout();
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(ADMIN_ROLE, msg.sender);
 
         // Define an array of function selectors for the initial facets
         bytes4[] memory selectors = new bytes4[](10);

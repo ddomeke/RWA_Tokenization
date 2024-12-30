@@ -6,7 +6,6 @@ import "../core/abstracts/ModularInternal.sol";
 import "../token/ERC20/IERC20.sol";
 import "../utils/Strings.sol";
 import {AssetToken} from "../token/AssetToken.sol";
-import {IFexse} from "../interfaces/IFexse.sol";
 import {IRWATokenization} from "../interfaces/IRWATokenization.sol";
 import {IMarketPlace} from "../interfaces/IMarketPlace.sol";
 import "hardhat/console.sol";
@@ -14,11 +13,7 @@ import "hardhat/console.sol";
 contract RWATokenization is ModularInternal {
     using AppStorage for AppStorage.Layout;
 
-    IFexse public fexse;
     IMarketPlace public marketContract;
-
-    // Admin address for managing token transfers
-    address public admin;
 
     uint256 private constant FEXSE_DECIMALS = 10 ** 18; // 18 decimals for FEXSE
     uint256 private constant FEXSE_PRICE_IN_USDT = 45; // 0.045 USDT represented as 45 (scaled by 10^3)
@@ -61,12 +56,13 @@ contract RWATokenization is ModularInternal {
     address immutable _this;
 
     constructor(
+        address appAddress,
         address _marketContract
     ) {
         _this = address(this);
-        admin = msg.sender;
         marketContract = IMarketPlace(_marketContract);
         _grantRole(ADMIN_ROLE, msg.sender);
+        _grantRole(ADMIN_ROLE, appAddress);
     }
 
     /**
@@ -77,7 +73,7 @@ contract RWATokenization is ModularInternal {
      */
     function moduleFacets() external view returns (FacetCut[] memory) {
         uint256 selectorIndex = 0;
-        bytes4[] memory selectors = new bytes4[](17);
+        bytes4[] memory selectors = new bytes4[](16);
 
         // Add function selectors to the array
         selectors[selectorIndex++] = this.createAsset.selector;
@@ -94,7 +90,6 @@ contract RWATokenization is ModularInternal {
         selectors[selectorIndex++] = this.distributeProfit.selector;
         selectors[selectorIndex++] = this.claimProfit.selector;
         selectors[selectorIndex++] = this.updateAsset.selector;
-        selectors[selectorIndex++] = this.setFexseAddress.selector;
         selectors[selectorIndex++] = this.updateHoldings.selector;
         selectors[selectorIndex++] = this.updateMarketPlaceContract.selector;
 
@@ -110,7 +105,7 @@ contract RWATokenization is ModularInternal {
         return facetCuts;
     }
 
-    // Function to create a new asset and issue tokens to the admin
+    // Function to create a new asset and issue tokens to the deployer
     function createAsset(
         uint256 assetId,
         uint256 totalTokens,
@@ -141,7 +136,7 @@ contract RWATokenization is ModularInternal {
         asset.uri = assetUri;
         asset.tokenContract = IAssetToken(tokenAddress);
 
-        token.mint(admin, assetId, totalTokens, "");
+        token.mint(data.deployer, assetId, totalTokens, "");
 
         emit AssetCreated(assetId, address(token), totalTokens, tokenPrice);
     }
@@ -304,7 +299,7 @@ contract RWATokenization is ModularInternal {
         uint256 fexse_amount = (amount * FEXSE_DECIMALS) /
             (FEXSE_PRICE_IN_USDT * (10 ** 3));
 
-        fexse.transferFrom(admin, msg.sender, fexse_amount);
+        data.fexseToken.transferFrom(data.deployer, msg.sender, fexse_amount);
 
         emit Claimed(msg.sender, assetId);
     }
@@ -323,20 +318,6 @@ contract RWATokenization is ModularInternal {
         asset.tokenPrice = newTokenPrice;
 
         emit AssetUpdated(assetId, newTokenPrice);
-    }
-
-    function setFexseAddress(
-        IFexse _fexseToken
-    ) external nonReentrant onlyRole(ADMIN_ROLE) {
-        require(
-            address(_fexseToken) != address(0),
-            "Invalid _fexseToken address"
-        );
-
-        address oldContract = address(fexse);
-        fexse = _fexseToken;
-
-        emit fexseContractUpdated(oldContract, address(_fexseToken));
     }
 
     function updateHoldings(
