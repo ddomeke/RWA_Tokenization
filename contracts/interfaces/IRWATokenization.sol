@@ -18,8 +18,6 @@ interface IRWATokenization {
 
     function updateAsset(uint256 assetId, uint256 newTokenPrice) external;
 
-    function setFexseAddress(address fexseToken) external;
-
     function getAssetId(uint256 assetId) external view returns (uint256);
 
     function getTotalTokens(uint256 assetId) external view returns (uint256);

@@ -7,13 +7,12 @@ import "../token/ERC20/IERC20.sol";
 import "../utils/Strings.sol";
 import {AssetToken} from "../token/AssetToken.sol";
 import {IRWATokenization} from "../interfaces/IRWATokenization.sol";
-import {IMarketPlace} from "../interfaces/IMarketPlace.sol";
 import "hardhat/console.sol";
 
 contract RWATokenization is ModularInternal {
     using AppStorage for AppStorage.Layout;
 
-    IMarketPlace public marketContract;
+    address public appAddress;
 
     uint256 private constant FEXSE_DECIMALS = 10 ** 18; // 18 decimals for FEXSE
     uint256 private constant FEXSE_PRICE_IN_USDT = 45; // 0.045 USDT represented as 45 (scaled by 10^3)
@@ -46,23 +45,20 @@ contract RWATokenization is ModularInternal {
         uint256 totalTokens,
         uint256 tokenPrice
     );
-    event fexseContractUpdated(address oldToken, address newToken);
     event Claimed(
         address sender,
         uint256 fexseAmount
     );
-    event MarketPlaceContractUpdated(address oldContract, address newContract);
 
     address immutable _this;
 
     constructor(
-        address appAddress,
-        address _marketContract
+        address _appAddress
     ) {
         _this = address(this);
-        marketContract = IMarketPlace(_marketContract);
+        appAddress = _appAddress;
         _grantRole(ADMIN_ROLE, msg.sender);
-        _grantRole(ADMIN_ROLE, appAddress);
+        _grantRole(ADMIN_ROLE, _appAddress);
     }
 
     /**
@@ -73,11 +69,10 @@ contract RWATokenization is ModularInternal {
      */
     function moduleFacets() external view returns (FacetCut[] memory) {
         uint256 selectorIndex = 0;
-        bytes4[] memory selectors = new bytes4[](16);
+        bytes4[] memory selectors = new bytes4[](14);
 
         // Add function selectors to the array
         selectors[selectorIndex++] = this.createAsset.selector;
-        selectors[selectorIndex++] = this.getAssetId.selector;
         selectors[selectorIndex++] = this.getTotalTokens.selector;
         selectors[selectorIndex++] = this.getTokenPrice.selector;
         selectors[selectorIndex++] = this.getTotalProfit.selector;
@@ -91,7 +86,6 @@ contract RWATokenization is ModularInternal {
         selectors[selectorIndex++] = this.claimProfit.selector;
         selectors[selectorIndex++] = this.updateAsset.selector;
         selectors[selectorIndex++] = this.updateHoldings.selector;
-        selectors[selectorIndex++] = this.updateMarketPlaceContract.selector;
 
         // Create a FacetCut array with a single element
         FacetCut[] memory facetCuts = new FacetCut[](1);
@@ -138,16 +132,6 @@ contract RWATokenization is ModularInternal {
         token.mint(data.deployer, assetId, totalTokens, "");
 
         emit AssetCreated(assetId, address(token), totalTokens, tokenPrice);
-    }
-
-    // Function to get the ID of an asset
-    function getAssetId(uint256 assetId) external view returns (uint256) {
-        
-        AppStorage.Layout storage data = AppStorage.layout();
-        Asset storage asset = data.assets[assetId];
-
-        require(asset.id != 0, "Asset does not exist");
-        return asset.id;
     }
 
     // Function to get the total tokens of an asset
@@ -403,15 +387,5 @@ contract RWATokenization is ModularInternal {
         _removeHolder(assetId, holder);
         _removeHoldings(assetId, holder);
         _removePendingProfits(assetId, holder);
-    }
-
-
-    function updateMarketPlaceContract(address newContract) external onlyRole(ADMIN_ROLE) {
-        require(newContract != address(0), "Invalid Market contract address");
-
-        address oldContract = address(marketContract);
-        marketContract = IMarketPlace(newContract);
-
-        emit MarketPlaceContractUpdated(oldContract, newContract);
     }
 }

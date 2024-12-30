@@ -126,8 +126,10 @@ contract AssetToken is AccessControl, IAssetToken, ERC1155, ERC1155Pausable, ERC
     function _update(address from, address to, uint256[] memory ids, uint256[] memory values)
         internal
         override(ERC1155, ERC1155Pausable, ERC1155Supply)
+
+        //TODO: ----
     {
-        require(address(appAddress).code.length > 0, "Target address is not a contract");
+        //require(address(appAddress).code.length > 0, "Target address is not a contract");
 
         super._update(from, to, ids, values);
         

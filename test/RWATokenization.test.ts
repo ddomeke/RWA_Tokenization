@@ -122,7 +122,7 @@ describe("RWATokenization Test", function () {
     marketPlace = await hre.ethers.getContractAt("MarketPlace", appAddress) as MarketPlace;
 
     //--------------------- 3. RWATokenization.sol deploy --------------------------------------------------------
-    _rwaTokenization = await hre.ethers.deployContract("RWATokenization",[appAddress, _marketPlaceAddress]);
+    _rwaTokenization = await hre.ethers.deployContract("RWATokenization",[appAddress]);
     const _rwaTokenizationAddress = await _rwaTokenization.getAddress();
     await log('INFO', `3  - _mrwaTokenization Address-> ${_rwaTokenizationAddress}`);
     gasPriceCalc(_rwaTokenization.deploymentTransaction());
@@ -323,7 +323,6 @@ describe("RWATokenization Test", function () {
 
   async function logAssetDetails(  assetId: string, holderAddress: string) {
 
-        const AssetId = await rwaTokenization.getAssetId(assetId);
         const TotalTokens = await rwaTokenization.getTotalTokens(assetId);
         const TokenPrice = await rwaTokenization.getTokenPrice(assetId);
         const TotalProfit = await rwaTokenization.getTotalProfit(assetId);
@@ -334,7 +333,6 @@ describe("RWATokenization Test", function () {
         const HolderBalance = await rwaTokenization.getHolderBalance(assetId, holderAddress);
         const PendingProfits = await rwaTokenization.getPendingProfits(assetId, holderAddress);
     
-        log("INFO", `AssetId                            : ${AssetId}`);
         log("INFO", `TotalTokens                        : ${TotalTokens}`);
         log("INFO", `TokenPrice                         : ${TokenPrice}`);
         log("INFO", `TotalProfit                        : ${TotalProfit}`);
