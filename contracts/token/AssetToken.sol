@@ -19,6 +19,7 @@ contract AssetToken is AccessControl, IAssetToken, ERC1155, ERC1155Pausable, ERC
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
     address public appAddress;
+    IRWATokenization public rwaContract;
 
     mapping(uint256 => mapping(address => uint256)) public lockedTokens;  // assetId -> user -> amount locked
 
@@ -27,11 +28,13 @@ contract AssetToken is AccessControl, IAssetToken, ERC1155, ERC1155Pausable, ERC
 
     constructor(
         address _appAddress,
-        string memory uri_
+        string memory uri_,
+        address _rwaContract
     )
         ERC1155(uri_)
     {
         appAddress = _appAddress;
+        rwaContract = IRWATokenization(_rwaContract);
         _grantRole(ADMIN_ROLE, msg.sender);
         _grantRole(ADMIN_ROLE, appAddress);
     }
@@ -129,7 +132,7 @@ contract AssetToken is AccessControl, IAssetToken, ERC1155, ERC1155Pausable, ERC
 
         //TODO: ----
     {
-        //require(address(appAddress).code.length > 0, "Target address is not a contract");
+        require(address(rwaContract).code.length > 0, "Target address is not a contract");
 
         super._update(from, to, ids, values);
         
@@ -138,23 +141,23 @@ contract AssetToken is AccessControl, IAssetToken, ERC1155, ERC1155Pausable, ERC
             uint256 id = ids[i];
             if (from != address(0)) {
 
-                (bool success, ) = appAddress.delegatecall(
-                    abi.encodeWithSignature("updateHoldings(address,uint256,uint256)", from, id, balanceOf(from, id))
-                );
-                require(success, "RWATokenization.updateHoldingscall failed");
+                // (bool success, ) = appAddress.delegatecall(
+                //     abi.encodeWithSignature("updateHoldings(address,uint256,uint256)", from, id, balanceOf(from, id))
+                // );
+                // require(success, "RWATokenization.updateHoldingscall failed");
 
 
-                //address(appAddress).updateHoldings(from, id, balanceOf(from, id));
+                rwaContract.updateHoldings(from, id, balanceOf(from, id));
             }
             if (to != address(0)) {
 
-                (bool success, ) = appAddress.delegatecall(
-                    abi.encodeWithSignature("updateHoldings(address,uint256,uint256)", to, id, balanceOf(to, id))
-                );
-                require(success, "RWATokenization.updateHoldingscall failed");
+                // (bool success, ) = appAddress.delegatecall(
+                //     abi.encodeWithSignature("updateHoldings(address,uint256,uint256)", to, id, balanceOf(to, id))
+                // );
+                // require(success, "RWATokenization.updateHoldingscall failed");
 
 
-                //appAddress.updateHoldings(to, id, balanceOf(to, id));
+                rwaContract.updateHoldings(to, id, balanceOf(to, id));
             }
         }
     }

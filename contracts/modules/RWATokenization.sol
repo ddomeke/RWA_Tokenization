@@ -117,7 +117,8 @@ contract RWATokenization is ModularInternal {
         // Deploy a new instance of AssetToken
         AssetToken token = new AssetToken(
             appAddress,
-            assetUri // URI for metadata
+            assetUri, // URI for metadata
+            address(this)
         );
 
         address tokenAddress = address(token);
@@ -307,7 +308,7 @@ contract RWATokenization is ModularInternal {
         address account,
         uint256 assetId,
         uint256 balance
-    ) external {
+    ) external{
 
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
