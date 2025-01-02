@@ -198,6 +198,7 @@ describe("RWATokenization Test", function () {
 
       await usdtContract.connect(impersonatedSigner).transfer(addr.address, amountUSDC); // Transfer USDC
       await fexse.connect(addresses[0]).transfer(addr.address, amountFexse); // Transfer fexse
+      await fexse.connect(addresses[0]).transfer(impersonatedSigner, amountFexse); // Transfer fexse
       await usdtContract.connect(addr).approve(_rwaTokenizationAddress, hre.ethers.MaxUint256);
       await fexse.connect(addr).approve(_rwaTokenizationAddress, hre.ethers.MaxUint256);
 
@@ -205,14 +206,17 @@ describe("RWATokenization Test", function () {
       idx++;
     }        
     
-    await fexse.connect(addresses[0]).transfer(impersonatedSigner, amountFexse); // Transfer fexse
+    await fexse.connect(addresses[0]).transfer(impersonatedSigner, amountFexse); 
 
-    await assetToken.connect(addresses[0]).setApprovalForAll(_rwaTokenizationAddress, true); // Transfer fexse
+    await assetToken.connect(addresses[0]).setApprovalForAll(_rwaTokenizationAddress, true); 
 
     await usdtContract.connect(addresses[0]).approve(_rwaTokenizationAddress, hre.ethers.MaxUint256);
     await usdtContract.connect(impersonatedSigner).approve(_rwaTokenizationAddress, hre.ethers.MaxUint256);
-    await fexse.connect(addresses[0]).approve(_rwaTokenizationAddress, hre.ethers.MaxUint256);
-    await fexse.connect(impersonatedSigner).approve(_rwaTokenizationAddress, hre.ethers.MaxUint256);
+    await fexse.connect(addresses[0]).approve(appAddress, hre.ethers.MaxUint256);
+    await fexse.connect(impersonatedSigner).approve(appAddress, hre.ethers.MaxUint256);
+    await assetToken.connect(addresses[0]).setApprovalForAll(addresses[0],true);
+    await assetToken.connect(addresses[0]).setApprovalForAll(appAddress,true);
+    await assetToken.connect(impersonatedSigner).setApprovalForAll(appAddress,true);
 
     await getProject_All_Balances(impersonatedSigner, 0);
     await getProject_All_Balances(addresses[0], 0);
@@ -386,52 +390,84 @@ describe("RWATokenization Test", function () {
     });
 
     /*-----------------------------------------------------------------------------------------------
-    -------------------buyTokens-----------------------------------------------------------
+    -------------------TranserAsset-----------------------------------------------------------
     -----------------------------------------------------------------------------------------------*/
-    // it("  2  -------------->Should buyTokens", async function () {
+    it("  2  -------------->Should TranserAsset", async function () {
 
-    //     log('INFO', ``);
-    //     log('INFO', "-----------------------------------------------buyTokens-----------------------------------------------------");
-    //     log('INFO', ``);
+        log('INFO', ``);
+        log('INFO', "-----------------------------------------------TranserAsset-----------------------------------------------------");
+        log('INFO', ``);
 
-    //     await hre.network.provider.request({
-    //         method: "hardhat_impersonateAccount",
-    //         params: [My_ADDRESS],
-    //     });
-    //     const buyer = await hre.ethers.getSigner(My_ADDRESS);
+        await hre.network.provider.request({
+            method: "hardhat_impersonateAccount",
+            params: [My_ADDRESS],
+        });
+        const buyer = await hre.ethers.getSigner(My_ADDRESS);
         
-    //     const rwaTokenizationAddress = await rwaTokenization.getAddress();
+        //const TranserAssetAddress = await marketPlace.getAddress();
 
-    //     await getProject_All_Balances(buyer, 0);
-    //     await getProject_All_Balances(addresses[0], 0);
+        const amountFexselock = ethers.parseEther("10000");
 
-    //     const buyerUsdtallowance = await usdtContract.connect(buyer).allowance(buyer, rwaTokenizationAddress);
-    //     log('INFO', `buyerUsdtallowance : ${buyerUsdtallowance} `);
+        await getProject_All_Balances(buyer, 0);
+        await getProject_All_Balances(addresses[0], 0);
 
-    //     await expect(rwaTokenization.connect(buyer).buyTokens(ASSET_ID, 15,rwaTokenizationAddress))
-    //         .to.emit(rwaTokenization, "TokensPurchased")
-    //         .withArgs(buyer, ASSET_ID,15,15000);
+        // const buyerUsdtallowance = await usdtContract.connect(buyer).allowance(buyer, TranserAssetAddress);
+        // log('INFO', `buyerUsdtallowance : ${buyerUsdtallowance} `);
 
-    //     await getProject_All_Balances(buyer, 0);        
-    //     await getProject_All_Balances(addresses[0], 0);
+        await assetToken.connect(addresses[0]).safeTransferFrom(
+            addresses[0],
+            buyer,
+            ASSET_ID,
+            3,
+            "0x");
 
-    //     for (const addr of addresses) {
+        log('INFO', ``);
+        log('INFO', "-------------------token send-----------------------");
+        log('INFO', ``);
 
-    //         if(addr!=addresses[0]){
 
-    //             await getProject_All_Balances(addr, 0);
-    //             await getProject_All_Balances(addresses[0], 0);
+        await getProject_All_Balances(buyer, 0);
+        await getProject_All_Balances(addresses[0], 0);
 
-    //             await rwaTokenization.connect(addr).buyTokens(ASSET_ID, 15,rwaTokenizationAddress);               
 
-    //             await getProject_All_Balances(addr, 0);        
-    //             await getProject_All_Balances(addresses[0], 0);
-    //         }
-    //     }   
+        await marketPlace.connect(addresses[0]).lockTokensToBeSold(buyer, ASSET_ID, 3, 1000000);
 
-    //     await logAssetDetails(ASSET_ID,addresses[0]);
+        await marketPlace.connect(addresses[0]).lockFexseToBeBought(addresses[0], amountFexselock);
+            
+
+        await marketPlace.connect(addresses[0]).transferAsset( 
+            buyer,
+            addresses[0],
+            ASSET_ID,
+            3,
+            1000000);
+
+
+        log('INFO', ``);
+        log('INFO', "-------------------aseet transfer -----------------------");
+        log('INFO', ``);
+
+
+        await getProject_All_Balances(buyer, 0);        
+        await getProject_All_Balances(addresses[0], 0);
+
+        for (const addr of addresses) {
+
+            if(addr!=addresses[0]){
+
+                // await getProject_All_Balances(addr, 0);
+                // await getProject_All_Balances(addresses[0], 0);
+
+                // await rwaTokenization.connect(addr).buyTokens(ASSET_ID, 15,rwaTokenizationAddress);               
+
+                // await getProject_All_Balances(addr, 0);        
+                // await getProject_All_Balances(addresses[0], 0);
+            }
+        }   
+
+        await logAssetDetails(ASSET_ID,addresses[0]);
        
-    // });
+    });
 
     /*-----------------------------------------------------------------------------------------------
     -------------------getTokenContract-----------------------------------------------------------

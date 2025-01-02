@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-
 import "../core/abstracts/ModularInternal.sol";
 import "../token/ERC20/IERC20.sol";
 import "../utils/Strings.sol";
 import {AssetToken} from "../token/AssetToken.sol";
 import {IRWATokenization} from "../interfaces/IRWATokenization.sol";
-import "hardhat/console.sol";
 
 contract RWATokenization is ModularInternal {
     using AppStorage for AppStorage.Layout;
@@ -45,16 +43,11 @@ contract RWATokenization is ModularInternal {
         uint256 totalTokens,
         uint256 tokenPrice
     );
-    event Claimed(
-        address sender,
-        uint256 fexseAmount
-    );
+    event Claimed(address sender, uint256 fexseAmount);
 
     address immutable _this;
 
-    constructor(
-        address _appAddress
-    ) {
+    constructor(address _appAddress) {
         _this = address(this);
         appAddress = _appAddress;
         _grantRole(ADMIN_ROLE, msg.sender);
@@ -106,7 +99,6 @@ contract RWATokenization is ModularInternal {
         uint256 tokenPrice,
         string memory assetUri
     ) external nonReentrant onlyRole(ADMIN_ROLE) {
-
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
 
@@ -135,9 +127,13 @@ contract RWATokenization is ModularInternal {
         emit AssetCreated(assetId, address(token), totalTokens, tokenPrice);
     }
 
-    // Function to get the total tokens of an asset
+    /**
+     * @notice Retrieves the total number of tokens for a specific asset.
+     * @param assetId The unique identifier of the asset.
+     * @return The total number of tokens associated with the asset.
+     * @dev Reverts if the asset does not exist.
+     */
     function getTotalTokens(uint256 assetId) external view returns (uint256) {
-        
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
 
@@ -147,7 +143,6 @@ contract RWATokenization is ModularInternal {
 
     // Function to get the token price of an asset
     function getTokenPrice(uint256 assetId) external view returns (uint256) {
-        
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
 
@@ -157,7 +152,6 @@ contract RWATokenization is ModularInternal {
 
     // Function to get the total profit of an asset
     function getTotalProfit(uint256 assetId) external view returns (uint256) {
-        
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
 
@@ -169,7 +163,6 @@ contract RWATokenization is ModularInternal {
     function getLastDistributed(
         uint256 assetId
     ) external view returns (uint256) {
-        
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
 
@@ -179,7 +172,6 @@ contract RWATokenization is ModularInternal {
 
     // Function to get the URI of an asset
     function getUri(uint256 assetId) external view returns (string memory) {
-        
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
 
@@ -191,7 +183,6 @@ contract RWATokenization is ModularInternal {
     function getTokenContractAddress(
         uint256 assetId
     ) external view returns (address) {
-
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
 
@@ -203,7 +194,6 @@ contract RWATokenization is ModularInternal {
     function getTokenHolders(
         uint256 assetId
     ) external view returns (address[] memory) {
-        
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
 
@@ -216,7 +206,6 @@ contract RWATokenization is ModularInternal {
         uint256 assetId,
         address holder
     ) external view returns (uint256) {
-        
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
 
@@ -229,7 +218,6 @@ contract RWATokenization is ModularInternal {
         uint256 assetId,
         address holder
     ) external view returns (uint256) {
-        
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
 
@@ -242,7 +230,6 @@ contract RWATokenization is ModularInternal {
         uint256 assetId,
         uint256 profitAmount
     ) public nonReentrant onlyRole(ADMIN_ROLE) {
-        
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
 
@@ -271,7 +258,6 @@ contract RWATokenization is ModularInternal {
 
     // Holders can claim profits themselves
     function claimProfit(uint256 assetId) public nonReentrant {
-        
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
 
@@ -293,10 +279,9 @@ contract RWATokenization is ModularInternal {
         uint256 assetId,
         uint256 newTokenPrice
     ) public nonReentrant onlyRole(ADMIN_ROLE) {
-
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
-        
+
         require(asset.id != 0, "Asset does not exist");
 
         asset.tokenPrice = newTokenPrice;
@@ -308,8 +293,7 @@ contract RWATokenization is ModularInternal {
         address account,
         uint256 assetId,
         uint256 balance
-    ) external{
-
+    ) external {
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
 
@@ -340,7 +324,6 @@ contract RWATokenization is ModularInternal {
     }
 
     function _removeHolder(uint256 assetId, address holder) internal {
-        
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
 
@@ -357,7 +340,6 @@ contract RWATokenization is ModularInternal {
 
     // Function to remove holdings of a specific address
     function _removeHoldings(uint256 assetId, address holder) internal {
-        
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
 
@@ -371,14 +353,13 @@ contract RWATokenization is ModularInternal {
 
     // Function to remove pending profits of a specific address
     function _removePendingProfits(uint256 assetId, address holder) internal {
-        
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
 
-        require(
-            asset.userTokenInfo[holder].pendingProfits > 0,
-            "No pending profits to remove"
-        );
+        // require(
+        //     asset.userTokenInfo[holder].pendingProfits > 0,
+        //     "No pending profits to remove"
+        // );
 
         delete asset.userTokenInfo[holder].pendingProfits;
     }

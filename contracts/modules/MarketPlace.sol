@@ -110,8 +110,12 @@ contract MarketPlace is ModularInternal {
         uint256 cost = tokenPrice * tokenAmount;
 
         // TODO: fexse tranfer fiyta dönüşümü chainlink integration
-        uint256 fexse_amount = (cost * FEXSE_DECIMALS) /
-            (FEXSE_PRICE_IN_USDT * (10 ** 3));
+        // uint256 fexse_amount = (cost * FEXSE_DECIMALS) /
+        //     (FEXSE_PRICE_IN_USDT * (10 ** 3));
+
+
+        uint256 fexse_amount = tokenPrice * tokenAmount;
+            // TODO : kilitli mi diye kontrol edelim. approve kontrol edelim. fexse amountu kotrol edelim
 
         data.fexseToken.unlock(buyer, fexse_amount);
 
