@@ -343,10 +343,10 @@ contract RWATokenization is ModularInternal {
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
 
-        require(
-            asset.userTokenInfo[holder].holdings > 0,
-            "No holdings to remove"
-        );
+        // require(
+        //     asset.userTokenInfo[holder].holdings > 0,
+        //     "No holdings to remove"
+        // );
 
         delete asset.userTokenInfo[holder].holdings;
     }
