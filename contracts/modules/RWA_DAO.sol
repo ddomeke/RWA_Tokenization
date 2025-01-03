@@ -5,25 +5,14 @@ import "../token/ERC20/IERC20.sol";
 import "../utils/EnumerableSet.sol";
 import "../core/abstracts/ModularInternal.sol";
 
-contract RWA_DAO is  ModularInternal{
+contract RWA_DAO is ModularInternal {
     using AppStorage for AppStorage.Layout;
     using EnumerableSet for EnumerableSet.AddressSet;
 
     IERC20 public governanceToken;
     address public appAddress;
 
-    struct Proposal {
-        uint256 id;
-        string description;
-        uint256 forVotes;
-        uint256 againstVotes;
-        bool executed;
-        uint256 deadline;
-        mapping(address => bool) voters;
-    }
-
     uint256 private proposalCounter;
-    mapping(uint256 => Proposal) public proposals;
     EnumerableSet.AddressSet private voters;
 
     uint256 public proposalDuration = 7 days;
@@ -33,7 +22,10 @@ contract RWA_DAO is  ModularInternal{
     event Voted(uint256 proposalId, address voter, bool support);
     event ProposalExecuted(uint256 id, bool success);
     event GovernanceTokenUpdated(address oldToken, address newToken);
-    event RWATokenizationContractUpdated(address oldContract, address newContract);
+    event RWATokenizationContractUpdated(
+        address oldContract,
+        address newContract
+    );
 
     address immutable _this;
 
@@ -46,7 +38,10 @@ contract RWA_DAO is  ModularInternal{
     }
 
     constructor(address _governanceToken, address _appAddress) {
-        require(_governanceToken != address(0), "Invalid governance token address");
+        require(
+            _governanceToken != address(0),
+            "Invalid governance token address"
+        );
         require(_appAddress != address(0), "Invalid RWA contract address");
 
         governanceToken = IERC20(_governanceToken);
@@ -57,7 +52,7 @@ contract RWA_DAO is  ModularInternal{
         _grantRole(ADMIN_ROLE, _appAddress);
     }
 
-        /**
+    /**
      * @dev Returns an array of ⁠ FacetCut ⁠ structs, which define the functions (selectors)
      *      provided by this module. This is used to register the module's functions
      *      with the modular system.
@@ -88,13 +83,16 @@ contract RWA_DAO is  ModularInternal{
         return facetCuts;
     }
 
-
-    function createProposal(string memory description) external onlyTokenHolders {
+    function createProposal(
+        string memory description
+    ) external onlyTokenHolders {
 
         proposalCounter = proposalCounter + 1;
         uint256 proposalId = proposalCounter;
 
-        Proposal storage newProposal = proposals[proposalId];
+        AppStorage.Layout storage data = AppStorage.layout();
+        Proposal storage newProposal = data.proposals[proposalId];
+
         newProposal.id = proposalId;
         newProposal.description = description;
         newProposal.deadline = block.timestamp + proposalDuration;
@@ -103,7 +101,9 @@ contract RWA_DAO is  ModularInternal{
     }
 
     function vote(uint256 proposalId, bool support) external onlyTokenHolders {
-        Proposal storage proposal = proposals[proposalId];
+
+        AppStorage.Layout storage data = AppStorage.layout();
+        Proposal storage proposal = data.proposals[proposalId];
 
         require(block.timestamp <= proposal.deadline, "Voting period ended");
         require(!proposal.voters[msg.sender], "Already voted");
@@ -120,8 +120,12 @@ contract RWA_DAO is  ModularInternal{
         emit Voted(proposalId, msg.sender, support);
     }
 
-    function executeProposal(uint256 proposalId) external nonReentrant onlyRole(ADMIN_ROLE){
-        Proposal storage proposal = proposals[proposalId];
+    function executeProposal(
+        uint256 proposalId
+    ) external nonReentrant onlyRole(ADMIN_ROLE) {
+
+        AppStorage.Layout storage data = AppStorage.layout();
+        Proposal storage proposal = data.proposals[proposalId];
 
         require(block.timestamp > proposal.deadline, "Voting period not ended");
         require(!proposal.executed, "Proposal already executed");
@@ -134,24 +138,37 @@ contract RWA_DAO is  ModularInternal{
 
         // Execute action on the RWA Tokenization contract
         (bool success, ) = appAddress.call(
-            abi.encodeWithSignature("distributeProfit(uint256,uint256)", 1, 1000)
+            abi.encodeWithSignature(
+                "distributeProfit(uint256,uint256)",
+                1,
+                1000
+            )
         );
 
         emit ProposalExecuted(proposalId, success);
     }
 
-    function updateMinimumQuorum(uint256 newQuorum) external onlyRole(ADMIN_ROLE) {
+    function updateMinimumQuorum(
+        uint256 newQuorum
+    ) external onlyRole(ADMIN_ROLE) {
         require(newQuorum > 0, "Quorum must be greater than zero");
         minimumQuorum = newQuorum;
     }
 
-    function updateProposalDuration(uint256 newDuration) external onlyRole(ADMIN_ROLE) {
+    function updateProposalDuration(
+        uint256 newDuration
+    ) external onlyRole(ADMIN_ROLE) {
         require(newDuration > 0, "Duration must be greater than zero");
         proposalDuration = newDuration;
     }
 
-    function updateGovernanceToken(address newGovernanceToken) external onlyRole(ADMIN_ROLE) {
-        require(newGovernanceToken != address(0), "Invalid governance token address");
+    function updateGovernanceToken(
+        address newGovernanceToken
+    ) external onlyRole(ADMIN_ROLE) {
+        require(
+            newGovernanceToken != address(0),
+            "Invalid governance token address"
+        );
 
         address oldToken = address(governanceToken);
         governanceToken = IERC20(newGovernanceToken);
@@ -159,7 +176,9 @@ contract RWA_DAO is  ModularInternal{
         emit GovernanceTokenUpdated(oldToken, newGovernanceToken);
     }
 
-    function getProposal(uint256 proposalId)
+    function getProposal(
+        uint256 proposalId
+    )
         external
         view
         returns (
@@ -171,7 +190,10 @@ contract RWA_DAO is  ModularInternal{
             uint256 deadline
         )
     {
-        Proposal storage proposal = proposals[proposalId];
+
+        AppStorage.Layout storage data = AppStorage.layout();
+        Proposal storage proposal = data.proposals[proposalId];
+        
         return (
             proposal.id,
             proposal.description,

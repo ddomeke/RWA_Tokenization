@@ -28,3 +28,13 @@ import {IAssetToken} from "../interfaces/IAssetToken.sol";
         uint256 tokensForSale; // Number of tokens put for sale by the user
         uint256 salePrices; // Sale price set by the user
     }
+
+    struct Proposal {
+        uint256 id;
+        string description;
+        uint256 forVotes;
+        uint256 againstVotes;
+        bool executed;
+        uint256 deadline;
+        mapping(address => bool) voters;
+    }
