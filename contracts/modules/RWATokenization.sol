@@ -106,6 +106,8 @@ contract RWATokenization is ModularInternal {
         require(totalTokens > 0, "Total tokens must be greater than zero");
         require(tokenPrice > 0, "Token price must be greater than zero");
 
+        //TODO: service fee ekle
+
         // Deploy a new instance of AssetToken
         AssetToken token = new AssetToken(
             appAddress,

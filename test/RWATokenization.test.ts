@@ -12,6 +12,7 @@ App,
   Compliance,
   MarketPlace,
   SwapEthToUsdt,
+  RWA_DAO,
 } from "../typechain-types";
 
 //const params = require('./parameters.json');
@@ -36,6 +37,8 @@ describe("RWATokenization Test", function () {
   let _rwaTokenization: RWATokenization;
   let compliance: Compliance;
   let _compliance: Compliance;
+  let rwa_DAO: RWA_DAO;
+  let _rwa_DAO: RWA_DAO;
   let marketPlace: MarketPlace;
   let _marketPlace: MarketPlace;
   let assetToken: AssetToken;
@@ -157,10 +160,19 @@ describe("RWATokenization Test", function () {
 
     await marketPlace.setFexseAddress(fexseAddress);
 
-    //--------------------- 7. SwapEthToUsdt.sol deploy  ---------------------------------------------
+    //--------------------- 7. Compliance.sol deploy --------------------------------------------------------
+    _rwa_DAO = await hre.ethers.deployContract("RWA_DAO", [fexseAddress, appAddress]);
+    const _rwa_DAOAddress = await _rwa_DAO.getAddress();
+    await log('INFO', `7  - _rwa_DAOA Address-> ${_rwa_DAOAddress}`);
+    gasPriceCalc(_rwa_DAO.deploymentTransaction());
+
+    await app.installModule(_rwa_DAOAddress);
+    rwa_DAO = await hre.ethers.getContractAt("RWA_DAO", appAddress) as RWA_DAO;
+
+    //--------------------- 8. SwapEthToUsdt.sol deploy  ---------------------------------------------
     // swapEthToUsdt = await hre.ethers.deployContract("SwapEthToUsdt",[UNISWAP_V3_ROUTER]);
     // const swapEthToUsdtAddress = await swapEthToUsdt.getAddress();
-    // await log('INFO', `7  - swapEthToUsdt Address-> ${swapEthToUsdtAddress}`);
+    // await log('INFO', `8  - swapEthToUsdt Address-> ${swapEthToUsdtAddress}`);
     // //await gasPriceCalc(swapEthToUsdt.deploymentTransaction()); 
 
     // const tx = await swapEthToUsdt.swapEthForUsdt(

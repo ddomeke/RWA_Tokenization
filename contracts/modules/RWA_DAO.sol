@@ -2,16 +2,15 @@
 pragma solidity ^0.8.24;
 
 import "../token/ERC20/IERC20.sol";
-import "../utils/Ownable.sol";
 import "../utils/EnumerableSet.sol";
-import "../utils/ReentrancyGuard.sol";
+import "../core/abstracts/ModularInternal.sol";
 
-contract RWA_DAO is Ownable, ReentrancyGuard {
-    
+contract RWA_DAO is  ModularInternal{
+    using AppStorage for AppStorage.Layout;
     using EnumerableSet for EnumerableSet.AddressSet;
 
     IERC20 public governanceToken;
-    address public rwaTokenizationContract;
+    address public appAddress;
 
     struct Proposal {
         uint256 id;
@@ -36,13 +35,7 @@ contract RWA_DAO is Ownable, ReentrancyGuard {
     event GovernanceTokenUpdated(address oldToken, address newToken);
     event RWATokenizationContractUpdated(address oldContract, address newContract);
 
-    constructor(address initialOwner, address _governanceToken, address _rwaTokenizationContract) Ownable(initialOwner) {
-        require(_governanceToken != address(0), "Invalid governance token address");
-        require(_rwaTokenizationContract != address(0), "Invalid RWA contract address");
-
-        governanceToken = IERC20(_governanceToken);
-        rwaTokenizationContract = _rwaTokenizationContract;
-    }
+    address immutable _this;
 
     modifier onlyTokenHolders() {
         require(
@@ -51,6 +44,50 @@ contract RWA_DAO is Ownable, ReentrancyGuard {
         );
         _;
     }
+
+    constructor(address _governanceToken, address _appAddress) {
+        require(_governanceToken != address(0), "Invalid governance token address");
+        require(_appAddress != address(0), "Invalid RWA contract address");
+
+        governanceToken = IERC20(_governanceToken);
+
+        _this = address(this);
+        appAddress = _appAddress;
+        _grantRole(ADMIN_ROLE, msg.sender);
+        _grantRole(ADMIN_ROLE, _appAddress);
+    }
+
+        /**
+     * @dev Returns an array of ⁠ FacetCut ⁠ structs, which define the functions (selectors)
+     *      provided by this module. This is used to register the module's functions
+     *      with the modular system.
+     * @return FacetCut[] Array of ⁠ FacetCut ⁠ structs representing function selectors.
+     */
+    function moduleFacets() external view returns (FacetCut[] memory) {
+        uint256 selectorIndex = 0;
+        bytes4[] memory selectors = new bytes4[](7);
+
+        // Add function selectors to the array
+        selectors[selectorIndex++] = this.createProposal.selector;
+        selectors[selectorIndex++] = this.vote.selector;
+        selectors[selectorIndex++] = this.executeProposal.selector;
+        selectors[selectorIndex++] = this.updateMinimumQuorum.selector;
+        selectors[selectorIndex++] = this.updateProposalDuration.selector;
+        selectors[selectorIndex++] = this.updateGovernanceToken.selector;
+        selectors[selectorIndex++] = this.getProposal.selector;
+
+        // Create a FacetCut array with a single element
+        FacetCut[] memory facetCuts = new FacetCut[](1);
+
+        // Set the facetCut target, action, and selectors
+        facetCuts[0] = FacetCut({
+            target: _this,
+            action: FacetCutAction.ADD,
+            selectors: selectors
+        });
+        return facetCuts;
+    }
+
 
     function createProposal(string memory description) external onlyTokenHolders {
 
@@ -83,7 +120,7 @@ contract RWA_DAO is Ownable, ReentrancyGuard {
         emit Voted(proposalId, msg.sender, support);
     }
 
-    function executeProposal(uint256 proposalId) external nonReentrant {
+    function executeProposal(uint256 proposalId) external nonReentrant onlyRole(ADMIN_ROLE){
         Proposal storage proposal = proposals[proposalId];
 
         require(block.timestamp > proposal.deadline, "Voting period not ended");
@@ -96,39 +133,30 @@ contract RWA_DAO is Ownable, ReentrancyGuard {
         proposal.executed = true;
 
         // Execute action on the RWA Tokenization contract
-        (bool success, ) = rwaTokenizationContract.call(
+        (bool success, ) = appAddress.call(
             abi.encodeWithSignature("distributeProfit(uint256,uint256)", 1, 1000)
         );
 
         emit ProposalExecuted(proposalId, success);
     }
 
-    function updateMinimumQuorum(uint256 newQuorum) external onlyOwner {
+    function updateMinimumQuorum(uint256 newQuorum) external onlyRole(ADMIN_ROLE) {
         require(newQuorum > 0, "Quorum must be greater than zero");
         minimumQuorum = newQuorum;
     }
 
-    function updateProposalDuration(uint256 newDuration) external onlyOwner {
+    function updateProposalDuration(uint256 newDuration) external onlyRole(ADMIN_ROLE) {
         require(newDuration > 0, "Duration must be greater than zero");
         proposalDuration = newDuration;
     }
 
-    function updateGovernanceToken(address newGovernanceToken) external onlyOwner {
+    function updateGovernanceToken(address newGovernanceToken) external onlyRole(ADMIN_ROLE) {
         require(newGovernanceToken != address(0), "Invalid governance token address");
 
         address oldToken = address(governanceToken);
         governanceToken = IERC20(newGovernanceToken);
 
         emit GovernanceTokenUpdated(oldToken, newGovernanceToken);
-    }
-
-    function updateRWATokenizationContract(address newContract) external onlyOwner {
-        require(newContract != address(0), "Invalid RWA contract address");
-
-        address oldContract = rwaTokenizationContract;
-        rwaTokenizationContract = newContract;
-
-        emit RWATokenizationContractUpdated(oldContract, newContract);
     }
 
     function getProposal(uint256 proposalId)
