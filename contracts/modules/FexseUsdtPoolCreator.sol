@@ -1,0 +1,145 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
+import "@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
+import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
+import "../core/abstracts/ModularInternal.sol";
+
+contract FexseUsdtPoolCreator is ModularInternal {
+    address public immutable fexseToken; // Address of the FEXSE token
+    address public immutable usdtToken; // Address of the USDT token
+    uint24 public immutable poolFee; // Pool fee, e.g., 500 for 0.5%
+
+    address immutable _this;
+
+    address public constant factory = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
+    address public constant positionManager = 0xC36442b4a4522E871399CD717aBDD847Ab11FE88;
+
+    event PoolCreated(address indexed pool);
+    event LiquidityAdded(uint256 tokenId, uint128 liquidity, uint256 amountFexse, uint256 amountUsdt);
+
+    /**
+     * @dev Constructor to initialize the contract with required addresses and pool fee.
+     * @param _fexseToken Address of the FEXSE token.
+     * @param _usdtToken Address of the USDT token.
+     * @param _poolFee Fee tier for the pool (e.g., 500 for 0.5%).
+     */
+    constructor(
+        address _fexseToken,
+        address _usdtToken,
+        uint24 _poolFee
+    ) {
+        require(_fexseToken != address(0), "Invalid FEXSE token address");
+        require(_usdtToken != address(0), "Invalid USDT token address");
+
+        _this = address(this);
+        _grantRole(ADMIN_ROLE, msg.sender);
+
+        fexseToken = _fexseToken;
+        usdtToken = _usdtToken;
+        poolFee = _poolFee;
+    }
+    /**
+     * @dev Returns an array of ⁠ FacetCut ⁠ structs, which define the functions (selectors)
+     *      provided by this module. This is used to register the module's functions
+     *      with the modular system.
+     * @return FacetCut[] Array of ⁠ FacetCut ⁠ structs representing function selectors.
+     */
+    function moduleFacets() external view returns (FacetCut[] memory) {
+        uint256 selectorIndex = 0;
+        bytes4[] memory selectors = new bytes4[](2);
+
+        // Add function selectors to the array
+        selectors[selectorIndex++] = this.createPool.selector;
+        selectors[selectorIndex++] = this.addLiquidity.selector;
+        // Create a FacetCut array with a single element
+        FacetCut[] memory facetCuts = new FacetCut[](1);
+
+        // Set the facetCut target, action, and selectors
+        facetCuts[0] = FacetCut({
+            target: _this,
+            action: FacetCutAction.ADD,
+            selectors: selectors
+        });
+        return facetCuts;
+    }
+
+    /**
+     * @dev Creates a FEXSE/USDT pool if it doesn't already exist.
+     * @param initialPriceX96 Initial price of the pool in sqrtPriceX96 format.
+     */
+    function createPool(uint160 initialPriceX96) external nonReentrant onlyRole(ADMIN_ROLE){//14547851560250183000000000000
+        // Check if the pool already exists
+        address pool = IUniswapV3Factory(factory).getPool(fexseToken, usdtToken, poolFee);
+        require(pool == address(0), "Pool already exists");
+
+        // Create the pool
+        pool = INonfungiblePositionManager(positionManager).createAndInitializePoolIfNecessary(
+            fexseToken,
+            usdtToken,
+            poolFee,
+            initialPriceX96
+        );
+
+        emit PoolCreated(pool);
+    }
+
+    /**
+     * @dev Adds liquidity to the FEXSE/USDT pool.
+     * @param amountFexse Desired amount of FEXSE tokens to add as liquidity.
+     * @param amountUsdt Desired amount of USDT tokens to add as liquidity.
+     * @param lowerTick Lower tick boundary for the liquidity position.
+     * @param upperTick Upper tick boundary for the liquidity position.
+     */
+    function addLiquidity(
+        uint256 amountFexse,
+        uint256 amountUsdt,
+        int24 lowerTick,
+        int24 upperTick
+    ) external nonReentrant onlyRole(ADMIN_ROLE) returns (uint256 tokenId, uint128 liquidity, uint256 amountFexseUsed, uint256 amountUsdtUsed) {
+
+    // uint256 amountFexse = 22222 * 1e18; // 22,222.22 FEXSE
+    // uint256 amountUsdt = 1000 * 1e6; // 1000 USDT (Assuming USDT has 6 decimals)
+    // Tick Lower: -500
+	// Tick Upper: 500
+
+        require(amountFexse > 0, "FEXSE amount must be greater than zero");
+        require(amountUsdt > 0, "USDT amount must be greater than zero");
+
+        // Transfer tokens from the sender to this contract
+        IERC20(fexseToken).transferFrom(msg.sender, address(this), amountFexse);
+        IERC20(usdtToken).transferFrom(msg.sender, address(this), amountUsdt);
+
+        // Approve the position manager to spend the tokens
+        IERC20(fexseToken).approve(positionManager, amountFexse);
+        IERC20(usdtToken).approve(positionManager, amountUsdt);
+
+        // Add liquidity using NonfungiblePositionManager
+        INonfungiblePositionManager.MintParams memory params = INonfungiblePositionManager.MintParams({
+            token0: fexseToken,
+            token1: usdtToken,
+            fee: poolFee,
+            tickLower: lowerTick,
+            tickUpper: upperTick,
+            amount0Desired: amountFexse,
+            amount1Desired: amountUsdt,
+            amount0Min: 0, // Slippage control, set to 0 for simplicity
+            amount1Min: 0, // Slippage control, set to 0 for simplicity
+            recipient: msg.sender,
+            deadline: block.timestamp + 300
+        });
+
+        (tokenId, liquidity, amountFexseUsed, amountUsdtUsed) = INonfungiblePositionManager(positionManager).mint(params);
+
+        // Refund unused tokens
+        if (amountFexse > amountFexseUsed) {
+            IERC20(fexseToken).transfer(msg.sender, amountFexse - amountFexseUsed);
+        }
+        if (amountUsdt > amountUsdtUsed) {
+            IERC20(usdtToken).transfer(msg.sender, amountUsdt - amountUsdtUsed);
+        }
+
+        emit LiquidityAdded(tokenId, liquidity, amountFexseUsed, amountUsdtUsed);
+    }
+}

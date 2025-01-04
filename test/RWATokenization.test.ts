@@ -11,9 +11,10 @@ App,
   RWATokenization,
   Compliance,
   MarketPlace,
-  SwapEthToUsdt,
   RWA_DAO,
   SwapModule,
+  FexsePriceFetcher,
+  FexseUsdtPoolCreator,
 } from "../typechain-types";
 
 //const params = require('./parameters.json');
@@ -42,12 +43,15 @@ describe("RWATokenization Test", function () {
   let _rwa_DAO: RWA_DAO;
   let swapModule: SwapModule;
   let _swapModule: SwapModule;
+  let fexsePriceFetcher: FexsePriceFetcher;
+  let _fexsePriceFetcher: FexsePriceFetcher;
+  let fexseUsdtPoolCreator: FexseUsdtPoolCreator;
+  let _fexseUsdtPoolCreator: FexseUsdtPoolCreator;
   let marketPlace: MarketPlace;
   let _marketPlace: MarketPlace;
   let assetToken: AssetToken;
   let assetToken_sample: AssetToken;  
   let fexse: Fexse;
-  let swapEthToUsdt: SwapEthToUsdt;  
   let usdtContract: any;
 
   const ADDR_COUNT = params.ADDR_COUNT;
@@ -182,20 +186,26 @@ describe("RWATokenization Test", function () {
     await app.installModule(_swapModuleAddress);
     swapModule = await hre.ethers.getContractAt("SwapModule", appAddress) as SwapModule;
 
-    //--------------------- 8. SwapEthToUsdt.sol deploy  ---------------------------------------------
-    // swapEthToUsdt = await hre.ethers.deployContract("SwapEthToUsdt",[UNISWAP_V3_ROUTER]);
-    // const swapEthToUsdtAddress = await swapEthToUsdt.getAddress();
-    // await log('INFO', `8  - swapEthToUsdt Address-> ${swapEthToUsdtAddress}`);
-    // //await gasPriceCalc(swapEthToUsdt.deploymentTransaction()); 
+    //--------------------- 9. FexsePriceFetcher.sol deploy --------------------------------------------------------
+    _fexsePriceFetcher = await hre.ethers.deployContract("FexsePriceFetcher", [fexseAddress,USDT_ADDRESS,500]);
+    const _fexsePriceFetcherAddress = await _fexsePriceFetcher.getAddress();
+    await log('INFO', `9  - _fexsePriceFetcher Module Address-> ${_fexsePriceFetcherAddress}`);
+    gasPriceCalc(_fexsePriceFetcher.deploymentTransaction());
 
-    // const tx = await swapEthToUsdt.swapEthForUsdt(
-    //     ethers.parseUnits("500", 6), // Minimum 50 USDT alınmalı
-    //     Math.floor(Date.now() / 1000) + 60 * 10, // 10 dakika içinde tamamlanmalı
-    //     { value: ethers.parseEther("1000"),gasLimit: 500000, } // 1 ETH gönder
-    // );
-    // await tx.wait();
-    
-    //--------------------- 8. USDT ERC20   ---------------------------------------------
+    await app.installModule(_fexsePriceFetcherAddress);
+    fexsePriceFetcher = await hre.ethers.getContractAt("FexsePriceFetcher", appAddress) as FexsePriceFetcher;
+
+
+    //--------------------- 10. FexseUsdtPoolCreator.sol deploy --------------------------------------------------------
+    _fexseUsdtPoolCreator = await hre.ethers.deployContract("FexseUsdtPoolCreator", [fexseAddress,USDT_ADDRESS,500]);
+    const _fexseUsdtPoolCreatorAddress = await _fexseUsdtPoolCreator.getAddress();
+    await log('INFO', `11  - _fexseUsdtPoolCreator Module Address-> ${_fexseUsdtPoolCreatorAddress}`);
+    gasPriceCalc(_fexseUsdtPoolCreator.deploymentTransaction());
+
+    await app.installModule(_fexseUsdtPoolCreatorAddress);
+    fexseUsdtPoolCreator = await hre.ethers.getContractAt("FexseUsdtPoolCreator", appAddress) as FexseUsdtPoolCreator;
+
+    //--------------------- 11. USDT ERC20   ---------------------------------------------
     usdtContract = (await hre.ethers.getContractAt(ERC20_ABI, USDT_ADDRESS)) as unknown as IERC20;
 
     log('INFO', "---------------------------TRANSFER - APPROVE----------------------------------------");
