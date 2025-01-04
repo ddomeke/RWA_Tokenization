@@ -62,7 +62,7 @@ describe("RWATokenization Test", function () {
   
   
   const My_ADDRESS = params.My_ADDRESS;
-  const My_ADDRESS2 = params.My_ADDRESS2;
+  const POSITIONMANAGER = params.POSITIONMANAGER;
   const FEXSE_ADDRESS = params.FEXSE_ADDRESS;
   const ZERO_ADDRESS = params.ZERO_ADDRESS;
   const TEST_CHAIN = params.TEST_CHAIN;
@@ -216,7 +216,7 @@ describe("RWATokenization Test", function () {
 
     const impersonatedSigner = await hre.ethers.getSigner(My_ADDRESS);
 
-    const amountUSDC = 1500000000; // Amount to transfer (in USDC smallest unit, i.e., without decimals)
+    const amountUSDT = 1500000000; // Amount to transfer (in USDC smallest unit, i.e., without decimals)
     const amountETH = ethers.parseEther("0.0001");
     const amountFexse = ethers.parseEther("1000");
 
@@ -231,7 +231,7 @@ describe("RWATokenization Test", function () {
 
     for (const addr of addresses) {
 
-      await usdtContract.connect(impersonatedSigner).transfer(addr.address, amountUSDC); // Transfer USDC
+      await usdtContract.connect(impersonatedSigner).transfer(addr.address, amountUSDT); // Transfer USDC
       await fexse.connect(addresses[0]).transfer(addr.address, amountFexse); // Transfer fexse
       await fexse.connect(addresses[0]).transfer(impersonatedSigner, amountFexse); // Transfer fexse
       await usdtContract.connect(addr).approve(_rwaTokenizationAddress, hre.ethers.MaxUint256);
@@ -245,10 +245,18 @@ describe("RWATokenization Test", function () {
 
     await assetToken.connect(addresses[0]).setApprovalForAll(_rwaTokenizationAddress, true); 
 
+    await usdtContract.connect(addresses[0]).approve(appAddress, hre.ethers.MaxUint256);
     await usdtContract.connect(addresses[0]).approve(_rwaTokenizationAddress, hre.ethers.MaxUint256);
+    await usdtContract.connect(addresses[0]).approve(POSITIONMANAGER, hre.ethers.MaxUint256);
+    await usdtContract.connect(impersonatedSigner).approve(appAddress, hre.ethers.MaxUint256);
     await usdtContract.connect(impersonatedSigner).approve(_rwaTokenizationAddress, hre.ethers.MaxUint256);
+
     await fexse.connect(addresses[0]).approve(appAddress, hre.ethers.MaxUint256);
+    await fexse.connect(addresses[0]).approve(POSITIONMANAGER, hre.ethers.MaxUint256);
+    await fexse.connect(addresses[0]).approve(_rwaTokenizationAddress, hre.ethers.MaxUint256);
     await fexse.connect(impersonatedSigner).approve(appAddress, hre.ethers.MaxUint256);
+    await fexse.connect(impersonatedSigner).approve(_rwaTokenizationAddress, hre.ethers.MaxUint256);
+
     await assetToken.connect(addresses[0]).setApprovalForAll(addresses[0],true);
     await assetToken.connect(addresses[0]).setApprovalForAll(appAddress,true);
     await assetToken.connect(impersonatedSigner).setApprovalForAll(appAddress,true);
@@ -257,8 +265,8 @@ describe("RWATokenization Test", function () {
     await getProject_All_Balances(addresses[0], 0);
 
   });
-
-      /*-----------------------------------------------------------------------------------------------
+    
+  /*-----------------------------------------------------------------------------------------------
     ------------------------------------------COMMON FUNCTIONS     -----------------------------------
     -----------------------------------------------------------------------------------------------*/
 
@@ -531,11 +539,19 @@ describe("RWATokenization Test", function () {
         log('INFO', "-----------------------------------------------distributeProfit-----------------------------------------------------");
         log('INFO', ``);     
 
+
+        for (const addr of addresses) {
+            await assetToken.connect(addresses[0]).safeTransferFrom(
+                addresses[0],
+                addr,
+                ASSET_ID,
+                3,
+                "0x");
+        }
+
         await rwaTokenization.connect(addresses[0]).distributeProfit(ASSET_ID, 70000000000);
 
         for (const addr of addresses) {
-            await getProject_All_Balances(addr, 0);
-
             const pendingProfit = await rwaTokenization.getPendingProfits(ASSET_ID, addr);
             log('INFO', `pendingProfit for addr: ${addr.address} amount: ${pendingProfit}  `);
         }
@@ -547,26 +563,26 @@ describe("RWATokenization Test", function () {
     /*-----------------------------------------------------------------------------------------------
     -------------------claimProfit-----------------------------------------------------------
     -----------------------------------------------------------------------------------------------*/
-    // it("  5  -------------->Should claimProfit", async function () {
+    it("  5  -------------->Should claimProfit", async function () {
 
-    //     log('INFO', ``);
-    //     log('INFO', "-----------------------------------------------claimProfit-----------------------------------------------------");
-    //     log('INFO', ``);
+        log('INFO', ``);
+        log('INFO', "-----------------------------------------------claimProfit-----------------------------------------------------");
+        log('INFO', ``);
 
-    //     await hre.network.provider.request({
-    //         method: "hardhat_impersonateAccount",
-    //         params: [My_ADDRESS],
-    //     });
-    //     const buyer = await hre.ethers.getSigner(My_ADDRESS);
+        await hre.network.provider.request({
+            method: "hardhat_impersonateAccount",
+            params: [My_ADDRESS],
+        });
+        const buyer = await hre.ethers.getSigner(My_ADDRESS);
 
-    //     // rwaTokenization.connect(buyer).claimProfit(ASSET_ID);
-    //     // await getProject_All_Balances(buyer, 0);
+        // rwaTokenization.connect(buyer).claimProfit(ASSET_ID);
+        // await getProject_All_Balances(buyer, 0);
 
-    //     for (const addr of addresses) {
-    //         await rwaTokenization.connect(addr).claimProfit(ASSET_ID);
-    //         await getProject_All_Balances(addr, 0);
-    //     }          
-    // });   
+        for (const addr of addresses) {
+            await rwaTokenization.connect(addr).claimProfit(ASSET_ID);
+            await getProject_All_Balances(addr, 0);
+        }          
+    });   
 
     /*-----------------------------------------------------------------------------------------------
     -------------------updateAsset-----------------------------------------------------------
@@ -586,6 +602,33 @@ describe("RWATokenization Test", function () {
 
         const NewTokenPrice             = await rwaTokenization.getTokenPrice(ASSET_ID);   
         log('INFO', `NewTokenPrice : ${NewTokenPrice}`);
+        
+    }); 
+
+    /*-----------------------------------------------------------------------------------------------
+    -------------------createPool- getFexsePrice----------------------------------------------------------
+    -----------------------------------------------------------------------------------------------*/
+    it("  7 -------------->Should createPool - getFexsePrice", async function () {
+
+        log('INFO', ``);
+        log('INFO', "-----------------------------------------------createPool - getFexsePrice-----------------------------------------");
+        log('INFO', ``);
+
+        const initialPriceX96 = BigInt("14547851560250183000000000000");
+         
+        await fexseUsdtPoolCreator.connect(addresses[0]).createPool(initialPriceX96);   
+        
+        const aUSDT = 1000000000; // Amount to transfer (in USDC smallest unit, i.e., without decimals)
+        const aFexse = ethers.parseEther("22222");
+
+
+        await getProject_All_Balances(addresses[0], 0);
+        await fexseUsdtPoolCreator.connect(addresses[0]).addLiquidity(aFexse,aUSDT,-500,500);   
+        await getProject_All_Balances(addresses[0], 0);
+
+        const fexsePrice = await fexsePriceFetcher.getFexsePrice();
+        log('INFO', `fexsePrice : ${fexsePrice}`);
+        
         
     }); 
 

@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
 import "@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 import "../core/abstracts/ModularInternal.sol";
+import "hardhat/console.sol";
 
 contract FexseUsdtPoolCreator is ModularInternal {
     address public immutable fexseToken; // Address of the FEXSE token
@@ -82,6 +83,10 @@ contract FexseUsdtPoolCreator is ModularInternal {
             initialPriceX96
         );
 
+
+        console.log("initialPriceX96 :", initialPriceX96);
+        console.log("pool :", pool);
+
         emit PoolCreated(pool);
     }
 
@@ -107,13 +112,14 @@ contract FexseUsdtPoolCreator is ModularInternal {
         require(amountFexse > 0, "FEXSE amount must be greater than zero");
         require(amountUsdt > 0, "USDT amount must be greater than zero");
 
+        // Approve the position manager to spend the tokens
+        IERC20(fexseToken).approve(positionManager, amountFexse*20);
+        IERC20(usdtToken).approve(positionManager, amountUsdt*20);
+
         // Transfer tokens from the sender to this contract
         IERC20(fexseToken).transferFrom(msg.sender, address(this), amountFexse);
         IERC20(usdtToken).transferFrom(msg.sender, address(this), amountUsdt);
 
-        // Approve the position manager to spend the tokens
-        IERC20(fexseToken).approve(positionManager, amountFexse);
-        IERC20(usdtToken).approve(positionManager, amountUsdt);
 
         // Add liquidity using NonfungiblePositionManager
         INonfungiblePositionManager.MintParams memory params = INonfungiblePositionManager.MintParams({
@@ -130,7 +136,13 @@ contract FexseUsdtPoolCreator is ModularInternal {
             deadline: block.timestamp + 300
         });
 
+
         (tokenId, liquidity, amountFexseUsed, amountUsdtUsed) = INonfungiblePositionManager(positionManager).mint(params);
+
+
+        console.log("amountFexseUsed :", amountFexseUsed);
+        console.log("amountUsdtUsed :", amountUsdtUsed);
+        console.log("liquidity :", liquidity);
 
         // Refund unused tokens
         if (amountFexse > amountFexseUsed) {
