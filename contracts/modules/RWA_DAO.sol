@@ -1,51 +1,41 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "../token/ERC20/IERC20.sol";
-import "../utils/EnumerableSet.sol";
 import "../core/abstracts/ModularInternal.sol";
 
 contract RWA_DAO is ModularInternal {
     using AppStorage for AppStorage.Layout;
-    using EnumerableSet for EnumerableSet.AddressSet;
 
-    IERC20 public governanceToken;
     address public appAddress;
 
-    uint256 private proposalCounter;
-    EnumerableSet.AddressSet private voters;
-
-    uint256 public proposalDuration = 7 days;
-    uint256 public minimumQuorum = 100 * 10 ** 18; // Minimum tokens required to execute a proposal
-
-    event ProposalCreated(uint256 id, string description, uint256 deadline);
+    event ProposalCreated(
+        uint256 id,
+        address governanceToken,
+        string description,
+        uint256 deadline
+    );
     event Voted(uint256 proposalId, address voter, bool support);
     event ProposalExecuted(uint256 id, bool success);
-    event GovernanceTokenUpdated(address oldToken, address newToken);
-    event RWATokenizationContractUpdated(
-        address oldContract,
-        address newContract
+    event GovernanceTokenUpdated(
+        uint256 id,
+        address oldToken,
+        address newToken
     );
 
     address immutable _this;
 
-    modifier onlyTokenHolders() {
+    modifier onlyTokenHolders(uint256 proposalId) {
+        AppStorage.Layout storage data = AppStorage.layout();
+        Proposal storage proposal = data.proposals[proposalId];
         require(
-            governanceToken.balanceOf(msg.sender) > 0,
+            proposal.governanceToken.balanceOf(msg.sender) > 0,
             "Not a governance token holder"
         );
         _;
     }
 
-    constructor(address _governanceToken, address _appAddress) {
-        require(
-            _governanceToken != address(0),
-            "Invalid governance token address"
-        );
+    constructor(address _appAddress) {
         require(_appAddress != address(0), "Invalid RWA contract address");
-
-        governanceToken = IERC20(_governanceToken);
-
         _this = address(this);
         appAddress = _appAddress;
         _grantRole(ADMIN_ROLE, msg.sender);
@@ -84,31 +74,47 @@ contract RWA_DAO is ModularInternal {
     }
 
     function createProposal(
+        uint256 proposalId,
+        address governanceTokenAddress,
+        uint256 proposalDuration,
+        uint256 minimumQuorum,
         string memory description
-    ) external onlyTokenHolders {
-
-        proposalCounter = proposalCounter + 1;
-        uint256 proposalId = proposalCounter;
+    ) external onlyRole(ADMIN_ROLE) {
+        require(governanceTokenAddress != address(0), "Invalid token address");
 
         AppStorage.Layout storage data = AppStorage.layout();
+        require(
+            data.proposals[proposalId].id == 0,
+            "Proposal with this ID already exists"
+        );
+
         Proposal storage newProposal = data.proposals[proposalId];
 
         newProposal.id = proposalId;
+        newProposal.governanceToken = IERC20(governanceTokenAddress);
         newProposal.description = description;
         newProposal.deadline = block.timestamp + proposalDuration;
+        newProposal.minimumQuorum = minimumQuorum;
 
-        emit ProposalCreated(proposalId, description, newProposal.deadline);
+        emit ProposalCreated(
+            proposalId,
+            governanceTokenAddress,
+            description,
+            newProposal.deadline
+        );
     }
 
-    function vote(uint256 proposalId, bool support) external onlyTokenHolders {
-
+    function vote(
+        uint256 proposalId,
+        bool support
+    ) external onlyTokenHolders(proposalId) {
         AppStorage.Layout storage data = AppStorage.layout();
         Proposal storage proposal = data.proposals[proposalId];
 
         require(block.timestamp <= proposal.deadline, "Voting period ended");
         require(!proposal.voters[msg.sender], "Already voted");
 
-        uint256 voterBalance = governanceToken.balanceOf(msg.sender);
+        uint256 voterBalance = proposal.governanceToken.balanceOf(msg.sender);
 
         if (support) {
             proposal.forVotes += voterBalance;
@@ -123,14 +129,13 @@ contract RWA_DAO is ModularInternal {
     function executeProposal(
         uint256 proposalId
     ) external nonReentrant onlyRole(ADMIN_ROLE) {
-
         AppStorage.Layout storage data = AppStorage.layout();
         Proposal storage proposal = data.proposals[proposalId];
 
         require(block.timestamp > proposal.deadline, "Voting period not ended");
         require(!proposal.executed, "Proposal already executed");
         require(
-            proposal.forVotes >= minimumQuorum,
+            proposal.forVotes >= proposal.minimumQuorum,
             "Minimum quorum not reached"
         );
 
@@ -149,20 +154,29 @@ contract RWA_DAO is ModularInternal {
     }
 
     function updateMinimumQuorum(
+        uint256 proposalId,
         uint256 newQuorum
     ) external onlyRole(ADMIN_ROLE) {
+        AppStorage.Layout storage data = AppStorage.layout();
+        Proposal storage proposal = data.proposals[proposalId];
+
         require(newQuorum > 0, "Quorum must be greater than zero");
-        minimumQuorum = newQuorum;
+        proposal.minimumQuorum = newQuorum;
     }
 
     function updateProposalDuration(
+        uint256 proposalId,
         uint256 newDuration
     ) external onlyRole(ADMIN_ROLE) {
+        AppStorage.Layout storage data = AppStorage.layout();
+        Proposal storage proposal = data.proposals[proposalId];
+
         require(newDuration > 0, "Duration must be greater than zero");
-        proposalDuration = newDuration;
+        proposal.deadline = newDuration;
     }
 
     function updateGovernanceToken(
+        uint256 proposalId,
         address newGovernanceToken
     ) external onlyRole(ADMIN_ROLE) {
         require(
@@ -170,10 +184,13 @@ contract RWA_DAO is ModularInternal {
             "Invalid governance token address"
         );
 
-        address oldToken = address(governanceToken);
-        governanceToken = IERC20(newGovernanceToken);
+        AppStorage.Layout storage data = AppStorage.layout();
+        Proposal storage proposal = data.proposals[proposalId];
 
-        emit GovernanceTokenUpdated(oldToken, newGovernanceToken);
+        address oldToken = address(proposal.governanceToken);
+        proposal.governanceToken = IERC20(newGovernanceToken);
+
+        emit GovernanceTokenUpdated(proposalId, oldToken, newGovernanceToken);
     }
 
     function getProposal(
@@ -183,6 +200,7 @@ contract RWA_DAO is ModularInternal {
         view
         returns (
             uint256 id,
+            address governanceToken,
             string memory description,
             uint256 forVotes,
             uint256 againstVotes,
@@ -190,12 +208,12 @@ contract RWA_DAO is ModularInternal {
             uint256 deadline
         )
     {
-
         AppStorage.Layout storage data = AppStorage.layout();
         Proposal storage proposal = data.proposals[proposalId];
-        
+
         return (
             proposal.id,
+            address(proposal.governanceToken),
             proposal.description,
             proposal.forVotes,
             proposal.againstVotes,

@@ -160,8 +160,8 @@ describe("RWATokenization Test", function () {
 
     await marketPlace.setFexseAddress(fexseAddress);
 
-    //--------------------- 7. Compliance.sol deploy --------------------------------------------------------
-    _rwa_DAO = await hre.ethers.deployContract("RWA_DAO", [fexseAddress, appAddress]);
+    //--------------------- 7. RWA_DAO.sol deploy --------------------------------------------------------
+    _rwa_DAO = await hre.ethers.deployContract("RWA_DAO", [appAddress]);
     const _rwa_DAOAddress = await _rwa_DAO.getAddress();
     await log('INFO', `7  - _rwa_DAO Address-> ${_rwa_DAOAddress}`);
     gasPriceCalc(_rwa_DAO.deploymentTransaction());

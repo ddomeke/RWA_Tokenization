@@ -2,11 +2,13 @@
 pragma solidity ^0.8.24;
 
 
+import "../token/ERC20/IERC20.sol";
 import {IAssetToken} from "../interfaces/IAssetToken.sol";
 
     bytes32 constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 constant COMPLIANCE_OFFICER_ROLE = keccak256("COMPLIANCE_OFFICER_ROLE");
     bytes32 constant PAYMENT_MANAGER_ROLE = keccak256("PAYMENT_MANAGER_ROLE");
+    
 
     // Asset struct to store asset information
     struct Asset {
@@ -31,9 +33,11 @@ import {IAssetToken} from "../interfaces/IAssetToken.sol";
 
     struct Proposal {
         uint256 id;
+        IERC20 governanceToken;
         string description;
         uint256 forVotes;
         uint256 againstVotes;
+        uint256 minimumQuorum;
         bool executed;
         uint256 deadline;
         mapping(address => bool) voters;
