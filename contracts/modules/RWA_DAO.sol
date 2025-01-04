@@ -24,16 +24,6 @@ contract RWA_DAO is ModularInternal {
 
     address immutable _this;
 
-    modifier onlyTokenHolders(uint256 proposalId) {
-        AppStorage.Layout storage data = AppStorage.layout();
-        Proposal storage proposal = data.proposals[proposalId];
-        require(
-            proposal.governanceToken.balanceOf(msg.sender) > 0,
-            "Not a governance token holder"
-        );
-        _;
-    }
-
     constructor(address _appAddress) {
         require(_appAddress != address(0), "Invalid RWA contract address");
         _this = address(this);
@@ -79,7 +69,7 @@ contract RWA_DAO is ModularInternal {
         uint256 proposalDuration,
         uint256 minimumQuorum,
         string memory description
-    ) external onlyRole(ADMIN_ROLE) {
+    ) external nonReentrant onlyRole(ADMIN_ROLE) {
         require(governanceTokenAddress != address(0), "Invalid token address");
 
         AppStorage.Layout storage data = AppStorage.layout();
@@ -107,9 +97,14 @@ contract RWA_DAO is ModularInternal {
     function vote(
         uint256 proposalId,
         bool support
-    ) external onlyTokenHolders(proposalId) {
+    ) external nonReentrant {
         AppStorage.Layout storage data = AppStorage.layout();
         Proposal storage proposal = data.proposals[proposalId];
+
+        require(
+            proposal.governanceToken.balanceOf(msg.sender) > 0,
+            "Not a governance token holder"
+        );
 
         require(block.timestamp <= proposal.deadline, "Voting period ended");
         require(!proposal.voters[msg.sender], "Already voted");
@@ -141,7 +136,7 @@ contract RWA_DAO is ModularInternal {
 
         proposal.executed = true;
 
-        // Execute action on the RWA Tokenization contract
+        // sample execute action on the RWA Tokenization contract
         (bool success, ) = appAddress.call(
             abi.encodeWithSignature(
                 "distributeProfit(uint256,uint256)",
@@ -156,7 +151,7 @@ contract RWA_DAO is ModularInternal {
     function updateMinimumQuorum(
         uint256 proposalId,
         uint256 newQuorum
-    ) external onlyRole(ADMIN_ROLE) {
+    ) external nonReentrant onlyRole(ADMIN_ROLE) {
         AppStorage.Layout storage data = AppStorage.layout();
         Proposal storage proposal = data.proposals[proposalId];
 
@@ -167,7 +162,7 @@ contract RWA_DAO is ModularInternal {
     function updateProposalDuration(
         uint256 proposalId,
         uint256 newDuration
-    ) external onlyRole(ADMIN_ROLE) {
+    ) external nonReentrant onlyRole(ADMIN_ROLE) {
         AppStorage.Layout storage data = AppStorage.layout();
         Proposal storage proposal = data.proposals[proposalId];
 
@@ -178,7 +173,7 @@ contract RWA_DAO is ModularInternal {
     function updateGovernanceToken(
         uint256 proposalId,
         address newGovernanceToken
-    ) external onlyRole(ADMIN_ROLE) {
+    ) external nonReentrant onlyRole(ADMIN_ROLE) {
         require(
             newGovernanceToken != address(0),
             "Invalid governance token address"

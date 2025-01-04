@@ -13,6 +13,7 @@ App,
   MarketPlace,
   SwapEthToUsdt,
   RWA_DAO,
+  SwapModule,
 } from "../typechain-types";
 
 //const params = require('./parameters.json');
@@ -39,6 +40,8 @@ describe("RWATokenization Test", function () {
   let _compliance: Compliance;
   let rwa_DAO: RWA_DAO;
   let _rwa_DAO: RWA_DAO;
+  let swapModule: SwapModule;
+  let _swapModule: SwapModule;
   let marketPlace: MarketPlace;
   let _marketPlace: MarketPlace;
   let assetToken: AssetToken;
@@ -91,9 +94,9 @@ describe("RWATokenization Test", function () {
       USDT_ADDRESS = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
   } else if (TEST_CHAIN === 'arbitrum') {
       USDT_ADDRESS = '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9';
-      UNISWAP_V3_ROUTER = '0xe592427a0aece92de3edee1f18e0157c05861564';
-      
   }
+
+  UNISWAP_V3_ROUTER = '0xe592427a0aece92de3edee1f18e0157c05861564';
 
   before(async function () {
 
@@ -168,6 +171,16 @@ describe("RWATokenization Test", function () {
 
     await app.installModule(_rwa_DAOAddress);
     rwa_DAO = await hre.ethers.getContractAt("RWA_DAO", appAddress) as RWA_DAO;
+
+
+    //--------------------- 8. SwapModule.sol deploy --------------------------------------------------------
+    _swapModule = await hre.ethers.deployContract("SwapModule", [UNISWAP_V3_ROUTER,USDT_ADDRESS,500]);
+    const _swapModuleAddress = await _swapModule.getAddress();
+    await log('INFO', `8  - _swap Module Address-> ${_swapModuleAddress}`);
+    gasPriceCalc(_swapModule.deploymentTransaction());
+
+    await app.installModule(_swapModuleAddress);
+    swapModule = await hre.ethers.getContractAt("SwapModule", appAddress) as SwapModule;
 
     //--------------------- 8. SwapEthToUsdt.sol deploy  ---------------------------------------------
     // swapEthToUsdt = await hre.ethers.deployContract("SwapEthToUsdt",[UNISWAP_V3_ROUTER]);
