@@ -6,13 +6,13 @@ import "../core/abstracts/ModularInternal.sol";
 
 /**
  * @title SwapModule
- * @dev A contract to perform FEXSE/USDT swaps using Uniswap V3 protocol.
+ * @dev A contract to perform FEXSE/token1 swaps using Uniswap V3 protocol.
  */
 contract SwapModule is ModularInternal {
     using AppStorage for AppStorage.Layout;
 
     ISwapRouter public immutable swapRouter;
-    address public immutable usdtToken;
+    address public immutable token1;
     uint24 public immutable poolFee; // %0.5 = 500
 
     event Swapped(
@@ -28,22 +28,22 @@ contract SwapModule is ModularInternal {
     /**
      * @dev Constructor to initialize the swap module with required addresses and pool fee.
      * @param _swapRouter Address of the Uniswap V3 SwapRouter contract.
-     * @param _usdtToken Address of the USDT token contract.
+     * @param _token1 Address of the token1 token contract.
      * @param _poolFee Pool fee for the Uniswap V3 pool (e.g., 500 for 0.5%).
      */
     constructor(
         address _swapRouter,
-        address _usdtToken,
+        address _token1,
         uint24 _poolFee
     ) {
         require(_swapRouter != address(0), "Invalid swap router address");
-        require(_usdtToken != address(0), "Invalid USDT token address");
+        require(_token1 != address(0), "Invalid token1 token address");
 
         _this = address(this);
         _grantRole(ADMIN_ROLE, msg.sender);
 
         swapRouter = ISwapRouter(_swapRouter);
-        usdtToken = _usdtToken;
+        token1 = _token1;
         poolFee = _poolFee;
     }
 
@@ -58,8 +58,8 @@ contract SwapModule is ModularInternal {
         bytes4[] memory selectors = new bytes4[](2);
 
         // Add function selectors to the array
-        selectors[selectorIndex++] = this.swapUsdtToFexse.selector;
-        selectors[selectorIndex++] = this.swapFexseToUsdt.selector;
+        selectors[selectorIndex++] = this.swaptoken1ToFexse.selector;
+        selectors[selectorIndex++] = this.swapFexseTotoken1.selector;
         // Create a FacetCut array with a single element
         FacetCut[] memory facetCuts = new FacetCut[](1);
 
@@ -73,36 +73,36 @@ contract SwapModule is ModularInternal {
     }
 
     /**
-     * @dev Swaps USDT for FEXSE and transfers the FEXSE tokens to the msg.sender.
-     * @param usdtAmount The amount of USDT to swap.
+     * @dev Swaps token1 for FEXSE and transfers the FEXSE tokens to the msg.sender.
+     * @param token1Amount The amount of token1 to swap.
      * @param amountOutMinimum The minimum amount of FEXSE expected to be received.
      * @return amountOut The amount of FEXSE tokens received.
      */
-    function swapUsdtToFexse(
-        uint256 usdtAmount,
+    function swaptoken1ToFexse(
+        uint256 token1Amount,
         uint256 amountOutMinimum
     ) external returns (uint256 amountOut) {
-        require(usdtAmount > 0, "Amount must be greater than zero");
+        require(token1Amount > 0, "Amount must be greater than zero");
 
         AppStorage.Layout storage data = AppStorage.layout();
 
         IFexse fexseToken = data.fexseToken;
 
-        // Transfers USDT from the user to the contract
-        IERC20(usdtToken).transferFrom(msg.sender, address(this), usdtAmount);
+        // Transfers token1 from the user to the contract
+        IERC20(token1).transferFrom(msg.sender, address(this), token1Amount);
 
-        // Approves the Uniswap Router to spend USDT
-        IERC20(usdtToken).approve(address(swapRouter), usdtAmount);
+        // Approves the Uniswap Router to spend token1
+        IERC20(token1).approve(address(swapRouter), token1Amount);
 
         // Defines the swap parameters for Uniswap V3
         ISwapRouter.ExactInputSingleParams memory params = ISwapRouter
             .ExactInputSingleParams({
-                tokenIn: usdtToken,
+                tokenIn: token1,
                 tokenOut: address(fexseToken),
                 fee: poolFee,
                 recipient: address(this), // Tokens will be sent to the contract first
                 deadline: block.timestamp + 300, // Transaction must be executed within 5 minutes
-                amountIn: usdtAmount,
+                amountIn: token1Amount,
                 amountOutMinimum: amountOutMinimum,
                 sqrtPriceLimitX96: 0
             });
@@ -116,16 +116,16 @@ contract SwapModule is ModularInternal {
             "FEXSE transfer failed"
         );
 
-        emit Swapped(msg.sender, usdtToken, address(fexseToken), usdtAmount, amountOut);
+        emit Swapped(msg.sender, token1, address(fexseToken), token1Amount, amountOut);
     }
 
     /**
-     * @dev Swaps FEXSE for USDT and transfers the USDT tokens to the msg.sender.
+     * @dev Swaps FEXSE for token1 and transfers the token1 tokens to the msg.sender.
      * @param fexseAmount The amount of FEXSE to swap.
-     * @param amountOutMinimum The minimum amount of USDT expected to be received.
-     * @return amountOut The amount of USDT tokens received.
+     * @param amountOutMinimum The minimum amount of token1 expected to be received.
+     * @return amountOut The amount of token1 tokens received.
      */
-    function swapFexseToUsdt(
+    function swapFexseTotoken1(
         uint256 fexseAmount,
         uint256 amountOutMinimum
     ) external returns (uint256 amountOut) {
@@ -145,7 +145,7 @@ contract SwapModule is ModularInternal {
         ISwapRouter.ExactInputSingleParams memory params = ISwapRouter
             .ExactInputSingleParams({
                 tokenIn: address(fexseToken),
-                tokenOut: usdtToken,
+                tokenOut: token1,
                 fee: poolFee,
                 recipient: address(this), // Tokens will be sent to the contract first
                 deadline: block.timestamp + 300, // Transaction must be executed within 5 minutes
@@ -157,12 +157,12 @@ contract SwapModule is ModularInternal {
         // Executes the swap on Uniswap
         amountOut = swapRouter.exactInputSingle(params);
 
-        // Transfers the swapped USDT tokens to the user
+        // Transfers the swapped token1 tokens to the user
         require(
-            IERC20(usdtToken).transfer(msg.sender, amountOut),
-            "USDT transfer failed"
+            IERC20(token1).transfer(msg.sender, amountOut),
+            "token1 transfer failed"
         );
 
-        emit Swapped(msg.sender, address(fexseToken), usdtToken, fexseAmount, amountOut);
+        emit Swapped(msg.sender, address(fexseToken), token1, fexseAmount, amountOut);
     }
 }

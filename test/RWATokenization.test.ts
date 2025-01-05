@@ -87,15 +87,19 @@ describe("RWATokenization Test", function () {
   }
   
   let USDT_ADDRESS: string;
+  let WETH_ADDRESS: string;
   let UNISWAP_V3_ROUTER: string;
   
   USDT_ADDRESS = '';
+  WETH_ADDRESS = '';
   UNISWAP_V3_ROUTER = '';
 
   if (TEST_CHAIN === 'polygon') {
     USDT_ADDRESS = '0xc2132D05D31c914a87C6611C10748AEb04B58e8F';
+    WETH_ADDRESS = '0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619';
   } else if (TEST_CHAIN === 'ethereum') {
       USDT_ADDRESS = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
+      WETH_ADDRESS = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
   } else if (TEST_CHAIN === 'arbitrum') {
       USDT_ADDRESS = '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9';
   }

@@ -9,7 +9,7 @@ contract FexsePriceFetcher is ModularInternal{
     using AppStorage for AppStorage.Layout;
 
     address public immutable fexseToken;
-    address public immutable usdtToken;
+    address public immutable token1;
     uint24 public immutable fee;
 
     address immutable _this;
@@ -18,17 +18,17 @@ contract FexsePriceFetcher is ModularInternal{
 
     constructor(
         address _fexseToken,
-        address _usdtToken,
+        address _token1,
         uint24 _fee
     ) {
         require(_fexseToken != address(0), "Invalid _fexseToken address");
-        require(_usdtToken != address(0), "Invalid USDT token address");
+        require(_token1 != address(0), "Invalid token1 token address");
 
         _this = address(this);
         _grantRole(ADMIN_ROLE, msg.sender);
 
         fexseToken = _fexseToken;
-        usdtToken = _usdtToken;
+        token1 = _token1;
         fee = _fee;
     }
     /**
@@ -57,12 +57,12 @@ contract FexsePriceFetcher is ModularInternal{
 
 
     /**
-     * @dev Fetches the current price of FEXSE in USDT.
-     * @return price The price of 1 FEXSE in USDT.
+     * @dev Fetches the current price of FEXSE in token1.
+     * @return price The price of 1 FEXSE in token1.
      */
     function getFexsePrice() external view returns (uint256 price) {
         // Get the pool address
-        address pool = IUniswapV3Factory(factory).getPool(fexseToken, usdtToken, fee);
+        address pool = IUniswapV3Factory(factory).getPool(fexseToken, token1, fee);
         require(pool != address(0), "Pool does not exist");
 
         // Get the slot0 data
@@ -71,8 +71,8 @@ contract FexsePriceFetcher is ModularInternal{
         // Calculate the price
         price = uint256(sqrtPriceX96) * uint256(sqrtPriceX96) / (1 << 192);
 
-        // If USDT is token0, invert the price
-        if (IUniswapV3Pool(pool).token0() == usdtToken) {
+        // If token1 is token0, invert the price
+        if (IUniswapV3Pool(pool).token0() == token1) {
             price = (1e18 * 1e18) / price; // Adjust decimals
         }
     }
