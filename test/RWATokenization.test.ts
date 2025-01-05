@@ -53,6 +53,7 @@ describe("RWATokenization Test", function () {
   let assetToken_sample: AssetToken;  
   let fexse: Fexse;
   let usdtContract: any;
+  let wethContract: any;
 
   const ADDR_COUNT = params.ADDR_COUNT;
   const ASSET_ID = params.ASSET_ID;
@@ -62,6 +63,7 @@ describe("RWATokenization Test", function () {
   
   
   const My_ADDRESS = params.My_ADDRESS;
+  const My_ADDRESS2 = params.My_ADDRESS2;
   const POSITIONMANAGER = params.POSITIONMANAGER;
   const FEXSE_ADDRESS = params.FEXSE_ADDRESS;
   const ZERO_ADDRESS = params.ZERO_ADDRESS;
@@ -98,10 +100,11 @@ describe("RWATokenization Test", function () {
     USDT_ADDRESS = '0xc2132D05D31c914a87C6611C10748AEb04B58e8F';
     WETH_ADDRESS = '0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619';
   } else if (TEST_CHAIN === 'ethereum') {
-      USDT_ADDRESS = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
-      WETH_ADDRESS = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
+    USDT_ADDRESS = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
+    WETH_ADDRESS = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
   } else if (TEST_CHAIN === 'arbitrum') {
-      USDT_ADDRESS = '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9';
+    USDT_ADDRESS = '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9';
+    WETH_ADDRESS = '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1';
   }
 
   UNISWAP_V3_ROUTER = '0xe592427a0aece92de3edee1f18e0157c05861564';
@@ -182,7 +185,7 @@ describe("RWATokenization Test", function () {
 
 
     //--------------------- 8. SwapModule.sol deploy --------------------------------------------------------
-    _swapModule = await hre.ethers.deployContract("SwapModule", [UNISWAP_V3_ROUTER,USDT_ADDRESS,500]);
+    _swapModule = await hre.ethers.deployContract("SwapModule", [UNISWAP_V3_ROUTER,WETH_ADDRESS,500]);
     const _swapModuleAddress = await _swapModule.getAddress();
     await log('INFO', `8  - _swap Module Address-> ${_swapModuleAddress}`);
     gasPriceCalc(_swapModule.deploymentTransaction());
@@ -191,7 +194,7 @@ describe("RWATokenization Test", function () {
     swapModule = await hre.ethers.getContractAt("SwapModule", appAddress) as SwapModule;
 
     //--------------------- 9. FexsePriceFetcher.sol deploy --------------------------------------------------------
-    _fexsePriceFetcher = await hre.ethers.deployContract("FexsePriceFetcher", [fexseAddress,USDT_ADDRESS,500]);
+    _fexsePriceFetcher = await hre.ethers.deployContract("FexsePriceFetcher", [fexseAddress,WETH_ADDRESS,500]);
     const _fexsePriceFetcherAddress = await _fexsePriceFetcher.getAddress();
     await log('INFO', `9  - _fexsePriceFetcher Module Address-> ${_fexsePriceFetcherAddress}`);
     gasPriceCalc(_fexsePriceFetcher.deploymentTransaction());
@@ -201,7 +204,7 @@ describe("RWATokenization Test", function () {
 
 
     //--------------------- 10. FexseUsdtPoolCreator.sol deploy --------------------------------------------------------
-    _fexseUsdtPoolCreator = await hre.ethers.deployContract("FexseUsdtPoolCreator", [fexseAddress,USDT_ADDRESS,500]);
+    _fexseUsdtPoolCreator = await hre.ethers.deployContract("FexseUsdtPoolCreator", [fexseAddress,WETH_ADDRESS,500]);
     const _fexseUsdtPoolCreatorAddress = await _fexseUsdtPoolCreator.getAddress();
     await log('INFO', `11  - _fexseUsdtPoolCreator Module Address-> ${_fexseUsdtPoolCreatorAddress}`);
     gasPriceCalc(_fexseUsdtPoolCreator.deploymentTransaction());
@@ -211,6 +214,9 @@ describe("RWATokenization Test", function () {
 
     //--------------------- 11. USDT ERC20   ---------------------------------------------
     usdtContract = (await hre.ethers.getContractAt(ERC20_ABI, USDT_ADDRESS)) as unknown as IERC20;
+    
+    //--------------------- 12. WETH ERC20   ---------------------------------------------
+    wethContract = (await hre.ethers.getContractAt(ERC20_ABI, WETH_ADDRESS)) as unknown as IERC20;
 
     log('INFO', "---------------------------TRANSFER - APPROVE----------------------------------------");
     await hre.network.provider.request({
@@ -220,9 +226,17 @@ describe("RWATokenization Test", function () {
 
     const impersonatedSigner = await hre.ethers.getSigner(My_ADDRESS);
 
+    await hre.network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [My_ADDRESS2],
+    });
+
+    const impersonatedSigner2 = await hre.ethers.getSigner(My_ADDRESS2);
+
     const amountUSDT = 1500000000; // Amount to transfer (in USDC smallest unit, i.e., without decimals)
-    const amountETH = ethers.parseEther("0.0001");
+    const amountETH = ethers.parseEther("1");
     const amountFexse = ethers.parseEther("1000");
+    const amountWETH = ethers.parseEther("100");
 
     let idx = 1;
 
@@ -230,22 +244,28 @@ describe("RWATokenization Test", function () {
     log('INFO', "----------------------------TRANSFER ASSETS------------------------------------------");
     log('INFO', ``);
 
+    //await sendEth(impersonatedSigner, impersonatedSigner2, amountETH);
+
     await getProject_All_Balances(impersonatedSigner, 0);
+    await getProject_All_Balances(impersonatedSigner2, 0);
     await getProject_All_Balances(addresses[0], 0);
+
 
     for (const addr of addresses) {
 
-      await usdtContract.connect(impersonatedSigner).transfer(addr.address, amountUSDT); // Transfer USDC
+      await usdtContract.connect(impersonatedSigner).transfer(addr.address, amountUSDT); // Transfer USDT
+      await wethContract.connect(impersonatedSigner2).transfer(addr.address, amountWETH); // Transfer WETH
+      await usdtContract.connect(addr).approve(appAddress, hre.ethers.MaxUint256);
+      await wethContract.connect(addr).approve(appAddress, hre.ethers.MaxUint256); // Transfer WETH
       await fexse.connect(addresses[0]).transfer(addr.address, amountFexse); // Transfer fexse
-      await fexse.connect(addresses[0]).transfer(impersonatedSigner, amountFexse); // Transfer fexse
-      await usdtContract.connect(addr).approve(_rwaTokenizationAddress, hre.ethers.MaxUint256);
-      await fexse.connect(addr).approve(_rwaTokenizationAddress, hre.ethers.MaxUint256);
+      await fexse.connect(addr).approve(appAddress, hre.ethers.MaxUint256);
 
-      log('INFO', `Approval successful for fexse and USDt ${addr.address}`);
+      log('INFO', `Approval successful for fexse and token1 ${addr.address}`);
       idx++;
     }        
     
     await fexse.connect(addresses[0]).transfer(impersonatedSigner, amountFexse); 
+    await fexse.connect(addresses[0]).transfer(impersonatedSigner2, amountFexse); // Transfer fexse
 
     await assetToken.connect(addresses[0]).setApprovalForAll(_rwaTokenizationAddress, true); 
 
@@ -254,18 +274,32 @@ describe("RWATokenization Test", function () {
     await usdtContract.connect(addresses[0]).approve(POSITIONMANAGER, hre.ethers.MaxUint256);
     await usdtContract.connect(impersonatedSigner).approve(appAddress, hre.ethers.MaxUint256);
     await usdtContract.connect(impersonatedSigner).approve(_rwaTokenizationAddress, hre.ethers.MaxUint256);
+    await usdtContract.connect(impersonatedSigner2).approve(appAddress, hre.ethers.MaxUint256);
+    await usdtContract.connect(impersonatedSigner2).approve(_rwaTokenizationAddress, hre.ethers.MaxUint256);
+
+    await wethContract.connect(addresses[0]).approve(appAddress, hre.ethers.MaxUint256);
+    await wethContract.connect(addresses[0]).approve(_rwaTokenizationAddress, hre.ethers.MaxUint256);
+    await wethContract.connect(addresses[0]).approve(POSITIONMANAGER, hre.ethers.MaxUint256);
+    await wethContract.connect(impersonatedSigner).approve(appAddress, hre.ethers.MaxUint256);
+    await wethContract.connect(impersonatedSigner).approve(_rwaTokenizationAddress, hre.ethers.MaxUint256);
+    await wethContract.connect(impersonatedSigner2).approve(appAddress, hre.ethers.MaxUint256);
+    await wethContract.connect(impersonatedSigner2).approve(_rwaTokenizationAddress, hre.ethers.MaxUint256);
 
     await fexse.connect(addresses[0]).approve(appAddress, hre.ethers.MaxUint256);
     await fexse.connect(addresses[0]).approve(POSITIONMANAGER, hre.ethers.MaxUint256);
     await fexse.connect(addresses[0]).approve(_rwaTokenizationAddress, hre.ethers.MaxUint256);
     await fexse.connect(impersonatedSigner).approve(appAddress, hre.ethers.MaxUint256);
     await fexse.connect(impersonatedSigner).approve(_rwaTokenizationAddress, hre.ethers.MaxUint256);
+    await fexse.connect(impersonatedSigner2).approve(appAddress, hre.ethers.MaxUint256);
+    await fexse.connect(impersonatedSigner2).approve(_rwaTokenizationAddress, hre.ethers.MaxUint256);
 
     await assetToken.connect(addresses[0]).setApprovalForAll(addresses[0],true);
     await assetToken.connect(addresses[0]).setApprovalForAll(appAddress,true);
     await assetToken.connect(impersonatedSigner).setApprovalForAll(appAddress,true);
+    await assetToken.connect(impersonatedSigner2).setApprovalForAll(appAddress,true);
 
     await getProject_All_Balances(impersonatedSigner, 0);
+    await getProject_All_Balances(impersonatedSigner2, 0);
     await getProject_All_Balances(addresses[0], 0);
 
   });
@@ -348,6 +382,7 @@ describe("RWATokenization Test", function () {
   async function getProject_All_Balances(signer: any, projectId: any) {
 
       const usdt_balance = await usdtContract.connect(signer).balanceOf(signer.address);
+      const weth_balance = await wethContract.connect(signer).balanceOf(signer.address);
       const asset_balance = await assetToken.connect(signer).balanceOf(signer.address,ASSET_ID);
       const fexse_balance = await fexse.connect(signer).balanceOf(signer.address);
 
@@ -362,6 +397,7 @@ describe("RWATokenization Test", function () {
       log('INFO', `Signer: ${signer.address}  `);
       log('INFO', ``);
       formatLog("usdt_balance:  ", usdt_balance);
+      formatLog("weth_balance:  ", weth_balance);
       formatLog("asset_balance:  ", asset_balance);
       formatLog("fexse_balance: ", fexse_balance);
       log('INFO', ``);
@@ -622,12 +658,12 @@ describe("RWATokenization Test", function () {
          
         await fexseUsdtPoolCreator.connect(addresses[0]).createPool(initialPriceX96);   
         
-        const aUSDT = 1000000000; // Amount to transfer (in USDC smallest unit, i.e., without decimals)
+        const atoken1 = 1; // Amount to transfer (in USDC smallest unit, i.e., without decimals)
         const aFexse = ethers.parseEther("22222");
 
 
         await getProject_All_Balances(addresses[0], 0);
-        await fexseUsdtPoolCreator.connect(addresses[0]).addLiquidity(aFexse,aUSDT,-500,500);   
+        await fexseUsdtPoolCreator.connect(addresses[0]).addLiquidity(aFexse,atoken1,-500,500);   
         await getProject_All_Balances(addresses[0], 0);
 
         const fexsePrice = await fexsePriceFetcher.getFexsePrice();

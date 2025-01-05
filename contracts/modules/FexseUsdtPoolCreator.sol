@@ -9,7 +9,7 @@ import "hardhat/console.sol";
 
 contract FexseUsdtPoolCreator is ModularInternal {
     address public immutable fexseToken; // Address of the FEXSE token
-    address public immutable usdtToken; // Address of the USDT token
+    address public immutable token1; // Address of the token1 token
     uint24 public immutable poolFee; // Pool fee, e.g., 500 for 0.5%
 
     address immutable _this;
@@ -18,27 +18,27 @@ contract FexseUsdtPoolCreator is ModularInternal {
     address public constant positionManager = 0xC36442b4a4522E871399CD717aBDD847Ab11FE88;
 
     event PoolCreated(address indexed pool);
-    event LiquidityAdded(uint256 tokenId, uint128 liquidity, uint256 amountFexse, uint256 amountUsdt);
+    event LiquidityAdded(uint256 tokenId, uint128 liquidity, uint256 amountFexse, uint256 amounttoken1);
 
     /**
      * @dev Constructor to initialize the contract with required addresses and pool fee.
      * @param _fexseToken Address of the FEXSE token.
-     * @param _usdtToken Address of the USDT token.
+     * @param _token1 Address of the token1 token.
      * @param _poolFee Fee tier for the pool (e.g., 500 for 0.5%).
      */
     constructor(
         address _fexseToken,
-        address _usdtToken,
+        address _token1,
         uint24 _poolFee
     ) {
         require(_fexseToken != address(0), "Invalid FEXSE token address");
-        require(_usdtToken != address(0), "Invalid USDT token address");
+        require(_token1 != address(0), "Invalid token1 token address");
 
         _this = address(this);
         _grantRole(ADMIN_ROLE, msg.sender);
 
         fexseToken = _fexseToken;
-        usdtToken = _usdtToken;
+        token1 = _token1;
         poolFee = _poolFee;
     }
     /**
@@ -67,18 +67,18 @@ contract FexseUsdtPoolCreator is ModularInternal {
     }
 
     /**
-     * @dev Creates a FEXSE/USDT pool if it doesn't already exist.
+     * @dev Creates a FEXSE/token1 pool if it doesn't already exist.
      * @param initialPriceX96 Initial price of the pool in sqrtPriceX96 format.
      */
-    function createPool(uint160 initialPriceX96) external nonReentrant onlyRole(ADMIN_ROLE){//14547851560250183000000000000
+    function createPool(uint160 initialPriceX96) external nonReentrant onlyRole(ADMIN_ROLE){
         // Check if the pool already exists
-        address pool = IUniswapV3Factory(factory).getPool(fexseToken, usdtToken, poolFee);
+        address pool = IUniswapV3Factory(factory).getPool(fexseToken, token1, poolFee);
         require(pool == address(0), "Pool already exists");
 
         // Create the pool
         pool = INonfungiblePositionManager(positionManager).createAndInitializePoolIfNecessary(
             fexseToken,
-            usdtToken,
+            token1,
             poolFee,
             initialPriceX96
         );
@@ -91,67 +91,65 @@ contract FexseUsdtPoolCreator is ModularInternal {
     }
 
     /**
-     * @dev Adds liquidity to the FEXSE/USDT pool.
+     * @dev Adds liquidity to the FEXSE/token1 pool.
      * @param amountFexse Desired amount of FEXSE tokens to add as liquidity.
-     * @param amountUsdt Desired amount of USDT tokens to add as liquidity.
+     * @param amounttoken1 Desired amount of USDT tokens to add as liquidity.
      * @param lowerTick Lower tick boundary for the liquidity position.
      * @param upperTick Upper tick boundary for the liquidity position.
      */
     function addLiquidity(
         uint256 amountFexse,
-        uint256 amountUsdt,
+        uint256 amounttoken1,
         int24 lowerTick,
         int24 upperTick
-    ) external nonReentrant onlyRole(ADMIN_ROLE) returns (uint256 tokenId, uint128 liquidity, uint256 amountFexseUsed, uint256 amountUsdtUsed) {
+    ) external nonReentrant onlyRole(ADMIN_ROLE) returns (uint256 tokenId, uint128 liquidity, uint256 amountFexseUsed, uint256 amounttoken1Used) {
 
     // uint256 amountFexse = 22222 * 1e18; // 22,222.22 FEXSE
-    // uint256 amountUsdt = 1000 * 1e6; // 1000 USDT (Assuming USDT has 6 decimals)
+    // uint256 amounttoken1 = 1000 * 1e6; // 1000 token1 
     // Tick Lower: -500
 	// Tick Upper: 500
 
         require(amountFexse > 0, "FEXSE amount must be greater than zero");
-        require(amountUsdt > 0, "USDT amount must be greater than zero");
+        require(amounttoken1 > 0, "token1 amount must be greater than zero");
 
         // Approve the position manager to spend the tokens
         IERC20(fexseToken).approve(positionManager, amountFexse*20);
-        IERC20(usdtToken).approve(positionManager, amountUsdt*20);
+        IERC20(token1).approve(positionManager, amounttoken1*20);
 
         // Transfer tokens from the sender to this contract
         IERC20(fexseToken).transferFrom(msg.sender, address(this), amountFexse);
-        IERC20(usdtToken).transferFrom(msg.sender, address(this), amountUsdt);
+        IERC20(token1).transferFrom(msg.sender, address(this), amounttoken1);
 
 
         // Add liquidity using NonfungiblePositionManager
         INonfungiblePositionManager.MintParams memory params = INonfungiblePositionManager.MintParams({
             token0: fexseToken,
-            token1: usdtToken,
+            token1: token1,
             fee: poolFee,
             tickLower: lowerTick,
             tickUpper: upperTick,
             amount0Desired: amountFexse,
-            amount1Desired: amountUsdt,
+            amount1Desired: amounttoken1,
             amount0Min: 0, // Slippage control, set to 0 for simplicity
             amount1Min: 0, // Slippage control, set to 0 for simplicity
             recipient: msg.sender,
             deadline: block.timestamp + 300
         });
 
-
-        (tokenId, liquidity, amountFexseUsed, amountUsdtUsed) = INonfungiblePositionManager(positionManager).mint(params);
-
+        (tokenId, liquidity, amountFexseUsed, amounttoken1Used) = INonfungiblePositionManager(positionManager).mint(params);
 
         console.log("amountFexseUsed :", amountFexseUsed);
-        console.log("amountUsdtUsed :", amountUsdtUsed);
+        console.log("amounttoken1Used :", amounttoken1Used);
         console.log("liquidity :", liquidity);
 
         // Refund unused tokens
         if (amountFexse > amountFexseUsed) {
             IERC20(fexseToken).transfer(msg.sender, amountFexse - amountFexseUsed);
         }
-        if (amountUsdt > amountUsdtUsed) {
-            IERC20(usdtToken).transfer(msg.sender, amountUsdt - amountUsdtUsed);
+        if (amounttoken1 > amounttoken1Used) {
+            IERC20(token1).transfer(msg.sender, amounttoken1 - amounttoken1Used);
         }
 
-        emit LiquidityAdded(tokenId, liquidity, amountFexseUsed, amountUsdtUsed);
+        emit LiquidityAdded(tokenId, liquidity, amountFexseUsed, amounttoken1Used);
     }
 }
