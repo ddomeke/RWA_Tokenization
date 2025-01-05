@@ -104,11 +104,6 @@ contract FexseUsdtPoolCreator is ModularInternal {
         int24 upperTick
     ) external nonReentrant onlyRole(ADMIN_ROLE) returns (uint256 tokenId, uint128 liquidity, uint256 amountFexseUsed, uint256 amounttoken1Used) {
 
-    // uint256 amountFexse = 22222 * 1e18; // 22,222.22 FEXSE
-    // uint256 amounttoken1 = 1000 * 1e6; // 1000 token1 
-    // Tick Lower: -500
-	// Tick Upper: 500
-
         require(amountFexse > 0, "FEXSE amount must be greater than zero");
         require(amounttoken1 > 0, "token1 amount must be greater than zero");
 

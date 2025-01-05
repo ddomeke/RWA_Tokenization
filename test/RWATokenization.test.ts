@@ -654,16 +654,16 @@ describe("RWATokenization Test", function () {
         log('INFO', "-----------------------------------------------createPool - getFexsePrice-----------------------------------------");
         log('INFO', ``);
 
-        const initialPriceX96 = BigInt("14547851560250183000000000000");
+        const initialPriceX96 = BigInt("6338253001141147007483516027000000");
          
         await fexseUsdtPoolCreator.connect(addresses[0]).createPool(initialPriceX96);   
         
-        const atoken1 = 1; // Amount to transfer (in USDC smallest unit, i.e., without decimals)
-        const aFexse = ethers.parseEther("22222");
+        const atoken1 = ethers.parseEther("1");
+        const aFexse = ethers.parseEther("80000");
 
 
         await getProject_All_Balances(addresses[0], 0);
-        await fexseUsdtPoolCreator.connect(addresses[0]).addLiquidity(aFexse,atoken1,-500,500);   
+        await fexseUsdtPoolCreator.connect(addresses[0]).addLiquidity(aFexse,atoken1,112860,112920);   
         await getProject_All_Balances(addresses[0], 0);
 
         const fexsePrice = await fexsePriceFetcher.getFexsePrice();
