@@ -11,9 +11,9 @@ const RPC_URL = process.env.RPC_URL || "";
 const PRIVATE_KEY = process.env.PRIVATE_KEY || "";
 
 const config: HardhatUserConfig = {
-  gasReporter: {
-    enabled: true,
-  },
+  // gasReporter: {
+  //   enabled: true,
+  // },
   solidity: {
     version: "0.8.24",
     settings: {

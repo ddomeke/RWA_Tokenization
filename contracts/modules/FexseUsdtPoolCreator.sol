@@ -116,6 +116,9 @@ contract FexseUsdtPoolCreator is ModularInternal {
         IERC20(token1).transferFrom(msg.sender, address(this), amounttoken1);
 
 
+        console.log("msg.sender :", msg.sender);
+
+
         // Add liquidity using NonfungiblePositionManager
         INonfungiblePositionManager.MintParams memory params = INonfungiblePositionManager.MintParams({
             token0: fexseToken,
@@ -125,8 +128,8 @@ contract FexseUsdtPoolCreator is ModularInternal {
             tickUpper: upperTick,
             amount0Desired: amountFexse,
             amount1Desired: amounttoken1,
-            amount0Min: 0, // Slippage control, set to 0 for simplicity
-            amount1Min: 0, // Slippage control, set to 0 for simplicity
+            amount0Min: (amountFexse * 95) / 100, //0, // Slippage control, set to 0 for simplicity
+            amount1Min: (amounttoken1 * 95) / 100, //0, // Slippage control, set to 0 for simplicity
             recipient: msg.sender,
             deadline: block.timestamp + 300
         });
@@ -147,4 +150,61 @@ contract FexseUsdtPoolCreator is ModularInternal {
 
         emit LiquidityAdded(tokenId, liquidity, amountFexseUsed, amounttoken1Used);
     }
+
+    //function collectAllFees(uint256 tokenId)
+    //     external
+    //     returns (uint256 amount0, uint256 amount1)
+    // {
+    //     INonfungiblePositionManager.CollectParams memory params =
+    //     INonfungiblePositionManager.CollectParams({
+    //         tokenId: tokenId,
+    //         recipient: address(this),
+    //         amount0Max: type(uint128).max,
+    //         amount1Max: type(uint128).max
+    //     });
+
+    //     (amount0, amount1) = nonfungiblePositionManager.collect(params);
+    // }
+
+    // function increaseLiquidityCurrentRange(
+    //     uint256 tokenId,
+    //     uint256 amount0ToAdd,
+    //     uint256 amount1ToAdd
+    // ) external returns (uint128 liquidity, uint256 amount0, uint256 amount1) {
+    //     dai.transferFrom(msg.sender, address(this), amount0ToAdd);
+    //     weth.transferFrom(msg.sender, address(this), amount1ToAdd);
+
+    //     dai.approve(address(nonfungiblePositionManager), amount0ToAdd);
+    //     weth.approve(address(nonfungiblePositionManager), amount1ToAdd);
+
+    //     INonfungiblePositionManager.IncreaseLiquidityParams memory params =
+    //     INonfungiblePositionManager.IncreaseLiquidityParams({
+    //         tokenId: tokenId,
+    //         amount0Desired: amount0ToAdd,
+    //         amount1Desired: amount1ToAdd,
+    //         amount0Min: 0,
+    //         amount1Min: 0,
+    //         deadline: block.timestamp
+    //     });
+
+    //     (liquidity, amount0, amount1) =
+    //         nonfungiblePositionManager.increaseLiquidity(params);
+    // }
+
+    // function decreaseLiquidityCurrentRange(uint256 tokenId, uint128 liquidity)
+    //     external
+    //     returns (uint256 amount0, uint256 amount1)
+    // {
+    //     INonfungiblePositionManager.DecreaseLiquidityParams memory params =
+    //     INonfungiblePositionManager.DecreaseLiquidityParams({
+    //         tokenId: tokenId,
+    //         liquidity: liquidity,
+    //         amount0Min: 0,
+    //         amount1Min: 0,
+    //         deadline: block.timestamp
+    //     });
+
+    //     (amount0, amount1) =
+    //         nonfungiblePositionManager.decreaseLiquidity(params);
+    // }
 }
