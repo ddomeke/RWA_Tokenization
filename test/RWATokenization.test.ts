@@ -185,7 +185,7 @@ describe("RWATokenization Test", function () {
 
 
     //--------------------- 8. SwapModule.sol deploy --------------------------------------------------------
-    _swapModule = await hre.ethers.deployContract("SwapModule", [UNISWAP_V3_ROUTER,WETH_ADDRESS,3000]);
+    _swapModule = await hre.ethers.deployContract("SwapModule", [UNISWAP_V3_ROUTER,USDT_ADDRESS,3000]);
     const _swapModuleAddress = await _swapModule.getAddress();
     await log('INFO', `8  - _swap Module Address-> ${_swapModuleAddress}`);
     gasPriceCalc(_swapModule.deploymentTransaction());
@@ -194,7 +194,7 @@ describe("RWATokenization Test", function () {
     swapModule = await hre.ethers.getContractAt("SwapModule", appAddress) as SwapModule;
 
     //--------------------- 9. FexsePriceFetcher.sol deploy --------------------------------------------------------
-    _fexsePriceFetcher = await hre.ethers.deployContract("FexsePriceFetcher", [fexseAddress,WETH_ADDRESS,3000]);
+    _fexsePriceFetcher = await hre.ethers.deployContract("FexsePriceFetcher", [fexseAddress,USDT_ADDRESS,3000]);
     const _fexsePriceFetcherAddress = await _fexsePriceFetcher.getAddress();
     await log('INFO', `9  - _fexsePriceFetcher Module Address-> ${_fexsePriceFetcherAddress}`);
     gasPriceCalc(_fexsePriceFetcher.deploymentTransaction());
@@ -204,7 +204,7 @@ describe("RWATokenization Test", function () {
 
 
     //--------------------- 10. FexseUsdtPoolCreator.sol deploy --------------------------------------------------------
-    _fexseUsdtPoolCreator = await hre.ethers.deployContract("FexseUsdtPoolCreator", [fexseAddress,WETH_ADDRESS,3000]);
+    _fexseUsdtPoolCreator = await hre.ethers.deployContract("FexseUsdtPoolCreator", [fexseAddress,USDT_ADDRESS,3000]);
     const _fexseUsdtPoolCreatorAddress = await _fexseUsdtPoolCreator.getAddress();
     await log('INFO', `11  - _fexseUsdtPoolCreator Module Address-> ${_fexseUsdtPoolCreatorAddress}`);
     gasPriceCalc(_fexseUsdtPoolCreator.deploymentTransaction());
@@ -654,16 +654,17 @@ describe("RWATokenization Test", function () {
         log('INFO', "-----------------------------------------------createPool - getFexsePrice-----------------------------------------");
         log('INFO', ``);
 
-        const initialPriceX96 = BigInt("79228162514264337593543950340");
+        const initialPriceX96 = BigInt("3565267313141895191709477765000000000000");
          
         await fexseUsdtPoolCreator.connect(addresses[0]).createPool(initialPriceX96);   
         
         const atoken1 = ethers.parseEther("10");
-        const aFexse = ethers.parseEther("10");
+        const aFexse = ethers.parseEther("1000");
+        const ausdt = 45000000;
 
 
         await getProject_All_Balances(addresses[0], 0);
-        await fexseUsdtPoolCreator.connect(addresses[0]).addLiquidity(aFexse,atoken1,-887272,887272);   
+        await fexseUsdtPoolCreator.connect(addresses[0]).addLiquidity(aFexse,ausdt,112860,112920);   
         await getProject_All_Balances(addresses[0], 0);
 
         const fexsePrice = await fexsePriceFetcher.getFexsePrice();

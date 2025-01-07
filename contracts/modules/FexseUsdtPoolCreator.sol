@@ -93,7 +93,7 @@ contract FexseUsdtPoolCreator is ModularInternal {
     /**
      * @dev Adds liquidity to the FEXSE/token1 pool.
      * @param amountFexse Desired amount of FEXSE tokens to add as liquidity.
-     * @param amounttoken1 Desired amount of USDT tokens to add as liquidity.
+     * @param amounttoken1 Desired amount of token1 tokens to add as liquidity.
      * @param lowerTick Lower tick boundary for the liquidity position.
      * @param upperTick Upper tick boundary for the liquidity position.
      */
@@ -128,8 +128,8 @@ contract FexseUsdtPoolCreator is ModularInternal {
             tickUpper: upperTick,
             amount0Desired: amountFexse,
             amount1Desired: amounttoken1,
-            amount0Min: (amountFexse * 95) / 100, //0, // Slippage control, set to 0 for simplicity
-            amount1Min: (amounttoken1 * 95) / 100, //0, // Slippage control, set to 0 for simplicity
+            amount0Min: 0,//(amountFexse * 90) / 100, //0, // Slippage control, set to 0 for simplicity
+            amount1Min: 0,//(amounttoken1 * 90) / 100, //0, // Slippage control, set to 0 for simplicity
             recipient: msg.sender,
             deadline: block.timestamp + 300
         });

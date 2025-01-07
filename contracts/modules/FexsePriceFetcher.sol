@@ -69,7 +69,10 @@ contract FexsePriceFetcher is ModularInternal{
         (uint160 sqrtPriceX96, , , , , , ) = IUniswapV3Pool(pool).slot0();
 
         // Calculate the price
-        price = uint256(sqrtPriceX96) * uint256(sqrtPriceX96) / (1 << 192);
+        unchecked {
+            price = (uint256(sqrtPriceX96) * uint256(sqrtPriceX96)) / (1 << 192);
+        }
+
 
         // If token1 is token0, invert the price
         if (IUniswapV3Pool(pool).token0() == token1) {
