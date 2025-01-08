@@ -114,13 +114,22 @@ contract MarketPlace is ModularInternal {
         //     (FEXSE_PRICE_IN_USDT * (10 ** 3));
 
 
-        uint256 fexse_amount = tokenPrice * tokenAmount;
-            // TODO : kilitli mi diye kontrol edelim. approve kontrol edelim. fexse amountu kotrol edelim
+        uint256 fexseAmount = tokenPrice * tokenAmount;
 
-        data.fexseToken.unlock(buyer, fexse_amount);
+        // TODO: servicesfee  backend de hesaplanmadığı durumda burda hesaplayalım.
+        uint256 servideFeeAmount = (fexseAmount * 5) / 1000;
+        
+        // TODO : kilitli mi diye kontrol edelim. approve kontrol edelim. fexse amountu kotrol edelim
+        // TODO: başka bir emir yoksa tüm fexseler unlock edilmeli
+        data.fexseToken.unlock(buyer, (fexseAmount + servideFeeAmount));
 
         require(
-            data.fexseToken.transferFrom(buyer, sender, fexse_amount),
+            data.fexseToken.transferFrom(buyer, address(this), servideFeeAmount),
+            "FEXSE transfer failed"
+        );
+
+        require(
+            data.fexseToken.transferFrom(buyer, sender, fexseAmount),
             "FEXSE transfer failed"
         );
 
@@ -143,7 +152,7 @@ contract MarketPlace is ModularInternal {
             buyer,
             assetId,
             tokenAmount,
-            fexse_amount,
+            fexseAmount,
             cost
         );
     }
