@@ -12,9 +12,7 @@ pragma solidity ^0.8.24;
  */
 
 import "../token/ERC20/IERC20.sol";
-import "../utils/ReentrancyGuard.sol";
-import "../utils/Ownable.sol";
-import "../utils/AccessControl.sol";
+import "../core/abstracts/ModularInternal.sol";
 
 /**
  * @title StakingService
@@ -23,25 +21,12 @@ import "../utils/AccessControl.sol";
  * ReentrancyGuard: Protects against reentrant calls.
  * Ownable: Provides basic authorization control functions.
  */
-contract StakingService is AccessControl, ReentrancyGuard, Ownable {
+contract StakingService is ModularInternal {
+    using AppStorage for AppStorage.Layout;
+
     IERC20 public governenceToken;
     uint256 public rewardRate;
     uint256 public totalStakedAmount;
-
-    struct Stake {
-        uint256 amount;
-        uint256 rewardDebt;
-        uint256 lockTime;
-    }
-
-    struct Proposal {
-        uint256 id;
-        string description;
-        uint256 forVotes;
-        uint256 againstVotes;
-        bool executed;
-        uint256 deadline;
-    }
 
     event Staked(address indexed user, uint256 amount);
     event Unstaked(address indexed user, uint256 amount);
@@ -50,8 +35,7 @@ contract StakingService is AccessControl, ReentrancyGuard, Ownable {
     event ProposalExecuted(uint256 id, bool success);
     event governenceTokenUpdated(address oldToken, address newToken);
 
-    mapping(address => Stake) public stakes;
-    mapping(uint256 => Proposal) public proposals;
+    address immutable _this;
 
     /**
      * @dev Constructor for the StakingService contract.
@@ -63,12 +47,41 @@ contract StakingService is AccessControl, ReentrancyGuard, Ownable {
      * Initializes the contract by setting the governance token address and
      * transferring ownership to the deployer of the contract.
      */
-    constructor(address _governenceToken) Ownable(msg.sender) {
+    constructor(address _governenceToken) {
         require(
             _governenceToken != address(0),
             "Invalid _governenceToken token address"
         );
+
+        _this = address(this);
         governenceToken = IERC20(_governenceToken);
+    }
+
+    /**
+     * @dev Returns an array of ⁠ FacetCut ⁠ structs, which define the functions (selectors)
+     *      provided by this module. This is used to register the module's functions
+     *      with the modular system.
+     * @return FacetCut[] Array of ⁠ FacetCut ⁠ structs representing function selectors.
+     */
+    function moduleFacets() external view returns (FacetCut[] memory) {
+        uint256 selectorIndex = 0;
+        bytes4[] memory selectors = new bytes4[](3);
+
+        // Add function selectors to the array
+        selectors[selectorIndex++] = this.stake.selector;
+        selectors[selectorIndex++] = this.unstake.selector;
+        selectors[selectorIndex++] = this.setGovernenceToken.selector;
+
+        // Create a FacetCut array with a single element
+        FacetCut[] memory facetCuts = new FacetCut[](1);
+
+        // Set the facetCut target, action, and selectors
+        facetCuts[0] = FacetCut({
+            target: _this,
+            action: FacetCutAction.ADD,
+            selectors: selectors
+        });
+        return facetCuts;
     }
 
     /**
@@ -90,7 +103,8 @@ contract StakingService is AccessControl, ReentrancyGuard, Ownable {
             "Transfer failed"
         );
 
-        Stake storage userStake = stakes[msg.sender];
+        AppStorage.Layout storage data = AppStorage.layout();
+        Stake storage userStake = data.stakes[msg.sender];
 
         userStake.amount += amount;
         userStake.rewardDebt += (amount * rewardRate) / 1000;
@@ -113,7 +127,9 @@ contract StakingService is AccessControl, ReentrancyGuard, Ownable {
      * @dev Emits an {Unstaked} event when a user successfully unstakes their tokens.
      */
     function unstake() external nonReentrant {
-        Stake storage userStake = stakes[msg.sender];
+        AppStorage.Layout storage data = AppStorage.layout();
+        Stake storage userStake = data.stakes[msg.sender];
+
         require(userStake.amount > 0, "No tokens staked");
         require(
             block.timestamp >= userStake.lockTime,
@@ -123,7 +139,7 @@ contract StakingService is AccessControl, ReentrancyGuard, Ownable {
         uint256 amountToWithdraw = userStake.amount;
         uint256 reward = userStake.rewardDebt;
 
-        delete stakes[msg.sender];
+        delete data.stakes[msg.sender];
         totalStakedAmount -= amountToWithdraw;
 
         require(
@@ -144,7 +160,7 @@ contract StakingService is AccessControl, ReentrancyGuard, Ownable {
      */
     function setGovernenceToken(
         IERC20 _governenceToken
-    ) external onlyOwner nonReentrant {
+    ) external nonReentrant onlyRole(ADMIN_ROLE) {
         require(
             address(_governenceToken) != address(0),
             "Invalid _fexseToken address"

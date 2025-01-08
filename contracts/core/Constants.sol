@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 /**
  * @file Constants.sol
  * @dev This file contains constant definitions and imports required for the RWATokenization project.
- * 
+ *
  * Imports:
  * - IERC20: Interface for the ERC20 standard as defined in the EIP.
  * - IAssetToken: Interface for asset token functionalities specific to this project.
@@ -97,4 +97,16 @@ struct Proposal {
     bool executed;
     uint256 deadline;
     mapping(address => bool) voters;
+}
+
+/**
+ * @dev Represents a stake in the system.
+ * @param amount The amount of tokens staked.
+ * @param rewardDebt The amount of rewards debt associated with the stake.
+ * @param lockTime The time until which the stake is locked.
+ */
+struct Stake {
+    uint256 amount;
+    uint256 rewardDebt;
+    uint256 lockTime;
 }

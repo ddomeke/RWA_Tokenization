@@ -45,6 +45,7 @@ library AppStorage {
         mapping(uint256 => bytes32) selectorSlots; // Mapping to store function selector slots, enabling modular function upgrades
         mapping(uint256 => Asset) assets; // A mapping of asset IDs to their corresponding asset details
         mapping(uint256 => Proposal) proposals;
+        mapping(address => Stake) stakes;
         mapping(address => bool) isWhitelisted; // Tracks addresses that are allowed specific privileges in the system
         mapping(address => bool) isBlacklisted; // Tracks addresses that are restricted from certain actions
     }
