@@ -1,12 +1,29 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+/**
+ * @file SwapModule.sol
+ * @dev This file is part of the RWATokenization project and contains the SwapModule contract.
+ *
+ * @notice This contract imports the ISwapRouter interface from the Uniswap V3 Periphery package
+ * and the ModularInternal abstract contract from the core abstracts module.
+ *
+ * @dev The ISwapRouter interface is used to interact with the Uniswap V3 swap router,
+ * enabling token swaps within the contract.
+ *
+ * @dev The ModularInternal abstract contract provides internal functions and utilities
+ * that are used by the SwapModule contract.
+ *
+ * @import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol" - Interface for Uniswap V3 swap router.
+ * @import "../core/abstracts/ModularInternal.sol" - Abstract contract providing internal utilities.
+ */
 import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import "../core/abstracts/ModularInternal.sol";
 
 /**
  * @title SwapModule
- * @dev A contract to perform FEXSE/token1 swaps using Uniswap V3 protocol.
+ * @dev This contract is a module that provides functionality for token swaps within the RWATokenization system.
+ * It inherits from the ModularInternal contract.
  */
 contract SwapModule is ModularInternal {
     using AppStorage for AppStorage.Layout;
@@ -31,11 +48,7 @@ contract SwapModule is ModularInternal {
      * @param _token1 Address of the token1 token contract.
      * @param _poolFee Pool fee for the Uniswap V3 pool (e.g., 500 for 0.5%).
      */
-    constructor(
-        address _swapRouter,
-        address _token1,
-        uint24 _poolFee
-    ) {
+    constructor(address _swapRouter, address _token1, uint24 _poolFee) {
         require(_swapRouter != address(0), "Invalid swap router address");
         require(_token1 != address(0), "Invalid token1 token address");
 
@@ -116,7 +129,13 @@ contract SwapModule is ModularInternal {
             "FEXSE transfer failed"
         );
 
-        emit Swapped(msg.sender, token1, address(fexseToken), token1Amount, amountOut);
+        emit Swapped(
+            msg.sender,
+            token1,
+            address(fexseToken),
+            token1Amount,
+            amountOut
+        );
     }
 
     /**
@@ -163,6 +182,12 @@ contract SwapModule is ModularInternal {
             "token1 transfer failed"
         );
 
-        emit Swapped(msg.sender, address(fexseToken), token1, fexseAmount, amountOut);
+        emit Swapped(
+            msg.sender,
+            address(fexseToken),
+            token1,
+            fexseAmount,
+            amountOut
+        );
     }
 }

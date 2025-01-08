@@ -1,8 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+/**
+ * @file RWA_DAO.sol
+ * @notice This file is part of the RWATokenization project and is located at /c:/Users/duran/RWATokenization/contracts/modules/.
+ * @dev This contract imports the ModularInternal abstract contract from the core/abstracts directory.
+ */
 import "../core/abstracts/ModularInternal.sol";
 
+/**
+ * @title RWA_DAO
+ * @dev This contract is a part of the RWA Tokenization project and extends the ModularInternal contract.
+ * It is responsible for managing the DAO (Decentralized Autonomous Organization) functionalities within the RWA ecosystem.
+ */
 contract RWA_DAO is ModularInternal {
     using AppStorage for AppStorage.Layout;
 
@@ -24,6 +34,16 @@ contract RWA_DAO is ModularInternal {
 
     address immutable _this;
 
+    /**
+     * @dev Constructor for the RWA_DAO contract.
+     * @param _appAddress The address of the RWA contract. Must not be the zero address.
+     *
+     * Requirements:
+     * - `_appAddress` must not be the zero address.
+     *
+     * Initializes the contract by setting the `_appAddress`, storing the contract's own address,
+     * and granting the `ADMIN_ROLE` to both the deployer and the `_appAddress`.
+     */
     constructor(address _appAddress) {
         require(_appAddress != address(0), "Invalid RWA contract address");
         _this = address(this);
@@ -63,6 +83,18 @@ contract RWA_DAO is ModularInternal {
         return facetCuts;
     }
 
+    /**
+     * @notice Creates a new proposal.
+     * @dev Only callable by an account with the ADMIN_ROLE. Uses nonReentrant modifier to prevent reentrancy attacks.
+     * @param proposalId The unique identifier for the proposal.
+     * @param governanceTokenAddress The address of the governance token contract.
+     * @param proposalDuration The duration (in seconds) for which the proposal will be active.
+     * @param minimumQuorum The minimum number of votes required for the proposal to be considered valid.
+     * @param description A brief description of the proposal.
+     * @dev governanceTokenAddress must not be the zero address.
+     * @dev A proposal with the given proposalId must not already exist.
+     * @dev Emits a ProposalCreated event when a new proposal is created.
+     */
     function createProposal(
         uint256 proposalId,
         address governanceTokenAddress,
@@ -94,10 +126,18 @@ contract RWA_DAO is ModularInternal {
         );
     }
 
-    function vote(
-        uint256 proposalId,
-        bool support
-    ) external nonReentrant {
+    /**
+     * @notice Casts a vote on a proposal.
+     * @dev This function allows a governance token holder to vote on a proposal.
+     *      The voter can either support or oppose the proposal.
+     * @param proposalId The ID of the proposal to vote on.
+     * @param support A boolean indicating whether the voter supports the proposal (true) or opposes it (false).
+     * @dev The caller must hold governance tokens.
+     * @dev The voting period must not have ended.
+     * @dev The caller must not have already voted on the proposal.
+     * @dev Emits a Voted event when a vote is successfully cast.
+     */
+    function vote(uint256 proposalId, bool support) external nonReentrant {
         AppStorage.Layout storage data = AppStorage.layout();
         Proposal storage proposal = data.proposals[proposalId];
 
@@ -121,6 +161,14 @@ contract RWA_DAO is ModularInternal {
         emit Voted(proposalId, msg.sender, support);
     }
 
+    /**
+     * @notice Executes a proposal if it meets the required conditions.
+     * @dev This function can only be called by an account with the ADMIN_ROLE.
+     * It ensures the voting period has ended, the proposal has not been executed,
+     * and the proposal has met the minimum quorum.
+     * @param proposalId The ID of the proposal to execute.
+     * Emits a {ProposalExecuted} event indicating the success of the execution.
+     */
     function executeProposal(
         uint256 proposalId
     ) external nonReentrant onlyRole(ADMIN_ROLE) {
@@ -148,6 +196,13 @@ contract RWA_DAO is ModularInternal {
         emit ProposalExecuted(proposalId, success);
     }
 
+    /**
+     * @notice Updates the minimum quorum required for a specific proposal.
+     * @dev This function can only be called by an account with the ADMIN_ROLE.
+     * It ensures that the new quorum is greater than zero.
+     * @param proposalId The ID of the proposal to update.
+     * @param newQuorum The new minimum quorum value to set.
+     */
     function updateMinimumQuorum(
         uint256 proposalId,
         uint256 newQuorum
@@ -159,6 +214,14 @@ contract RWA_DAO is ModularInternal {
         proposal.minimumQuorum = newQuorum;
     }
 
+    /**
+     * @notice Updates the duration of an existing proposal.
+     * @dev This function can only be called by an account with the ADMIN_ROLE.
+     * It ensures the new duration is greater than zero and updates the proposal's deadline.
+     * The function is protected against reentrancy attacks.
+     * @param proposalId The ID of the proposal to update.
+     * @param newDuration The new duration for the proposal.
+     */
     function updateProposalDuration(
         uint256 proposalId,
         uint256 newDuration
@@ -170,6 +233,14 @@ contract RWA_DAO is ModularInternal {
         proposal.deadline = newDuration;
     }
 
+    /**
+     * @notice Updates the governance token for a specific proposal.
+     * @dev This function can only be called by an account with the ADMIN_ROLE.
+     * It ensures the new governance token address is not the zero address.
+     * Emits a {GovernanceTokenUpdated} event.
+     * @param proposalId The ID of the proposal to update.
+     * @param newGovernanceToken The address of the new governance token.
+     */
     function updateGovernanceToken(
         uint256 proposalId,
         address newGovernanceToken
@@ -188,6 +259,17 @@ contract RWA_DAO is ModularInternal {
         emit GovernanceTokenUpdated(proposalId, oldToken, newGovernanceToken);
     }
 
+    /**
+     * @notice Retrieves the details of a specific proposal by its ID.
+     * @param proposalId The ID of the proposal to retrieve.
+     * @return id The ID of the proposal.
+     * @return governanceToken The address of the governance token associated with the proposal.
+     * @return description A brief description of the proposal.
+     * @return forVotes The number of votes in favor of the proposal.
+     * @return againstVotes The number of votes against the proposal.
+     * @return executed A boolean indicating whether the proposal has been executed.
+     * @return deadline The deadline timestamp for voting on the proposal.
+     */
     function getProposal(
         uint256 proposalId
     )

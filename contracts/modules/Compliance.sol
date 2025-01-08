@@ -1,11 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+/**
+ * @file Compliance.sol
+ * @notice This file is part of the RWATokenization project and is located at /c:/Users/duran/RWATokenization/contracts/modules/Compliance.sol
+ * @dev This contract imports the ModularInternal abstract contract from the core/abstracts directory.
+ */
 import "../core/abstracts/ModularInternal.sol";
 
 /**
  * @title Compliance
- * @dev Token transferleri ve kullanıcı etkileşimleri için KYC/AML uyumluluğunu yöneten akıllı kontrat.
+ * @dev This contract is a module that extends the ModularInternal contract.
+ * It is intended to handle compliance-related functionalities for tokenization.
  */
 contract Compliance is ModularInternal {
     using AppStorage for AppStorage.Layout;
@@ -16,10 +22,13 @@ contract Compliance is ModularInternal {
 
     address immutable _this;
 
-    constructor(
-        address appAddress
-    ) {
-
+    /**
+     * @dev Constructor for the Compliance contract.
+     * Grants the ADMIN_ROLE and COMPLIANCE_OFFICER_ROLE to the deployer and the specified appAddress.
+     *
+     * @param appAddress The address to be granted the ADMIN_ROLE and COMPLIANCE_OFFICER_ROLE.
+     */
+    constructor(address appAddress) {
         _this = address(this);
         _grantRole(ADMIN_ROLE, msg.sender);
         _grantRole(COMPLIANCE_OFFICER_ROLE, msg.sender);
@@ -27,11 +36,11 @@ contract Compliance is ModularInternal {
         _grantRole(COMPLIANCE_OFFICER_ROLE, appAddress);
     }
 
-       /**
-     * @dev Returns an array of ⁠ FacetCut ⁠ structs, which define the functions (selectors)
-     *      provided by this module. This is used to register the module's functions
-     *      with the modular system.
-     * @return FacetCut[] Array of ⁠ FacetCut ⁠ structs representing function selectors.
+    /**
+     * @notice Returns an array of FacetCut structs representing the module facets.
+     * @dev This function constructs an array of function selectors and creates a FacetCut array with a single element.
+     * The FacetCut array is configured to add the specified selectors to the module.
+     * @return facetCuts An array of FacetCut structs containing the target, action, and selectors.
      */
     function moduleFacets() external view returns (FacetCut[] memory) {
         uint256 selectorIndex = 0;
@@ -57,11 +66,15 @@ contract Compliance is ModularInternal {
     }
 
     /**
-     * @dev Adresi beyaz listeye ekler (KYC onayı).
-     * @param account Beyaz listeye eklenecek adres.
+     * @notice Adds an address to the whitelist.
+     * @dev This function can only be called by an account with the COMPLIANCE_OFFICER_ROLE.
+     * @param account The address to be whitelisted.
+     * @dev Requirements: The address must not be blacklisted.
+     * @dev Emits: AddressWhitelisted when an address is successfully whitelisted.
      */
-    function whitelistAddress(address account) external onlyRole(COMPLIANCE_OFFICER_ROLE) {
-
+    function whitelistAddress(
+        address account
+    ) external onlyRole(COMPLIANCE_OFFICER_ROLE) {
         AppStorage.Layout storage data = AppStorage.layout();
 
         require(!data.isBlacklisted[account], "Address is blacklisted");
@@ -70,11 +83,14 @@ contract Compliance is ModularInternal {
     }
 
     /**
-     * @dev Adresi kara listeye ekler (AML ihlali veya riskli adres).
-     * @param account Kara listeye eklenecek adres.
+     * @notice Blacklists an address, preventing it from participating in token transfers.
+     * @dev Only accounts with the COMPLIANCE_OFFICER_ROLE can call this function.
+     * @param account The address to be blacklisted.
+     * Emits an {AddressBlacklisted} event.
      */
-    function blacklistAddress(address account) external onlyRole(COMPLIANCE_OFFICER_ROLE) {
-
+    function blacklistAddress(
+        address account
+    ) external onlyRole(COMPLIANCE_OFFICER_ROLE) {
         AppStorage.Layout storage data = AppStorage.layout();
 
         data.isBlacklisted[account] = true;
@@ -83,11 +99,15 @@ contract Compliance is ModularInternal {
     }
 
     /**
-     * @dev Kara listeden adresi çıkarır.
-     * @param account Kara listeden çıkarılacak adres.
+     * @notice Removes an address from the blacklist.
+     * @dev This function can only be called by an account with the COMPLIANCE_OFFICER_ROLE.
+     * @param account The address to be removed from the blacklist.
+     * @dev Requirements: The address must be currently blacklisted.
+     * @dev Emits: AddressRemovedFromBlacklist event upon successful removal.
      */
-    function removeFromBlacklist(address account) external onlyRole(COMPLIANCE_OFFICER_ROLE) {
-
+    function removeFromBlacklist(
+        address account
+    ) external onlyRole(COMPLIANCE_OFFICER_ROLE) {
         AppStorage.Layout storage data = AppStorage.layout();
 
         require(data.isBlacklisted[account], "Address is not blacklisted");
@@ -96,12 +116,16 @@ contract Compliance is ModularInternal {
     }
 
     /**
-     * @dev Transfer işlemleri öncesinde kara liste kontrolü.
-     * @param from Gönderen adres.
-     * @param to Alıcı adres.
+     * @notice Performs checks before a token transfer is allowed.
+     * @dev This function checks if the sender and recipient addresses are blacklisted or whitelisted.
+     * @param from The address of the sender.
+     * @param to The address of the recipient.
+     * @dev The sender address must not be blacklisted.
+     * @dev The recipient address must not be blacklisted.
+     * @dev The sender address must be whitelisted.
+     * @dev The recipient address must be whitelisted.
      */
     function preTransferCheck(address from, address to) external view {
-
         AppStorage.Layout storage data = AppStorage.layout();
 
         require(!data.isBlacklisted[from], "Sender address is blacklisted");
@@ -111,12 +135,13 @@ contract Compliance is ModularInternal {
     }
 
     /**
-     * @dev Kullanıcının kara listede olup olmadığını kontrol eder.
-     * @param account Kontrol edilecek adres.
-     * @return bool Kara listede olup olmadığı.
+     * @notice Checks if an address is blacklisted.
+     * @param account The address to check.
+     * @return bool True if the address is blacklisted, false otherwise.
      */
-    function isAddressBlacklisted(address account) external view returns (bool) {
-
+    function isAddressBlacklisted(
+        address account
+    ) external view returns (bool) {
         AppStorage.Layout storage data = AppStorage.layout();
 
         return data.isBlacklisted[account];

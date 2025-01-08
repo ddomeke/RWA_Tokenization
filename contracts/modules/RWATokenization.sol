@@ -1,12 +1,26 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+/**
+ * @file RWATokenization.sol
+ * @dev This file is part of the RWATokenization module. It imports several dependencies:
+ * - ModularInternal.sol: Provides internal modular functionality.
+ * - IERC20.sol: Interface for the ERC20 token standard.
+ * - Strings.sol: Utility library for string operations.
+ * - AssetToken.sol: Contract for asset token implementation.
+ * - IRWATokenization.sol: Interface for RWATokenization.
+ */
 import "../core/abstracts/ModularInternal.sol";
 import "../token/ERC20/IERC20.sol";
 import "../utils/Strings.sol";
 import {AssetToken} from "../token/AssetToken.sol";
 import {IRWATokenization} from "../interfaces/IRWATokenization.sol";
 
+/**
+ * @title RWATokenization
+ * @dev This contract is part of the RWATokenization module and inherits from the ModularInternal contract.
+ * It is designed to handle the tokenization of Real World Assets (RWA).
+ */
 contract RWATokenization is ModularInternal {
     using AppStorage for AppStorage.Layout;
 
@@ -47,6 +61,14 @@ contract RWATokenization is ModularInternal {
 
     address immutable _this;
 
+    /**
+     * @dev Constructor for the RWATokenization contract.
+     * @param _appAddress The address of the application to be granted the ADMIN_ROLE.
+     *
+     * This constructor initializes the contract by setting the contract's own address,
+     * assigning the provided application address, and granting the ADMIN_ROLE to both
+     * the deployer (msg.sender) and the provided application address (_appAddress).
+     */
     constructor(address _appAddress) {
         _this = address(this);
         appAddress = _appAddress;
@@ -92,7 +114,18 @@ contract RWATokenization is ModularInternal {
         return facetCuts;
     }
 
-    // Function to create a new asset and issue tokens to the deployer
+    /**
+     * @notice Creates a new asset with the specified parameters.
+     * @dev This function can only be called by an account with the ADMIN_ROLE.
+     * It deploys a new instance of the AssetToken contract and stores the asset information.
+     * @param assetId The unique identifier for the asset.
+     * @param totalTokens The total number of tokens to be created for the asset.
+     * @param tokenPrice The price per token for the asset.
+     * @param assetUri The URI for the asset's metadata.
+     * @dev Reverts if the asset already exists.
+     * @dev Reverts if the total number of tokens is zero.
+     * @dev Reverts if the token price is zero.
+     */
     function createAsset(
         uint256 assetId,
         uint256 totalTokens,
@@ -143,7 +176,12 @@ contract RWATokenization is ModularInternal {
         return asset.totalTokens;
     }
 
-    // Function to get the token price of an asset
+    /**
+     * @notice Retrieves the token price of a specified asset.
+     * @param assetId The ID of the asset whose token price is being queried.
+     * @return The token price of the specified asset.
+     * @dev Reverts if the asset does not exist.
+     */
     function getTokenPrice(uint256 assetId) external view returns (uint256) {
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
@@ -152,7 +190,13 @@ contract RWATokenization is ModularInternal {
         return asset.tokenPrice;
     }
 
-    // Function to get the total profit of an asset
+    /**
+     * @notice Retrieves the total profit for a given asset.
+     * @param assetId The unique identifier of the asset.
+     * @return The total profit associated with the specified asset.
+     * @dev This function reads from the AppStorage to get the asset details.
+     *      It requires that the asset with the given ID exists.
+     */
     function getTotalProfit(uint256 assetId) external view returns (uint256) {
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
@@ -161,7 +205,12 @@ contract RWATokenization is ModularInternal {
         return asset.totalProfit;
     }
 
-    // Function to get the last distributed timestamp of an asset
+    /**
+     * @notice Retrieves the timestamp of the last distribution for a given asset.
+     * @param assetId The unique identifier of the asset.
+     * @return The timestamp of the last distribution for the specified asset.
+     * @dev Reverts if the asset does not exist.
+     */
     function getLastDistributed(
         uint256 assetId
     ) external view returns (uint256) {
@@ -172,7 +221,13 @@ contract RWATokenization is ModularInternal {
         return asset.lastDistributed;
     }
 
-    // Function to get the URI of an asset
+    /**
+     * @notice Retrieves the URI associated with a specific asset.
+     * @dev This function fetches the URI of an asset from the storage layout.
+     * @param assetId The unique identifier of the asset.
+     * @return A string representing the URI of the asset.
+     * @dev The asset must exist (asset ID should not be zero).
+     */
     function getUri(uint256 assetId) external view returns (string memory) {
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
@@ -181,7 +236,12 @@ contract RWATokenization is ModularInternal {
         return string(abi.encodePacked(asset.uri));
     }
 
-    // Function to get the token contract address of an asset
+    /**
+     * @notice Retrieves the token contract address associated with a given asset ID.
+     * @param assetId The ID of the asset for which to retrieve the token contract address.
+     * @return The address of the token contract associated with the specified asset ID.
+     * @dev Reverts if the asset with the given ID does not exist.
+     */
     function getTokenContractAddress(
         uint256 assetId
     ) external view returns (address) {
@@ -192,7 +252,12 @@ contract RWATokenization is ModularInternal {
         return address(asset.tokenContract);
     }
 
-    // Function to get the token holders of an asset
+    /**
+     * @notice Retrieves the list of token holders for a specific asset.
+     * @param assetId The ID of the asset for which to retrieve token holders.
+     * @return An array of addresses representing the token holders of the specified asset.
+     * @dev Reverts if the asset does not exist.
+     */
     function getTokenHolders(
         uint256 assetId
     ) external view returns (address[] memory) {
@@ -203,7 +268,13 @@ contract RWATokenization is ModularInternal {
         return asset.tokenHolders;
     }
 
-    // Function to get the holdings of a specific holder for an asset
+    /**
+     * @notice Retrieves the balance of a specific holder for a given asset.
+     * @param assetId The ID of the asset.
+     * @param holder The address of the holder whose balance is being queried.
+     * @return The balance of the holder for the specified asset.
+     * @dev Reverts if the asset does not exist.
+     */
     function getHolderBalance(
         uint256 assetId,
         address holder
@@ -215,7 +286,13 @@ contract RWATokenization is ModularInternal {
         return asset.userTokenInfo[holder].holdings;
     }
 
-    // Function to get the pending Profits of a specific holder for an asset
+    /**
+     * @notice Retrieves the pending profits for a specific asset holder.
+     * @param assetId The ID of the asset.
+     * @param holder The address of the asset holder.
+     * @return The amount of pending profits for the specified asset holder.
+     * @dev Reverts if the asset does not exist.
+     */
     function getPendingProfits(
         uint256 assetId,
         address holder
@@ -227,7 +304,17 @@ contract RWATokenization is ModularInternal {
         return asset.userTokenInfo[holder].pendingProfits;
     }
 
-    // Function to distribute profit to token holders
+    /**
+     * @notice Distributes profit for a specific asset to all token holders.
+     * @dev This function can only be called by an account with the ADMIN_ROLE and is protected against reentrancy.
+     * @param assetId The ID of the asset for which the profit is being distributed.
+     * @param profitAmount The total amount of profit to be distributed among the token holders.
+     *
+     * The function calculates the profit per token and distributes it to each token holder based on their holdings.
+     * It updates the pending profits for each holder and records the total profit and the last distribution timestamp for the asset.
+     *
+     * Emits a {ProfitDistributed} event indicating the asset ID, the amount of profit distributed in FEXSE tokens, and the profit per token.
+     */
     function distributeProfit(
         uint256 assetId,
         uint256 profitAmount
@@ -258,7 +345,17 @@ contract RWATokenization is ModularInternal {
         emit ProfitDistributed(assetId, fexse_amount, profitPerToken);
     }
 
-    // Holders can claim profits themselves
+    /**
+     * @notice Allows a user to claim their pending profits for a specific asset.
+     * @dev This function is protected against reentrancy attacks using the nonReentrant modifier.
+     * @param assetId The ID of the asset for which the user wants to claim profits.
+     * @dev The user must have pending profits to claim.
+     * @dev The amount of pending profits must be greater than 0.
+     * @dev The function resets the user's pending profits to 0 after claiming.
+     * @dev The function converts the profit amount to FEXSE tokens using a predefined conversion rate.
+     * @dev The function transfers the FEXSE tokens from the deployer to the user.
+     * @dev Emits a Claimed event upon successful profit claim.
+     */
     function claimProfit(uint256 assetId) public nonReentrant {
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
@@ -276,7 +373,15 @@ contract RWATokenization is ModularInternal {
         emit Claimed(msg.sender, assetId);
     }
 
-    // New function to update the token price for an existing asset
+    /**
+     * @notice Updates the token price of an existing asset.
+     * @dev This function can only be called by an account with the ADMIN_ROLE.
+     * It uses the nonReentrant modifier to prevent reentrancy attacks.
+     * @param assetId The ID of the asset to update.
+     * @param newTokenPrice The new token price to set for the asset.
+     * @dev The asset must exist (asset ID should not be 0).
+     * @dev Emits an {AssetUpdated} event when the asset's token price is updated.
+     */
     function updateAsset(
         uint256 assetId,
         uint256 newTokenPrice
@@ -291,6 +396,14 @@ contract RWATokenization is ModularInternal {
         emit AssetUpdated(assetId, newTokenPrice);
     }
 
+    /**
+     * @notice Updates the holdings of a specific account for a given asset.
+     * @dev This function can only be called by the token contract or the contract itself.
+     * @param account The address of the account whose holdings are to be updated.
+     * @param assetId The ID of the asset for which the holdings are being updated.
+     * @param balance The new balance of the account for the specified asset.
+     * @dev The caller must be the token contract or the contract itself.
+     */
     function updateHoldings(
         address account,
         uint256 assetId,
@@ -325,6 +438,11 @@ contract RWATokenization is ModularInternal {
         asset.userTokenInfo[account].holdings = balance;
     }
 
+    /**
+     * @dev Internal function to remove a holder from the list of token holders for a specific asset.
+     * @param assetId The ID of the asset from which the holder will be removed.
+     * @param holder The address of the holder to be removed.
+     */
     function _removeHolder(uint256 assetId, address holder) internal {
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
@@ -340,33 +458,38 @@ contract RWATokenization is ModularInternal {
         }
     }
 
-    // Function to remove holdings of a specific address
+    /**
+     * @dev Internal function to remove holdings of a specific asset for a given holder.
+     * @param assetId The ID of the asset from which holdings are to be removed.
+     * @param holder The address of the holder whose holdings are to be removed.
+     */
     function _removeHoldings(uint256 assetId, address holder) internal {
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
 
-        // require(
-        //     asset.userTokenInfo[holder].holdings > 0,
-        //     "No holdings to remove"
-        // );
-
         delete asset.userTokenInfo[holder].holdings;
     }
 
-    // Function to remove pending profits of a specific address
+    /**
+     * @dev Internal function to remove pending profits for a specific asset holder.
+     * @param assetId The ID of the asset.
+     * @param holder The address of the asset holder.
+     */
     function _removePendingProfits(uint256 assetId, address holder) internal {
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
 
-        // require(
-        //     asset.userTokenInfo[holder].pendingProfits > 0,
-        //     "No pending profits to remove"
-        // );
-
         delete asset.userTokenInfo[holder].pendingProfits;
     }
 
-    // Function to clear all mappings and arrays for a specific holder
+    /**
+     * @dev Clears all data associated with a specific holder for a given asset.
+     * This includes removing the holder from the asset's holder list,
+     * removing their holdings, and removing any pending profits.
+     *
+     * @param assetId The ID of the asset for which the holder data is to be cleared.
+     * @param holder The address of the holder whose data is to be cleared.
+     */
     function clearHolderData(uint256 assetId, address holder) internal {
         _removeHolder(assetId, holder);
         _removeHoldings(assetId, holder);

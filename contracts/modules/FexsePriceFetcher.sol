@@ -1,11 +1,26 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+/**
+ * @file FexsePriceFetcher.sol
+ * @notice This contract is responsible for fetching price data from Uniswap V3 pools.
+ *
+ * @dev This contract imports the following:
+ * - IUniswapV3Pool: Interface for interacting with Uniswap V3 pools.
+ * - IUniswapV3Factory: Interface for interacting with the Uniswap V3 factory.
+ * - ModularInternal: Abstract contract providing internal modular functionality.
+ *
+ * @author [Your Name]
+ */
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 import "../core/abstracts/ModularInternal.sol";
 
-contract FexsePriceFetcher is ModularInternal{
+/**
+ * @title FexsePriceFetcher
+ * @dev This contract is a module that fetches price data. It inherits from the ModularInternal contract.
+ */
+contract FexsePriceFetcher is ModularInternal {
     using AppStorage for AppStorage.Layout;
 
     address public immutable fexseToken;
@@ -14,13 +29,23 @@ contract FexsePriceFetcher is ModularInternal{
 
     address immutable _this;
 
-    address public constant factory = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
+    address public constant factory =
+        0x1F98431c8aD98523631AE4a59f267346ea31F984;
 
-    constructor(
-        address _fexseToken,
-        address _token1,
-        uint24 _fee
-    ) {
+    /**
+     * @dev Constructor for the FexsePriceFetcher contract.
+     * @param _fexseToken The address of the Fexse token.
+     * @param _token1 The address of the first token.
+     * @param _fee The fee associated with the token pair.
+     *
+     * Requirements:
+     * - `_fexseToken` cannot be the zero address.
+     * - `_token1` cannot be the zero address.
+     *
+     * Initializes the contract by setting the Fexse token address, the first token address, and the fee.
+     * Grants the `ADMIN_ROLE` to the deployer of the contract.
+     */
+    constructor(address _fexseToken, address _token1, uint24 _fee) {
         require(_fexseToken != address(0), "Invalid _fexseToken address");
         require(_token1 != address(0), "Invalid token1 token address");
 
@@ -31,11 +56,12 @@ contract FexsePriceFetcher is ModularInternal{
         token1 = _token1;
         fee = _fee;
     }
+
     /**
-     * @dev Returns an array of ⁠ FacetCut ⁠ structs, which define the functions (selectors)
-     *      provided by this module. This is used to register the module's functions
-     *      with the modular system.
-     * @return FacetCut[] Array of ⁠ FacetCut ⁠ structs representing function selectors.
+     * @notice Returns an array of FacetCut structs representing the module facets.
+     * @dev This function constructs an array of FacetCut structs with a single element.
+     *      It sets the function selector for `getFexsePrice` and assigns it to the FacetCut.
+     * @return facetCuts An array of FacetCut structs containing the module facets.
      */
     function moduleFacets() external view returns (FacetCut[] memory) {
         uint256 selectorIndex = 0;
@@ -55,14 +81,21 @@ contract FexsePriceFetcher is ModularInternal{
         return facetCuts;
     }
 
-
     /**
-     * @dev Fetches the current price of FEXSE in token1.
-     * @return price The price of 1 FEXSE in token1.
+     * @notice Fetches the current price of the Fexse token from a Uniswap V3 pool.
+     * @dev This function retrieves the pool address from the Uniswap V3 factory,
+     *      gets the slot0 data from the pool, and calculates the price based on the sqrtPriceX96 value.
+     *      If token1 is the same as token0 in the pool, the price is inverted to adjust the decimals.
+     * @return price The current price of the Fexse token.
+     * @dev The pool must exist, otherwise the function will revert with "Pool does not exist".
      */
     function getFexsePrice() external view returns (uint256 price) {
         // Get the pool address
-        address pool = IUniswapV3Factory(factory).getPool(fexseToken, token1, fee);
+        address pool = IUniswapV3Factory(factory).getPool(
+            fexseToken,
+            token1,
+            fee
+        );
         require(pool != address(0), "Pool does not exist");
 
         // Get the slot0 data
@@ -70,9 +103,10 @@ contract FexsePriceFetcher is ModularInternal{
 
         // Calculate the price
         unchecked {
-            price = (uint256(sqrtPriceX96) * uint256(sqrtPriceX96)) / (1 << 192);
+            price =
+                (uint256(sqrtPriceX96) * uint256(sqrtPriceX96)) /
+                (1 << 192);
         }
-
 
         // If token1 is token0, invert the price
         if (IUniswapV3Pool(pool).token0() == token1) {

@@ -1,5 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
+/**
+ * @file MarketPlace.sol
+ * @dev This file contains the implementation of the MarketPlace contract.
+ *
+ * Imports:
+ * - ModularInternal: Provides internal modular functionality.
+ * - Strings: Utility library for string operations.
+ * - AssetToken: Token contract for asset tokens.
+ * - IAssetToken: Interface for the AssetToken contract.
+ * - IMarketPlace: Interface for the MarketPlace contract.
+ * - console: Hardhat console for debugging.
+ */
 
 import "../core/abstracts/ModularInternal.sol";
 import "../utils/Strings.sol";
@@ -8,6 +20,11 @@ import {IAssetToken} from "../interfaces/IAssetToken.sol";
 import {IMarketPlace} from "../interfaces/IMarketPlace.sol";
 import "hardhat/console.sol";
 
+/**
+ * @title MarketPlace
+ * @dev This contract is a module that extends the ModularInternal contract.
+ * It is part of the RWATokenization project and is located at /c:/Users/duran/RWATokenization/contracts/modules/MarketPlace.sol.
+ */
 contract MarketPlace is ModularInternal {
     using AppStorage for AppStorage.Layout;
 
@@ -44,6 +61,12 @@ contract MarketPlace is ModularInternal {
 
     address immutable _this;
 
+    /**
+     * @dev Constructor for the MarketPlace contract.
+     * Grants the ADMIN_ROLE to the deployer of the contract and the specified appAddress.
+     *
+     * @param appAddress The address to be granted the ADMIN_ROLE.
+     */
     constructor(address appAddress) {
         _this = address(this);
         _grantRole(ADMIN_ROLE, msg.sender);
@@ -158,7 +181,13 @@ contract MarketPlace is ModularInternal {
         );
     }
 
-    // Function to allow users to buy tokens from the deployer address
+    /**
+     * @notice Locks a specified amount of FEXSE tokens for a given owner.
+     * @dev This function locks a specified amount of FEXSE tokens for a given owner.
+     *      It requires the caller to have the ADMIN_ROLE and is protected against reentrancy.
+     * @param owner The address of the owner whose FEXSE tokens are to be locked.
+     * @param fexseLockedAmount The amount of FEXSE tokens to be locked.
+     */
     function lockFexseToBeBought(
         address owner,
         uint256 fexseLockedAmount
@@ -174,6 +203,14 @@ contract MarketPlace is ModularInternal {
         emit Fexselocked(owner, fexseLockedAmount);
     }
 
+    /**
+     * @notice Unlocks a specified amount of Fexse tokens for a given owner.
+     * @dev This function can only be called by an account with the ADMIN_ROLE.
+     * It ensures that the owner has a sufficient balance of Fexse tokens before unlocking.
+     * Emits a {FexseUnlocked} event upon successful unlocking.
+     * @param owner The address of the token owner whose tokens are to be unlocked.
+     * @param fexseLockedAmount The amount of Fexse tokens to unlock.
+     */
     function unlockFexse(
         address owner,
         uint256 fexseLockedAmount
@@ -189,6 +226,17 @@ contract MarketPlace is ModularInternal {
         emit FexseUnlocked(owner, fexseLockedAmount);
     }
 
+    /**
+     * @notice Locks a specified amount of tokens to be sold for a given asset.
+     * @dev This function can only be called by an account with the ADMIN_ROLE.
+     * It locks the specified amount of tokens for sale and sets the sale price.
+     * Emits a {TokensLockedForSale} event.
+     * @param owner The address of the token owner.
+     * @param assetId The ID of the asset.
+     * @param tokenAmount The amount of tokens to be locked for sale.
+     * @param salePrice The sale price for the tokens.
+     * @dev Requires the token owner's holdings to be greater than or equal to the token amount.
+     */
     function lockTokensToBeSold(
         address owner,
         uint256 assetId,
@@ -215,6 +263,18 @@ contract MarketPlace is ModularInternal {
         emit TokensLockedForSale(owner, assetId, tokenAmount, salePrice);
     }
 
+    /**
+     * @notice Unlocks tokens to be sold by the owner.
+     * @dev This function can only be called by an account with the ADMIN_ROLE.
+     * It ensures that the owner has sufficient token balance before unlocking the tokens.
+     * The function interacts with the IAssetToken contract to unlock the tokens.
+     * It also updates the user's token information by reducing the tokens for sale and resetting the sale price.
+     * Emits a {TokensUnlocked} event.
+     * @param owner The address of the token owner.
+     * @param assetId The ID of the asset.
+     * @param tokenAmount The amount of tokens to be unlocked.
+     * @param salePrice The sale price of the tokens.
+     */
     function unlockTokensToBeSold(
         address owner,
         uint256 assetId,
@@ -241,6 +301,14 @@ contract MarketPlace is ModularInternal {
         emit TokensUnlocked(owner, assetId, tokenAmount, salePrice);
     }
 
+    /**
+     * @notice Sets the address of the Fexse token contract.
+     * @dev This function can only be called by an account with the ADMIN_ROLE.
+     * It ensures that the provided address is not the zero address.
+     * Emits a `fexseContractUpdated` event upon successful update.
+     * Uses the `nonReentrant` modifier to prevent reentrancy attacks.
+     * @param _fexseToken The address of the new Fexse token contract.
+     */
     function setFexseAddress(
         IFexse _fexseToken
     ) external nonReentrant onlyRole(ADMIN_ROLE) {
