@@ -14,8 +14,14 @@ import {IRWATokenization} from "../interfaces/IRWATokenization.sol";
 import {IMarketPlace} from "../interfaces/IMarketPlace.sol";
 import "hardhat/console.sol";
 
-
-contract Fexse is AccessControl, ERC20, ERC20Burnable, ERC20Pausable, ERC20Permit, ERC20Votes {
+contract Fexse is
+    AccessControl,
+    ERC20,
+    ERC20Burnable,
+    ERC20Pausable,
+    ERC20Permit,
+    ERC20Votes
+{
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
     mapping(address => uint256) private _lockedBalances;
@@ -25,10 +31,7 @@ contract Fexse is AccessControl, ERC20, ERC20Burnable, ERC20Pausable, ERC20Permi
 
     constructor(
         address appAddress
-    )
-        ERC20("Fexse", "FeXSe")
-        ERC20Permit("Fexse")
-    {
+    ) ERC20("Fexse", "FeXSe") ERC20Permit("Fexse") {
         _mint(msg.sender, 270000000000 * 10 ** decimals());
         _grantRole(ADMIN_ROLE, msg.sender);
         _grantRole(ADMIN_ROLE, appAddress);
@@ -46,7 +49,7 @@ contract Fexse is AccessControl, ERC20, ERC20Burnable, ERC20Pausable, ERC20Permi
      * @dev Lock a certain amount of tokens for the caller.
      * @param amount The amount of tokens to lock.
      */
-    function lock(address owner, uint256 amount) external onlyRole(ADMIN_ROLE){
+    function lock(address owner, uint256 amount) external onlyRole(ADMIN_ROLE) {
         require(amount > 0, "Lock amount must be greater than zero");
         require(balanceOf(owner) >= amount, "Insufficient balance to lock");
         _lockedBalances[owner] += amount;
@@ -57,9 +60,30 @@ contract Fexse is AccessControl, ERC20, ERC20Burnable, ERC20Pausable, ERC20Permi
      * @dev Unlock a certain amount of tokens for the caller.
      * @param amount The amount of tokens to unlock.
      */
-    function unlock(address owner, uint256 amount) external onlyRole(ADMIN_ROLE) {
+    function unlock(
+        address owner,
+        uint256 amount
+    ) external onlyRole(ADMIN_ROLE) {
         require(amount > 0, "Unlock amount must be greater than zero");
-        require(_lockedBalances[owner] >= amount, "Insufficient locked balance to unlock");
+        require(
+            _lockedBalances[owner] >= amount,
+            "Insufficient locked balance to unlock"
+        );
+        _lockedBalances[owner] -= amount;
+        emit TokensUnlocked(owner, amount);
+    }
+
+    /**
+     * @notice Unlocks all locked tokens for a specified owner.
+     * @dev This function can only be called by an account with the ADMIN_ROLE.
+     * @param owner The address of the token owner whose locked tokens are to be unlocked.
+     */
+    function unlockAll(address owner) external onlyRole(ADMIN_ROLE) {
+        uint256 amount = lockedBalanceOf(owner);
+        require(
+            _lockedBalances[owner] >= amount,
+            "Insufficient locked balance to unlockAll"
+        );
         _lockedBalances[owner] -= amount;
         emit TokensUnlocked(owner, amount);
     }
@@ -72,37 +96,47 @@ contract Fexse is AccessControl, ERC20, ERC20Burnable, ERC20Pausable, ERC20Permi
         return _lockedBalances[account];
     }
 
-
     // Override transfer function to include locked balance check
-    function transfer(address to, uint256 amount) public override returns (bool) {
-        uint256 availableBalance = balanceOf(msg.sender) - _lockedBalances[msg.sender];
-        require(amount <= availableBalance, "Transfer amount exceeds available balance");
+    function transfer(
+        address to,
+        uint256 amount
+    ) public override returns (bool) {
+        uint256 availableBalance = balanceOf(msg.sender) -
+            _lockedBalances[msg.sender];
+        require(
+            amount <= availableBalance,
+            "Transfer amount exceeds available balance"
+        );
         return super.transfer(to, amount);
     }
 
     // Override transferFrom function to include locked balance check
-    function transferFrom(address from, address to, uint256 amount) public override returns (bool) {
+    function transferFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) public override returns (bool) {
         uint256 availableBalance = balanceOf(from) - _lockedBalances[from];
-        require(amount <= availableBalance, "Transfer amount exceeds available balance");
+        require(
+            amount <= availableBalance,
+            "Transfer amount exceeds available balance"
+        );
         return super.transferFrom(from, to, amount);
     }
 
     // The following functions are overrides required by Solidity.
 
-    function _update(address from, address to, uint256 value)
-        internal
-        override(ERC20, ERC20Pausable, ERC20Votes)
-    {
+    function _update(
+        address from,
+        address to,
+        uint256 value
+    ) internal override(ERC20, ERC20Pausable, ERC20Votes) {
         super._update(from, to, value);
     }
 
-    function nonces(address owner)
-        public
-        view
-        override(ERC20Permit, Nonces)
-        returns (uint256)
-    {
+    function nonces(
+        address owner
+    ) public view override(ERC20Permit, Nonces) returns (uint256) {
         return super.nonces(owner);
     }
-
 }

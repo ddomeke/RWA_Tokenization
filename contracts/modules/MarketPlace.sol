@@ -44,9 +44,7 @@ contract MarketPlace is ModularInternal {
 
     address immutable _this;
 
-    constructor(
-        address appAddress
-    ) {
+    constructor(address appAddress) {
         _this = address(this);
         _grantRole(ADMIN_ROLE, msg.sender);
         _grantRole(ADMIN_ROLE, appAddress);
@@ -113,18 +111,21 @@ contract MarketPlace is ModularInternal {
         // uint256 fexse_amount = (cost * FEXSE_DECIMALS) /
         //     (FEXSE_PRICE_IN_USDT * (10 ** 3));
 
-
         uint256 fexseAmount = tokenPrice * tokenAmount;
 
         // TODO: servicesfee  backend de hesaplanmadığı durumda burda hesaplayalım.
         uint256 servideFeeAmount = (fexseAmount * 5) / 1000;
-        
+
         // TODO : kilitli mi diye kontrol edelim. approve kontrol edelim. fexse amountu kotrol edelim
         // TODO: başka bir emir yoksa tüm fexseler unlock edilmeli
         data.fexseToken.unlock(buyer, (fexseAmount + servideFeeAmount));
 
         require(
-            data.fexseToken.transferFrom(buyer, address(this), servideFeeAmount),
+            data.fexseToken.transferFrom(
+                buyer,
+                address(this),
+                servideFeeAmount
+            ),
             "FEXSE transfer failed"
         );
 
