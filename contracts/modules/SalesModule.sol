@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 /**
  * @file SalesModule.sol
  * @dev This file is part of the RWATokenization project and contains the SalesModule contract.
- * 
+ *
  * Imports:
  * - ModularInternal.sol: Provides internal modular functionality.
  * - IERC20.sol: Interface for the ERC20 standard.
@@ -89,7 +89,6 @@ contract SalesModule is ModularInternal {
         return facetCuts;
     }
 
-
     /**
      * @notice Allows the purchase of tokens for a specified asset.
      * @dev This function can only be called by an account with the ADMIN_ROLE.
@@ -117,15 +116,15 @@ contract SalesModule is ModularInternal {
         uint256 servideFeeAmount;
         uint256 cost = tokenPrice * tokenAmount;
 
-        require(asset.id == 0, "Asset already exists");
+        require(asset.id != 0, "Asset already exists");
         require(tokenAmount > 0, "Total tokens must be greater than zero");
         require(tokenPrice > 0, "Token price must be greater than zero");
         require(
-            IERC20(saleCurrency).balanceOf(buyer) >= tokenPrice,
+            IERC20(saleCurrency).balanceOf(buyer) >= cost,
             "Insufficient saleCurrency balance"
         );
         require(
-            IERC20(saleCurrency).allowance(buyer, sender) >= tokenPrice,
+            IERC20(saleCurrency).allowance(buyer, address(this)) >= cost,
             "Insufficient saleCurrency allowance"
         );
 
@@ -136,7 +135,7 @@ contract SalesModule is ModularInternal {
             cost = cost + servideFeeAmount;
         }
 
-        IERC20(saleCurrency).transferFrom(buyer, address(this), cost);
+        IERC20(saleCurrency).transferFrom(buyer, sender, cost);
 
         IAssetToken(asset.tokenContract).safeTransferFrom(
             sender,
