@@ -1,7 +1,7 @@
 import { expect } from "chai";
 const { ethers } = require("hardhat");
 import hre from "hardhat";
-import { IERC20, IAssetToken, RWATokenization__factory } from "../typechain-types";
+import { IERC20, RWATokenization__factory } from "../typechain-types";
 import { log } from './logger';
 
 import {
@@ -30,10 +30,6 @@ const ERC20_ABI = [
     "function transfer(address recipient, uint256 amount) external returns (bool)"
 ];
 
-const ASSETTOKEN_ABI = [
-    "function safeTransferFrom(address from, address to,uint256 id,uint256 value,bytes memory data) public",
-    "function safeBatchTransferFrom(address from, address to,uint256[] memory ids,uint256[] memory values,bytes memory data) public",
-];
 
 
 describe("RWATokenization Test", function () {
@@ -223,7 +219,7 @@ describe("RWATokenization Test", function () {
         fexseUsdtPoolCreator = await hre.ethers.getContractAt("FexseUsdtPoolCreator", appAddress) as FexseUsdtPoolCreator;
 
         //--------------------- 11. SalesModule.sol deploy --------------------------------------------------------
-        _salesModule = await hre.ethers.deployContract("SalesModule", [appAddress, USDT_ADDRESS, 45000]);
+        _salesModule = await hre.ethers.deployContract("SalesModule", [appAddress]);
         const _salesModuleAddress = await _salesModule.getAddress();
         await log('INFO', `11  - _sales Module Address-> ${_salesModuleAddress}`);
         gasPriceCalc(_salesModule.deploymentTransaction());
@@ -715,6 +711,7 @@ describe("RWATokenization Test", function () {
         await createTx2.wait();
 
         await logAssetDetails(ASSETID_V3, addresses[0])
+        await logAssetDetails(ASSETID_V3, buyer.address)
 
         const TokenContractAddress = await rwaTokenization.getTokenContractAddress(ASSETID_V3);
         assetToken_sample1 = await hre.ethers.getContractAt("AssetToken", TokenContractAddress) as AssetToken;
@@ -728,27 +725,50 @@ describe("RWATokenization Test", function () {
         log('INFO', "----------------------------------------------------------------------------------------------");
         log('INFO', ``);
 
-        // await assetToken_sample1.safeTransferFrom(
-        //     addresses[0],
-        //     buyer,
-        //     ASSETID_V3,
-        //     ((TOTALTOKENS * 70) / 100),
-        //     "0x");
-
-
-        // await logAssetDetails(ASSETID_V3, addresses[0])
-        // await logAssetDetails(ASSETID_V3, buyer.address)
-
-        // log('INFO', ``);
-        // log('INFO', "----------------------------------------------------------------------------------------------");
-        // log('INFO', ``);
-
 
         await assetToken_sample1.connect(addresses[0]).setApprovalForAll(appAddress,true);
         await salesModule.connect(buyer).buyTokens(ASSETID_V3, 15, 2000, USDT_ADDRESS);
 
-        await logAssetDetails(ASSETID_V3, buyer.address)
         await logAssetDetails(ASSETID_V3, addresses[0])
+        await logAssetDetails(ASSETID_V3, buyer.address)
+    });
+
+    /*-----------------------------------------------------------------------------------------------
+    ------------------------------buyFexse-----------------------------------------------------------
+    -----------------------------------------------------------------------------------------------*/
+    it("  9  -------------->Should buyFexse", async function () {
+
+        log('INFO', ``);
+        log('INFO', "-----------------------------------------------buyFexse-----------------------------------------------------");
+        log('INFO', ``);
+
+
+        const appAddress = await app.getAddress();
+        
+        const amountFexse = ethers.parseEther("100");
+        
+        await hre.network.provider.request({
+            method: "hardhat_impersonateAccount",
+            params: [My_ADDRESS],
+        });
+        
+        const buyer = await hre.ethers.getSigner(My_ADDRESS);
+
+        await getProject_All_Balances(buyer, 0);
+        await getProject_All_Balances(addresses[0], 0);
+
+        log('INFO', ``);
+        log('INFO', "----------------------------------------------------------------------------------------------");
+        log('INFO', ``);
+
+        await fexse.connect(addresses[0]).approve(appAddress, hre.ethers.MaxUint256);
+        await usdtContract.connect(buyer).approve(appAddress, hre.ethers.MaxUint256);
+
+        //await salesModule.connect(addresses[0]).setPrice(45000);
+        await salesModule.connect(buyer).buyFexse(amountFexse, 45000, USDT_ADDRESS);
+
+        await getProject_All_Balances(addresses[0], 0);
+        await getProject_All_Balances(buyer, 0);
     });
 
 });

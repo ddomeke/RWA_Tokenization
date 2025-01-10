@@ -19,6 +19,8 @@ import "../utils/Strings.sol";
 import {AssetToken} from "../token/AssetToken.sol";
 import {IRWATokenization} from "../interfaces/IRWATokenization.sol";
 
+import "hardhat/console.sol";
+
 /**
  * @title SalesModule
  * @dev This contract is a module for handling sales within the RWATokenization system.
@@ -26,10 +28,6 @@ import {IRWATokenization} from "../interfaces/IRWATokenization.sol";
  */
 contract SalesModule is ModularInternal {
     using AppStorage for AppStorage.Layout;
-
-    IERC20 public usdt;
-    address public owner;
-    uint256 public price; // Price of 1 token in USDT (e.g., 1 token = 1 USDT => price = 1e6 for 6 decimals)
 
     address public appAddress;
 
@@ -52,11 +50,8 @@ contract SalesModule is ModularInternal {
      * Initializes the contract by setting the contract's own address and the application address.
      * Grants the ADMIN_ROLE to the deployer of the contract and the application address.
      */
-    constructor(address _appAddress, address _usdt, uint256 _price) {
+    constructor(address _appAddress) {
         _this = address(this);
-        usdt = IERC20(_usdt);
-        owner = msg.sender;
-        price = _price;
         appAddress = _appAddress;
         _grantRole(ADMIN_ROLE, msg.sender);
         _grantRole(ADMIN_ROLE, _appAddress);
@@ -70,10 +65,9 @@ contract SalesModule is ModularInternal {
      */
     function moduleFacets() external view returns (FacetCut[] memory) {
         uint256 selectorIndex = 0;
-        bytes4[] memory selectors = new bytes4[](3);
+        bytes4[] memory selectors = new bytes4[](2);
 
         // Add function selectors to the array
-        selectors[selectorIndex++] = this.setPrice.selector;
         selectors[selectorIndex++] = this.buyTokens.selector;
         selectors[selectorIndex++] = this.buyFexse.selector;
 
@@ -135,9 +129,6 @@ contract SalesModule is ModularInternal {
             cost = cost + servideFeeAmount;
         }
         IERC20(saleCurrency).transferFrom(buyer, sender, cost);
-        
-
-        IAssetToken(asset.tokenContract).setApprovalForAll(address(this), true);
 
         IAssetToken(asset.tokenContract).safeTransferFrom(
             sender,
@@ -162,35 +153,37 @@ contract SalesModule is ModularInternal {
      * - The transfer of USDT from the buyer to the contract must succeed.
      * - The transfer of Fexse tokens from the contract to the buyer must succeed.
      */
-    function buyFexse(uint256 tokenAmount) external nonReentrant {
+    function buyFexse(uint256 tokenAmount, uint256 price, address saleCurrency ) external nonReentrant {
         AppStorage.Layout storage data = AppStorage.layout();
 
         address buyer = msg.sender;
-        address sender = address(this);
+        address sender = data.deployer;
 
         require(tokenAmount > 0, "You must buy at least 1 token");
 
-        uint256 usdtAmount = tokenAmount * price; // Total USDT required
+        // TODO: fexse tranfer fiyta dönüşümü chainlink integration
+        uint256 usdtAmount = ( tokenAmount / FEXSE_DECIMALS ) * price; // Total USDT required
 
         // Check USDT allowance and balance
         require(
-            IERC20(usdt).allowance(buyer, address(this)) >= usdtAmount,
+            IERC20(saleCurrency).allowance(buyer, address(this)) >= usdtAmount,
             "USDT allowance too low"
         );
+
         require(
-            IERC20(usdt).balanceOf(buyer) >= usdtAmount,
+            IERC20(saleCurrency).balanceOf(buyer) >= usdtAmount,
             "Insufficient USDT balance"
         );
 
         // Check if contract has enough tokens to sell
         require(
             IERC20(data.fexseToken).balanceOf(sender) >= tokenAmount,
-            "Insufficient token balance in contract"
+            "Insufficient token balance in sender"
         );
 
         // Transfer USDT from buyer to contract
         require(
-            IERC20(usdt).transferFrom(buyer, sender, usdtAmount),
+            IERC20(saleCurrency).transferFrom(buyer, sender, usdtAmount),
             "USDT transfer failed"
         );
 
@@ -199,17 +192,5 @@ contract SalesModule is ModularInternal {
             IERC20(data.fexseToken).transferFrom(sender, buyer, tokenAmount),
             "Token transfer failed"
         );
-    }
-
-    /**
-     * @notice Sets the price of the token.
-     * @dev This function can only be called by an account with the ADMIN_ROLE.
-     * It is protected against reentrancy attacks by the nonReentrant modifier.
-     * @param _price The new price of the token.
-     */
-    function setPrice(
-        uint256 _price
-    ) external nonReentrant onlyRole(ADMIN_ROLE) {
-        price = _price;
     }
 }

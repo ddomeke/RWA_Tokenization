@@ -27,7 +27,6 @@ import {IERC1155} from "./ERC1155/IERC1155.sol";
 import {IERC165} from "../interfaces/IERC165.sol";
 import {IRWATokenization} from "../interfaces/IRWATokenization.sol";
 import {IMarketPlace} from "../interfaces/IMarketPlace.sol";
-import "hardhat/console.sol";
 
 /**
  * @title AssetToken
