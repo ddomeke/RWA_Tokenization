@@ -70,7 +70,7 @@ contract SalesModule is ModularInternal {
      */
     function moduleFacets() external view returns (FacetCut[] memory) {
         uint256 selectorIndex = 0;
-        bytes4[] memory selectors = new bytes4[](2);
+        bytes4[] memory selectors = new bytes4[](3);
 
         // Add function selectors to the array
         selectors[selectorIndex++] = this.setPrice.selector;
@@ -112,7 +112,7 @@ contract SalesModule is ModularInternal {
         Asset storage asset = data.assets[assetId];
 
         address buyer = msg.sender;
-        address sender = address(this);
+        address sender = data.deployer;
         uint256 servideFeeAmount;
         uint256 cost = tokenPrice * tokenAmount;
 
@@ -134,8 +134,10 @@ contract SalesModule is ModularInternal {
             servideFeeAmount = (cost * 5) / 1000;
             cost = cost + servideFeeAmount;
         }
-
         IERC20(saleCurrency).transferFrom(buyer, sender, cost);
+        
+
+        IAssetToken(asset.tokenContract).setApprovalForAll(address(this), true);
 
         IAssetToken(asset.tokenContract).safeTransferFrom(
             sender,
