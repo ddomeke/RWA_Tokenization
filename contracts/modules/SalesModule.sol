@@ -83,23 +83,26 @@ contract SalesModule is ModularInternal {
         return facetCuts;
     }
 
+
     /**
-     * @notice Allows the purchase of tokens for a specified asset.
-     * @dev This function can only be called by an account with the ADMIN_ROLE.
-     * It ensures that the buyer has sufficient balance and allowance of the sale currency.
-     * If the sale currency is the fexseToken, the cost is adjusted according to FEXSE_DECIMALS and FEXSE_PRICE_IN_USDT.
-     * Otherwise, a service fee of 0.5% is added to the cost.
-     * The function transfers the sale currency from the buyer to the contract and transfers the asset tokens from the contract to the buyer.
-     * Emits a TokensSold event upon successful purchase.
-     * @param assetId The ID of the asset to purchase tokens for.
+     * @notice Allows a user to buy tokens for a specified asset.
+     * @dev This function is protected by the nonReentrant modifier to prevent reentrancy attacks.
+     * @param assetId The ID of the asset for which tokens are being purchased.
      * @param tokenAmount The amount of tokens to purchase.
-     * @param tokenPrice The price per token.
      * @param saleCurrency The address of the currency used for the sale.
+     * 
+     * Requirements:
+     * - The asset must exist (asset.id != 0).
+     * - The token amount must be greater than zero.
+     * - The token price must be greater than zero.
+     * - The buyer must have a sufficient balance of the sale currency.
+     * - The buyer must have approved the contract to spend the sale currency.
+     * 
+     * Emits a {TokensSold} event.
      */
     function buyTokens(
         uint256 assetId,
         uint256 tokenAmount,
-        uint256 tokenPrice,
         address saleCurrency
     ) external nonReentrant {
         AppStorage.Layout storage data = AppStorage.layout();
@@ -108,11 +111,22 @@ contract SalesModule is ModularInternal {
         address buyer = msg.sender;
         address sender = data.deployer;
         uint256 servideFeeAmount;
-        uint256 cost = tokenPrice * tokenAmount;
+        uint256 cost = asset.tokenPrice * tokenAmount;
 
         require(asset.id != 0, "Asset already exists");
         require(tokenAmount > 0, "Total tokens must be greater than zero");
-        require(tokenPrice > 0, "Token price must be greater than zero");
+        require(asset.tokenPrice > 0, "Token price must be greater than zero");
+
+
+        if (saleCurrency == address(data.fexseToken)) {
+            cost = (cost * FEXSE_DECIMALS) / (FEXSE_PRICE_IN_USDT);
+        } else {
+            servideFeeAmount = (cost * 5) / 1000;
+            cost = cost + servideFeeAmount;
+        }
+
+        console.log("cost: ", cost);
+
         require(
             IERC20(saleCurrency).balanceOf(buyer) >= cost,
             "Insufficient saleCurrency balance"
@@ -122,12 +136,6 @@ contract SalesModule is ModularInternal {
             "Insufficient saleCurrency allowance"
         );
 
-        if (saleCurrency == address(data.fexseToken)) {
-            cost = (cost * FEXSE_DECIMALS) / (FEXSE_PRICE_IN_USDT);
-        } else {
-            servideFeeAmount = (cost * 5) / 1000;
-            cost = cost + servideFeeAmount;
-        }
         IERC20(saleCurrency).transferFrom(buyer, sender, cost);
 
         IAssetToken(asset.tokenContract).safeTransferFrom(
@@ -138,22 +146,27 @@ contract SalesModule is ModularInternal {
             ""
         );
 
-        emit TokensSold(assetId, buyer, tokenAmount, tokenPrice);
+        emit TokensSold(assetId, buyer, tokenAmount, asset.tokenPrice);
     }
 
+
     /**
-     * @notice Allows a user to buy Fexse tokens using USDT.
-     * @dev This function is protected against reentrancy attacks using the nonReentrant modifier.
-     * @param tokenAmount The amount of Fexse tokens the user wants to buy.
-     * Requirements:
-     * - `tokenAmount` must be greater than 0.
-     * - The buyer must have an allowance of USDT for the contract that is at least equal to `usdtAmount`.
-     * - The buyer must have a USDT balance that is at least equal to `usdtAmount`.
-     * - The contract must have a balance of Fexse tokens that is at least equal to `tokenAmount`.
-     * - The transfer of USDT from the buyer to the contract must succeed.
-     * - The transfer of Fexse tokens from the contract to the buyer must succeed.
+     * @notice Allows a user to buy Fexse tokens using a specified sale currency (e.g., USDT).
+     * @dev This function is non-reentrant.
+     * @param tokenAmount The amount of Fexse tokens to buy.
+     * @param saleCurrency The address of the ERC20 token used for the sale (e.g., USDT).
+     * @dev The tokenAmount must be greater than 0.
+     * @dev The buyer must have an allowance of the sale currency (USDT) that is at least equal to the required amount.
+     * @dev The sender must have an allowance of Fexse tokens that is at least equal to the tokenAmount.
+     * @dev The buyer must have a balance of the sale currency (USDT) that is at least equal to the required amount.
+     * @dev The sender must have a balance of Fexse tokens that is at least equal to the tokenAmount.
+     * @dev The transfer of the sale currency (USDT) from the buyer to the sender must succeed.
+     * @dev The transfer of Fexse tokens from the sender to the buyer must succeed.
      */
-    function buyFexse(uint256 tokenAmount, uint256 price, address saleCurrency ) external nonReentrant {
+    function buyFexse(
+        uint256 tokenAmount,
+        address saleCurrency
+    ) external nonReentrant {
         AppStorage.Layout storage data = AppStorage.layout();
 
         address buyer = msg.sender;
@@ -162,13 +175,19 @@ contract SalesModule is ModularInternal {
         require(tokenAmount > 0, "You must buy at least 1 token");
 
         // TODO: fexse tranfer fiyta dönüşümü chainlink integration
-        uint256 usdtAmount = ( tokenAmount / FEXSE_DECIMALS ) * price; // Total USDT required
+        uint256 usdtAmount = (tokenAmount / FEXSE_DECIMALS) * FEXSE_PRICE_IN_USDT; // Total USDT required
 
-        // Check USDT allowance and balance
+        // Check USDT and fexse allowance and balance
         require(
             IERC20(saleCurrency).allowance(buyer, address(this)) >= usdtAmount,
             "USDT allowance too low"
         );
+
+        require(
+            IERC20(data.fexseToken).allowance(sender, address(this)) >= tokenAmount,
+            "Fexse allowance too low"
+        );
+        
 
         require(
             IERC20(saleCurrency).balanceOf(buyer) >= usdtAmount,

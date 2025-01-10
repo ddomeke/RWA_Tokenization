@@ -700,6 +700,7 @@ describe("RWATokenization Test", function () {
         const ASSETID_V3 = ASSET_ID + 6;
 
         const appAddress = await app.getAddress();
+        const fexseAddress = await fexse.getAddress();
 
         await hre.network.provider.request({
             method: "hardhat_impersonateAccount",
@@ -707,7 +708,7 @@ describe("RWATokenization Test", function () {
         });
         const buyer = await hre.ethers.getSigner(My_ADDRESS);
 
-        const createTx2 = await rwaTokenization.createAsset(ASSETID_V3, TOTALTOKENS + 100, TOKENPRICE + 1000, ASSETURI);
+        const createTx2 = await rwaTokenization.createAsset(ASSETID_V3, TOTALTOKENS + 100, TOKENPRICE * 1000, ASSETURI);
         await createTx2.wait();
 
         await logAssetDetails(ASSETID_V3, addresses[0])
@@ -726,8 +727,14 @@ describe("RWATokenization Test", function () {
         log('INFO', ``);
 
 
+        await getProject_All_Balances(addresses[0], 0);
+        await getProject_All_Balances(buyer, 0);
+
         await assetToken_sample1.connect(addresses[0]).setApprovalForAll(appAddress,true);
-        await salesModule.connect(buyer).buyTokens(ASSETID_V3, 15, 2000, USDT_ADDRESS);
+        await salesModule.connect(buyer).buyTokens(ASSETID_V3, 45, fexseAddress);
+        
+        await getProject_All_Balances(addresses[0], 0);
+        await getProject_All_Balances(buyer, 0);
 
         await logAssetDetails(ASSETID_V3, addresses[0])
         await logAssetDetails(ASSETID_V3, buyer.address)
@@ -765,7 +772,7 @@ describe("RWATokenization Test", function () {
         await usdtContract.connect(buyer).approve(appAddress, hre.ethers.MaxUint256);
 
         //await salesModule.connect(addresses[0]).setPrice(45000);
-        await salesModule.connect(buyer).buyFexse(amountFexse, 45000, USDT_ADDRESS);
+        await salesModule.connect(buyer).buyFexse(amountFexse, USDT_ADDRESS);
 
         await getProject_All_Balances(addresses[0], 0);
         await getProject_All_Balances(buyer, 0);
