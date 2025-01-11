@@ -29,7 +29,6 @@ import {IFexse} from "../interfaces/IFexse.sol";
 import {Nonces} from "../utils/Nonces.sol";
 import {IRWATokenization} from "../interfaces/IRWATokenization.sol";
 import {IMarketPlace} from "../interfaces/IMarketPlace.sol";
-import "hardhat/console.sol";
 
 /**
  * @title Fexse Token Contract

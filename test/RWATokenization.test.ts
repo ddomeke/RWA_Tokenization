@@ -677,6 +677,7 @@ describe("RWATokenization Test", function () {
         const aFexse = ethers.parseEther("1000");
         const ausdt = 45000000;
 
+        //const ticklower = 
 
         await getProject_All_Balances(addresses[0], 0);
         await fexseUsdtPoolCreator.connect(addresses[0]).addLiquidity(aFexse, ausdt, 112860, 112920);

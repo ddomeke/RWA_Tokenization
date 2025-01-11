@@ -19,7 +19,6 @@ import "../utils/Strings.sol";
 import {AssetToken} from "../token/AssetToken.sol";
 import {IRWATokenization} from "../interfaces/IRWATokenization.sol";
 
-import "hardhat/console.sol";
 
 /**
  * @title SalesModule
@@ -118,14 +117,14 @@ contract SalesModule is ModularInternal {
         require(asset.tokenPrice > 0, "Token price must be greater than zero");
 
 
+        // TODO: fexse tranfer fiyta dönüşümü chainlink integration
+
         if (saleCurrency == address(data.fexseToken)) {
             cost = (cost * FEXSE_DECIMALS) / (FEXSE_PRICE_IN_USDT);
         } else {
             servideFeeAmount = (cost * 5) / 1000;
             cost = cost + servideFeeAmount;
         }
-
-        console.log("cost: ", cost);
 
         require(
             IERC20(saleCurrency).balanceOf(buyer) >= cost,

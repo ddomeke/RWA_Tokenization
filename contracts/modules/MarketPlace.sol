@@ -18,7 +18,6 @@ import "../utils/Strings.sol";
 import {AssetToken} from "../token/AssetToken.sol";
 import {IAssetToken} from "../interfaces/IAssetToken.sol";
 import {IMarketPlace} from "../interfaces/IMarketPlace.sol";
-import "hardhat/console.sol";
 
 /**
  * @title MarketPlace
