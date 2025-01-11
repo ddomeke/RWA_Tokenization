@@ -33,7 +33,7 @@ const config: HardhatUserConfig = {
     hardhat: {
       forking: {
         url: RPC_URL || "",        
-        blockNumber: 278070393,
+        blockNumber: 278070393,// arb: 278070393 // sepolia: 7468704
       },
       accounts: {
         count: 32,
@@ -50,3 +50,20 @@ const config: HardhatUserConfig = {
 };
 
 export default config;
+
+// if (process.env.NETWORK === 'polygon') {
+//   config.networks.hardhat.forking.url = `https://polygon-mainnet.g.alchemy.com/v2/Lhnw5WCaKjKqX6SradvTTQKDQ4EEBGXE`;  // polygon 1722325182
+// } else if (process.env.NETWORK === 'ethereum') {
+//   config.networks.hardhat.forking.url = `https://eth-mainnet.g.alchemy.com/v2/Lhnw5WCaKjKqX6SradvTTQKDQ4EEBGXE`;  
+// }else if (process.env.NETWORK === 'arbitrum') {
+//   config.networks.hardhat.forking.url = `https://arb-mainnet.g.alchemy.com/v2/Lhnw5WCaKjKqX6SradvTTQKDQ4EEBGXE`;   // arb 1732515086,
+// }
+
+// RPC_URL_ARB=https://arb-mainnet.g.alchemy.com/v2/Lhnw5WCaKjKqX6SradvTTQKDQ4EEBGXE
+// RPC_URL_ETH=https://eth-mainnet.g.alchemy.com/v2/Lhnw5WCaKjKqX6SradvTTQKDQ4EEBGXE
+// RPC_URL_POL=https://polygon-mainnet.g.alchemy.com/v2/Lhnw5WCaKjKqX6SradvTTQKDQ4EEBGXE
+// RPC_URL_SEP=https://eth-sepolia.g.alchemy.com/v2/Lhnw5WCaKjKqX6SradvTTQKDQ4EEBGXE
+// NETWORK_ARB=arbitrum
+// NETWORK_POL=polygon
+// NETWORK_ETH=ethereum
+// NETWORK_SEP=sepolia

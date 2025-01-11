@@ -76,6 +76,7 @@ describe("RWATokenization Test", function () {
     const TEST_CHAIN = params.TEST_CHAIN;
 
     const PRIVATE_KEY = process.env.PRIVATE_KEY!;
+    //change this to your rpc url and network
     const RPC_URL = process.env.RPC_URL!;
     const NETWORK = process.env.NETWORK;
 
@@ -111,6 +112,11 @@ describe("RWATokenization Test", function () {
     } else if (TEST_CHAIN === 'arbitrum') {
         USDT_ADDRESS = '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9';
         WETH_ADDRESS = '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1';
+    }
+    else if (NETWORK === 'sepolia') {
+
+        WETH_ADDRESS = '0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9';
+        USDT_ADDRESS = '0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0';
     }
 
     UNISWAP_V3_ROUTER = '0xe592427a0aece92de3edee1f18e0157c05861564';

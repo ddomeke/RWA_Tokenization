@@ -48,7 +48,7 @@ contract SwapModule is ModularInternal {
      * @param _token1 Address of the token1 token contract.
      * @param _poolFee Pool fee for the Uniswap V3 pool (e.g., 500 for 0.5%).
      */
-    constructor(address _swapRouter, address _token1, uint24 _poolFee) {
+    constructor(address _swapRouter, address _token1, uint256 _poolFee) {
         require(_swapRouter != address(0), "Invalid swap router address");
         require(_token1 != address(0), "Invalid token1 token address");
 
@@ -57,7 +57,7 @@ contract SwapModule is ModularInternal {
 
         swapRouter = ISwapRouter(_swapRouter);
         token1 = _token1;
-        poolFee = _poolFee;
+        poolFee = uint24(_poolFee);
     }
 
     /**

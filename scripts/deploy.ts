@@ -42,6 +42,7 @@ async function main() {
 
     // Load private key and provider from .env
     const PRIVATE_KEY = process.env.PRIVATE_KEY!;
+    //change this to your rpc url and network
     const RPC_URL = process.env.RPC_URL!;
     const NETWORK = process.env.NETWORK;
 
@@ -90,6 +91,7 @@ async function main() {
     USDETH_AGGREGATOR = '';
     UNISWAP_V3_ROUTER = '';
 
+    UNISWAP_V3_ROUTER = '0xe592427a0aece92de3edee1f18e0157c05861564';
 
     if (NETWORK === 'polygon') {
 
@@ -112,6 +114,14 @@ async function main() {
         USDETH_AGGREGATOR = '0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612';
         USDFEXSE_AGGREGATOR = '0x0000000000000000000000000000000000000001';
     }
+    else if (NETWORK === 'sepolia') {
+
+        WETH_ADDRESS = '0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9';
+        USDT_ADDRESS = '0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0';
+        //TODO: bul
+        USDETH_AGGREGATOR = '0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612';
+        USDFEXSE_AGGREGATOR = '0x0000000000000000000000000000000000000001';
+    }
 
     log('INFO', `Starting Deployment for modules using wallet: ${wallet.address}`);
     log('INFO', "");
@@ -130,15 +140,15 @@ async function main() {
     await waitSec(15);
 
     //--------------------- 2. MarketPlace.sol deploy ------------------------------------------------------
-    const PMarketPlaceContract = await hre.ethers.getContractFactory("MarketPlace", wallet);
-    _marketPlace = await PMarketPlaceContract.deploy(appAddress) as MarketPlace;
+    const MarketPlaceContract = await hre.ethers.getContractFactory("MarketPlace", wallet);
+    _marketPlace = await MarketPlaceContract.deploy(appAddress) as MarketPlace;
     await _marketPlace.waitForDeployment();
     const _marketPlaceAddress = await _marketPlace.getAddress();
     log('INFO', `2  - market Place contract deployed at: ${_marketPlaceAddress}`);
 
     await app.installModule(_marketPlaceAddress);
 
-    marketPlace = await hre.ethers.getContractAt("MarketPlace", appAddress) as MarketPlace;
+    marketPlace = await hre.ethers.getContractAt("MarketPlace", appAddress, wallet) as MarketPlace;
 
     await waitSec(15);
 
@@ -185,7 +195,7 @@ async function main() {
     await log('INFO', `6  - _rwa_DAO Address-> ${_rwa_DAOAddress}`);
 
     await app.installModule(_rwa_DAOAddress);
-    rwa_DAO = await hre.ethers.getContractAt("RWA_DAO", appAddress) as RWA_DAO;
+    rwa_DAO = await hre.ethers.getContractAt("RWA_DAO", appAddress, wallet) as RWA_DAO;
 
     await waitSec(15);
 
@@ -198,7 +208,7 @@ async function main() {
     await log('INFO', `7  - _swapModule Address-> ${_swapModuleAddress}`);
 
     await app.installModule(_swapModuleAddress);
-    swapModule = await hre.ethers.getContractAt("SwapModule", appAddress) as SwapModule;
+    swapModule = await hre.ethers.getContractAt("SwapModule", appAddress, wallet) as SwapModule;
     await waitSec(15);
 
     //--------------------- 8. FexsePriceFetcher.sol deploy  -----------------------------------------------------
@@ -210,7 +220,7 @@ async function main() {
     await log('INFO', `8  - _fexsePriceFetcher Address-> ${_fexsePriceFetcherAddress}`);
 
     await app.installModule(_fexsePriceFetcherAddress);
-    fexsePriceFetcher = await hre.ethers.getContractAt("FexsePriceFetcher", appAddress) as FexsePriceFetcher;
+    fexsePriceFetcher = await hre.ethers.getContractAt("FexsePriceFetcher", appAddress, wallet) as FexsePriceFetcher;
 
     await waitSec(15);
 
@@ -223,7 +233,7 @@ async function main() {
     await log('INFO', `9  - _fexseUsdtPoolCreator Address-> ${_fexseUsdtPoolCreatorAddress}`);
 
     await app.installModule(_fexseUsdtPoolCreatorAddress);
-    fexseUsdtPoolCreator = await hre.ethers.getContractAt("FexseUsdtPoolCreator", appAddress) as FexseUsdtPoolCreator;
+    fexseUsdtPoolCreator = await hre.ethers.getContractAt("FexseUsdtPoolCreator", appAddress, wallet) as FexseUsdtPoolCreator;
 
     await waitSec(15);
 
