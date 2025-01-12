@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 /**
  * @file Fexse.sol
  * @dev This file contains the implementation of the Fexse token contract.
- * 
+ *
  * The contract imports various modules and interfaces to extend its functionality:
  * - AccessControl: Provides role-based access control mechanisms.
  * - ERC20: Standard ERC20 token implementation.
@@ -34,7 +34,7 @@ import {IMarketPlace} from "../interfaces/IMarketPlace.sol";
  * @title Fexse Token Contract
  * @dev This contract implements the Fexse token, which is an ERC20 token with additional features.
  * It includes access control, burnable tokens, pausable token transfers, permit-based approvals, and voting capabilities.
- * 
+ *
  * Inherits from:
  * - AccessControl: Provides role-based access control mechanisms.
  * - ERC20: Standard ERC20 token implementation.
@@ -116,13 +116,11 @@ contract Fexse is
      * @dev This function can only be called by an account with the ADMIN_ROLE.
      * @param owner The address of the token owner whose locked tokens are to be unlocked.
      */
+
     function unlockAll(address owner) external onlyRole(ADMIN_ROLE) {
         uint256 amount = lockedBalanceOf(owner);
-        require(
-            _lockedBalances[owner] >= amount,
-            "Insufficient locked balance to unlockAll"
-        );
-        _lockedBalances[owner] -= amount;
+        require(amount > 0, "No tokens to unlock");
+        _lockedBalances[owner] = 0;
         emit TokensUnlocked(owner, amount);
     }
 
@@ -137,11 +135,11 @@ contract Fexse is
     /**
      * @dev Transfers `amount` of tokens from the caller's account to the `to` address.
      * Overrides the parent contract's transfer function to include a check for locked balances.
-     * 
+     *
      * @param to The address to transfer tokens to.
      * @param amount The amount of tokens to transfer.
      * @return bool Returns true if the transfer was successful.
-     * 
+     *
      * Requirements:
      * - The caller must have a balance greater than or equal to `amount` plus any locked balance.
      * - The transfer amount must not exceed the caller's available balance (total balance minus locked balance).
@@ -188,7 +186,6 @@ contract Fexse is
         );
         return super.transferFrom(from, to, amount);
     }
-
 
     /**
      * @dev Internal function to update token balances and state.

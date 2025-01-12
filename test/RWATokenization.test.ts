@@ -635,12 +635,13 @@ describe("RWATokenization Test", function () {
             params: [My_ADDRESS],
         });
         const buyer = await hre.ethers.getSigner(My_ADDRESS);
+        const ASSET_IDS = [ASSET_ID];
 
         // rwaTokenization.connect(buyer).claimProfit(ASSET_ID);
         // await getProject_All_Balances(buyer, 0);
 
         for (const addr of addresses) {
-            await rwaTokenization.connect(addr).claimProfit(ASSET_ID);
+            await rwaTokenization.connect(addr).claimProfit(ASSET_IDS);
             await getProject_All_Balances(addr, 0);
         }
     });

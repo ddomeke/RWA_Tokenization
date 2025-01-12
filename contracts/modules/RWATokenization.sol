@@ -57,7 +57,11 @@ contract RWATokenization is ModularInternal {
         uint256 totalTokens,
         uint256 tokenPrice
     );
-    event Claimed(address sender, uint256 fexseAmount);
+    event Claimed(
+        address indexed user,
+        uint256[] assetIds, 
+        uint256 totalFexseAmount 
+    );
 
     address immutable _this;
 
@@ -346,31 +350,47 @@ contract RWATokenization is ModularInternal {
     }
 
     /**
-     * @notice Allows a user to claim their pending profits for a specific asset.
+     * @notice Allows a user to claim profit for the specified asset IDs.
      * @dev This function is protected against reentrancy attacks using the nonReentrant modifier.
-     * @param assetId The ID of the asset for which the user wants to claim profits.
-     * @dev The user must have pending profits to claim.
-     * @dev The amount of pending profits must be greater than 0.
-     * @dev The function resets the user's pending profits to 0 after claiming.
-     * @dev The function converts the profit amount to FEXSE tokens using a predefined conversion rate.
-     * @dev The function transfers the FEXSE tokens from the deployer to the user.
-     * @dev Emits a Claimed event upon successful profit claim.
+     * @param assetIds An array of asset IDs for which the user wants to claim profit.
      */
-    function claimProfit(uint256 assetId) public nonReentrant {
+    function claimProfit(uint256[] calldata assetIds) public nonReentrant {
         AppStorage.Layout storage data = AppStorage.layout();
-        Asset storage asset = data.assets[assetId];
 
-        uint256 amount = asset.userTokenInfo[msg.sender].pendingProfits;
-        require(amount > 0, "No profit to claim");
-        asset.userTokenInfo[msg.sender].pendingProfits = 0;
+        uint256 totalFexseAmount = 0;
+        uint256[] memory claimedAssetIds = new uint256[](assetIds.length);
 
-        // TODO: fexse tranfer fiyta dönüşümü chainlink integration
-        uint256 fexse_amount = (amount * FEXSE_DECIMALS) /
-            (FEXSE_PRICE_IN_USDT * (10 ** 3));
+        for (uint256 i = 0; i < assetIds.length; i++) {
+            uint256 assetId = assetIds[i];
 
-        data.fexseToken.transferFrom(data.deployer, msg.sender, fexse_amount);
+            uint256 amount = data
+                .assets[assetId]
+                .userTokenInfo[msg.sender]
+                .pendingProfits;
+            require(amount > 0, "No profit to claim for one of the assets");
 
-        emit Claimed(msg.sender, assetId);
+            data.assets[assetId].userTokenInfo[msg.sender].pendingProfits = 0;
+
+            // TODO: fexse transfer fiyata dönüşümü (Chainlink integration)
+            uint256 fexseAmount = (amount * FEXSE_DECIMALS) /
+                (FEXSE_PRICE_IN_USDT * (10 ** 3));
+
+            totalFexseAmount += fexseAmount;
+
+            claimedAssetIds[i] = assetId;
+        }
+
+        require(
+            totalFexseAmount > 0,
+            "Total FEXSE amount must be greater than zero"
+        );
+        data.fexseToken.transferFrom(
+            data.deployer,
+            msg.sender,
+            totalFexseAmount
+        );
+
+        emit Claimed(msg.sender, claimedAssetIds, totalFexseAmount);
     }
 
     /**
