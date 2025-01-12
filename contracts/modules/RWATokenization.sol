@@ -13,6 +13,7 @@ pragma solidity ^0.8.24;
 import "../core/abstracts/ModularInternal.sol";
 import "../token/ERC20/IERC20.sol";
 import "../utils/Strings.sol";
+import "../interfaces/IFexsePriceFetcher.sol";
 import {AssetToken} from "../token/AssetToken.sol";
 import {IRWATokenization} from "../interfaces/IRWATokenization.sol";
 
@@ -142,8 +143,6 @@ contract RWATokenization is ModularInternal {
         require(asset.id == 0, "Asset already exists");
         require(totalTokens > 0, "Total tokens must be greater than zero");
         require(tokenPrice > 0, "Token price must be greater than zero");
-
-        //TODO: service fee ekle
 
         // Deploy a new instance of AssetToken
         AssetToken token = new AssetToken(
@@ -342,7 +341,8 @@ contract RWATokenization is ModularInternal {
         asset.totalProfit = asset.totalProfit + profitAmount;
         asset.lastDistributed = block.timestamp;
 
-        // TODO: fexse tranfer fiyta dönüşümü chainlink integration
+        //uint256 fexsePrice = IFexsePriceFetcher(address(this)).getFexsePrice();
+
         uint256 fexse_amount = (profitAmount * FEXSE_DECIMALS) /
             (FEXSE_PRICE_IN_USDT * (10 ** 3));
 
@@ -371,7 +371,8 @@ contract RWATokenization is ModularInternal {
 
             data.assets[assetId].userTokenInfo[msg.sender].pendingProfits = 0;
 
-            // TODO: fexse transfer fiyata dönüşümü (Chainlink integration)
+            //uint256 fexsePrice = IFexsePriceFetcher(address(this)).getFexsePrice();
+
             uint256 fexseAmount = (amount * FEXSE_DECIMALS) /
                 (FEXSE_PRICE_IN_USDT * (10 ** 3));
 

@@ -16,7 +16,6 @@ import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
 import "@uniswap/v3-periphery/contracts/interfaces/INonfungiblePositionManager.sol";
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 import "../core/abstracts/ModularInternal.sol";
-import "hardhat/console.sol";
 
 /**
  * @title FexseUsdtPoolCreator
@@ -109,9 +108,6 @@ contract FexseUsdtPoolCreator is ModularInternal {
                 initialPriceX96
             );
 
-        console.log("initialPriceX96 :", initialPriceX96);
-        console.log("pool :", pool);
-
         emit PoolCreated(pool);
     }
 
@@ -149,8 +145,6 @@ contract FexseUsdtPoolCreator is ModularInternal {
         IERC20(fexseToken).transferFrom(msg.sender, address(this), amountFexse);
         IERC20(token1).transferFrom(msg.sender, address(this), amounttoken1);
 
-        console.log("msg.sender :", msg.sender);
-
         // Add liquidity using NonfungiblePositionManager
         INonfungiblePositionManager.MintParams memory params = INonfungiblePositionManager
             .MintParams({
@@ -173,10 +167,6 @@ contract FexseUsdtPoolCreator is ModularInternal {
             amountFexseUsed,
             amounttoken1Used
         ) = INonfungiblePositionManager(positionManager).mint(params);
-
-        console.log("amountFexseUsed :", amountFexseUsed);
-        console.log("amounttoken1Used :", amounttoken1Used);
-        console.log("liquidity :", liquidity);
 
         // Refund unused tokens
         if (amountFexse > amountFexseUsed) {

@@ -15,6 +15,7 @@ pragma solidity ^0.8.24;
 
 import "../core/abstracts/ModularInternal.sol";
 import "../utils/Strings.sol";
+import "../interfaces/IFexsePriceFetcher.sol";
 import {AssetToken} from "../token/AssetToken.sol";
 import {IAssetToken} from "../interfaces/IAssetToken.sol";
 import {IMarketPlace} from "../interfaces/IMarketPlace.sol";
@@ -129,9 +130,7 @@ contract MarketPlace is ModularInternal {
 
         uint256 cost = tokenPrice * tokenAmount;
 
-        // TODO: fexse tranfer fiyta dönüşümü chainlink integration
-        // uint256 fexse_amount = (cost * FEXSE_DECIMALS) /
-        //     (FEXSE_PRICE_IN_USDT * (10 ** 3));
+        //uint256 fexsePrice = IFexsePriceFetcher(address(this)).getFexsePrice();
 
         uint256 fexseAmount = tokenPrice * tokenAmount;
 

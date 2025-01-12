@@ -1,20 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+
 /**
  * @file FexsePriceFetcher.sol
- * @notice This contract is responsible for fetching price data from Uniswap V3 pools.
- *
- * @dev This contract imports the following:
- * - IUniswapV3Pool: Interface for interacting with Uniswap V3 pools.
- * - IUniswapV3Factory: Interface for interacting with the Uniswap V3 factory.
- * - ModularInternal: Abstract contract providing internal modular functionality.
- *
- * @author [Your Name]
+ * @notice This file contains the implementation of the FexsePriceFetcher module.
+ * @dev This module is responsible for fetching price data for the RWA tokenization project.
+ * 
+ * @import ModularInternal.sol - Provides internal modular functionalities.
+ * @import IFexsePriceFetcher.sol - Interface for the FexsePriceFetcher module.
  */
-import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
-import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 import "../core/abstracts/ModularInternal.sol";
+import "../interfaces/IFexsePriceFetcher.sol";
 
 /**
  * @title FexsePriceFetcher
@@ -112,5 +109,6 @@ contract FexsePriceFetcher is ModularInternal {
         if (IUniswapV3Pool(pool).token0() == token1) {
             price = (1e18 * 1e18) / price; // Adjust decimals
         }
+        
     }
 }

@@ -16,6 +16,7 @@ pragma solidity ^0.8.24;
 import "../core/abstracts/ModularInternal.sol";
 import "../token/ERC20/IERC20.sol";
 import "../utils/Strings.sol";
+import "../interfaces/IFexsePriceFetcher.sol";
 import {AssetToken} from "../token/AssetToken.sol";
 import {IRWATokenization} from "../interfaces/IRWATokenization.sol";
 
@@ -116,8 +117,7 @@ contract SalesModule is ModularInternal {
         require(tokenAmount > 0, "Total tokens must be greater than zero");
         require(asset.tokenPrice > 0, "Token price must be greater than zero");
 
-
-        // TODO: fexse tranfer fiyta dönüşümü chainlink integration
+        //uint256 fexsePrice = IFexsePriceFetcher(address(this)).getFexsePrice();
 
         if (saleCurrency == address(data.fexseToken)) {
             cost = (cost * FEXSE_DECIMALS) / (FEXSE_PRICE_IN_USDT);
@@ -173,7 +173,8 @@ contract SalesModule is ModularInternal {
 
         require(tokenAmount > 0, "You must buy at least 1 token");
 
-        // TODO: fexse tranfer fiyta dönüşümü chainlink integration
+        //uint256 fexsePrice = IFexsePriceFetcher(address(this)).getFexsePrice();
+
         uint256 usdtAmount = (tokenAmount / FEXSE_DECIMALS) * FEXSE_PRICE_IN_USDT; // Total USDT required
 
         // Check USDT and fexse allowance and balance
