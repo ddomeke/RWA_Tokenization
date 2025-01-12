@@ -44,8 +44,8 @@ library AppStorage {
         mapping(bytes4 => bytes32) facets; // Mapping of function selectors to corresponding facet data
         mapping(uint256 => bytes32) selectorSlots; // Mapping to store function selector slots, enabling modular function upgrades
         mapping(uint256 => Asset) assets; // A mapping of asset IDs to their corresponding asset details
-        mapping(uint256 => Proposal) proposals;
-        mapping(address => Stake) stakes;
+        mapping(uint256 => Proposal) proposals; // A mapping of proposal IDs to their corresponding proposal details
+        mapping(address => Stake) stakes;   // A mapping of addresses to their corresponding stake details
         mapping(address => bool) isWhitelisted; // Tracks addresses that are allowed specific privileges in the system
         mapping(address => bool) isBlacklisted; // Tracks addresses that are restricted from certain actions
     }
