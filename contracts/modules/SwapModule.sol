@@ -123,6 +123,8 @@ contract SwapModule is ModularInternal {
         // Executes the swap on Uniswap
         amountOut = swapRouter.exactInputSingle(params);
 
+        //TODO: Check if all token1 and token2 are swapped.
+
         // Transfers the swapped FEXSE tokens to the user
         require(
             fexseToken.transfer(msg.sender, amountOut),
@@ -175,6 +177,8 @@ contract SwapModule is ModularInternal {
 
         // Executes the swap on Uniswap
         amountOut = swapRouter.exactInputSingle(params);
+
+        //TODO: Check if all token1 and token2 are swapped.
 
         // Transfers the swapped token1 tokens to the user
         require(

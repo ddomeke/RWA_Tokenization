@@ -71,6 +71,7 @@ contract Fexse is
         address appAddress
     ) ERC20("Fexse", "FeXSe") ERC20Permit("Fexse") {
         _mint(msg.sender, 2700000000 * 10 ** decimals());
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(ADMIN_ROLE, msg.sender);
         _grantRole(ADMIN_ROLE, appAddress);
     }

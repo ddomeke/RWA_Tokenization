@@ -82,6 +82,7 @@ contract AssetToken is
     ) ERC1155(uri_) {
         appAddress = _appAddress;
         rwaContract = IRWATokenization(_rwaContract);
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(ADMIN_ROLE, msg.sender);
         _grantRole(ADMIN_ROLE, appAddress);
     }
