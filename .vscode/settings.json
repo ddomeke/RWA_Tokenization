@@ -1,0 +1,5 @@
+{
+    "solidity-va.outline.enable": true,
+    "solidity-va.debug.parser.showExceptions": false,
+    "solidity-va.uml.actors.enable": true
+}

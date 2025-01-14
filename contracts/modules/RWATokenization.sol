@@ -64,6 +64,12 @@ contract RWATokenization is ModularInternal {
         uint256 totalFexseAmount 
     );
 
+    event AssetHolderBalanceUpdated(
+        address account,
+        uint256 assetId,
+        uint256 balance
+    );
+
     address immutable _this;
 
     /**
@@ -457,6 +463,8 @@ contract RWATokenization is ModularInternal {
 
         // Update holdings
         asset.userTokenInfo[account].holdings = balance;
+
+        emit AssetHolderBalanceUpdated(account, assetId, balance);
     }
 
     /**

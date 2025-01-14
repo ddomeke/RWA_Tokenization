@@ -12,6 +12,7 @@ pragma solidity ^0.8.24;
  */
 import "../core/abstracts/ModularInternal.sol";
 import "../interfaces/IFexsePriceFetcher.sol";
+import "hardhat/console.sol";
 
 /**
  * @title FexsePriceFetcher
@@ -95,8 +96,13 @@ contract FexsePriceFetcher is ModularInternal {
         );
         require(pool != address(0), "Pool does not exist");
 
+        console.log("Pool address: ", pool);
+
         // Get the slot0 data
         (uint160 sqrtPriceX96, , , , , , ) = IUniswapV3Pool(pool).slot0();
+        require(sqrtPriceX96 > 0, "Uninitialized pool or no liquidity");
+        
+        console.log(" sqrtPriceX96", sqrtPriceX96);
 
         // Calculate the price
         unchecked {
@@ -105,10 +111,13 @@ contract FexsePriceFetcher is ModularInternal {
                 (1 << 192);
         }
 
+        console.log(" price", price);
+
         // If token1 is token0, invert the price
         if (IUniswapV3Pool(pool).token0() == token1) {
             price = (1e18 * 1e18) / price; // Adjust decimals
         }
+        console.log(" price", price);
         
     }
 }

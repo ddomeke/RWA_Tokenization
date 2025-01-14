@@ -206,7 +206,7 @@ describe("RWATokenization Test", function () {
         swapModule = await hre.ethers.getContractAt("SwapModule", appAddress) as SwapModule;
 
         //--------------------- 9. FexsePriceFetcher.sol deploy --------------------------------------------------------
-        _fexsePriceFetcher = await hre.ethers.deployContract("FexsePriceFetcher", [fexseAddress, USDT_ADDRESS, 3000]);
+        _fexsePriceFetcher = await hre.ethers.deployContract("FexsePriceFetcher", ["0xf97f4df75117a78c1A5a0DBb814Af92458539FB4", USDT_ADDRESS, 3000]);
         const _fexsePriceFetcherAddress = await _fexsePriceFetcher.getAddress();
         await log('INFO', `9  - _fexsePriceFetcher Module Address-> ${_fexsePriceFetcherAddress}`);
         gasPriceCalc(_fexsePriceFetcher.deploymentTransaction());

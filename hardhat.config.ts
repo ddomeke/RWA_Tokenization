@@ -33,7 +33,7 @@ const config: HardhatUserConfig = {
     hardhat: {
       forking: {
         url: RPC_URL || "",        
-        blockNumber: 278070393,// arb: 278070393 // sepolia: 7468704
+        blockNumber: 295239775,// arb: 278070393 // sepolia: 7468704
       },
       accounts: {
         count: 32,
