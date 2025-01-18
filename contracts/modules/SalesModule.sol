@@ -29,8 +29,6 @@ import {IRWATokenization} from "../interfaces/IRWATokenization.sol";
 contract SalesModule is ModularInternal {
     using AppStorage for AppStorage.Layout;
 
-    address public appAddress;
-
     uint256 private constant FEXSE_DECIMALS = 10 ** 18; // 18 decimals for FEXSE
     uint256 private constant FEXSE_PRICE_IN_USDT = 45 * 10 ** 3; // 0.045 USDT represented as 45 (scaled by 10^3)
 
@@ -43,18 +41,14 @@ contract SalesModule is ModularInternal {
     );
     address immutable _this;
 
+
     /**
-     * @dev Constructor for the SalesModule contract.
-     * @param _appAddress The address of the application contract.
-     *
-     * Initializes the contract by setting the contract's own address and the application address.
-     * Grants the ADMIN_ROLE to the deployer of the contract and the application address.
+     * @dev Constructor function that initializes the contract.
+     * Sets the contract's address to `_this` and grants the `ADMIN_ROLE` to the deployer of the contract.
      */
-    constructor(address _appAddress) {
+    constructor() {
         _this = address(this);
-        appAddress = _appAddress;
         _grantRole(ADMIN_ROLE, msg.sender);
-        _grantRole(ADMIN_ROLE, _appAddress);
     }
 
     /**
@@ -171,11 +165,11 @@ contract SalesModule is ModularInternal {
         address buyer = msg.sender;
         address sender = data.deployer;
 
-        require(tokenAmount > 0, "You must buy at least 1 token");
+        require(tokenAmount > FEXSE_DECIMALS, "You must buy at least 1 token");
 
         //uint256 fexsePrice = IFexsePriceFetcher(address(this)).getFexsePrice();
 
-        uint256 usdtAmount = (tokenAmount / FEXSE_DECIMALS) * FEXSE_PRICE_IN_USDT; // Total USDT required
+        uint256 usdtAmount = (tokenAmount * FEXSE_PRICE_IN_USDT ) / FEXSE_DECIMALS; // Total USDT required
 
         // Check USDT and fexse allowance and balance
         require(

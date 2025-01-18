@@ -15,7 +15,6 @@ pragma solidity ^0.8.24;
  * - IERC165: Interface for the ERC165 standard.
  * - IRWATokenization: Interface for the RWATokenization contract.
  * - IMarketPlace: Interface for the MarketPlace contract.
- * - hardhat/console.sol: Hardhat console for debugging purposes.
  */
 
 import "../utils/AccessControl.sol";
@@ -52,19 +51,6 @@ contract AssetToken is
     address public appAddress;
     IRWATokenization public rwaContract;
 
-    mapping(uint256 => mapping(address => uint256)) public lockedTokens; // assetId -> user -> amount locked
-
-    event TokensLocked(
-        address indexed account,
-        uint256 assetId,
-        uint256 amount
-    );
-    event TokensUnlocked(
-        address indexed account,
-        uint256 assetId,
-        uint256 amount
-    );
-
     /**
      * @dev Constructor for the AssetToken contract.
      * @param _appAddress The address of the application.
@@ -88,71 +74,6 @@ contract AssetToken is
     }
 
     /**
-     * @dev Safely transfers `value` amount of token type `id` from `from` to `to`.
-     *
-     * This function overrides the `safeTransferFrom` function from both `ERC1155` and `IERC1155`.
-     *
-     * Requirements:
-     *
-     * - The caller must have a balance of tokens of type `id` greater than or equal to `value` plus any locked tokens.
-     * - The `from` address must have enough unlocked tokens of type `id` to cover the transfer amount.
-     *
-     * @param from The address to transfer tokens from.
-     * @param to The address to transfer tokens to.
-     * @param id The token type to transfer.
-     * @param value The amount of tokens to transfer.
-     * @param data Additional data with no specified format, sent in call to `to`.
-     */
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 id,
-        uint256 value,
-        bytes memory data
-    ) public override(ERC1155, IERC1155) {
-        uint256 balance = balanceOf(from, id);
-        uint256 locked = lockedTokens[id][from];
-        require(balance - locked >= value, "Insufficient unlocked balance");
-        super.safeTransferFrom(from, to, id, value, data);
-    }
-
-    /**
-     * @dev Safely transfers a batch of token IDs and amounts from one address to another.
-     *
-     * Requirements:
-     * - `ids` and `values` arrays must have the same length.
-     * - Each token ID in `ids` must have an unlocked balance in `from`'s account that is at least equal to the corresponding amount in `values`.
-     *
-     * @param from The address to transfer tokens from.
-     * @param to The address to transfer tokens to.
-     * @param ids An array of token IDs to transfer.
-     * @param values An array of amounts of tokens to transfer.
-     * @param data Additional data with no specified format, sent in call to `to`.
-     */
-    function safeBatchTransferFrom(
-        address from,
-        address to,
-        uint256[] memory ids,
-        uint256[] memory values,
-        bytes memory data
-    ) public override(ERC1155, IERC1155) {
-        require(ids.length == values.length, "IDs and amounts length mismatch");
-
-        for (uint256 i = 0; i < ids.length; i++) {
-            uint256 id = ids[i];
-            uint256 amount = values[i];
-            uint256 balance = balanceOf(from, id);
-            uint256 locked = lockedTokens[id][from];
-            require(
-                balance - locked >= amount,
-                "Insufficient unlocked balance for one of the tokens"
-            );
-        }
-
-        super.safeBatchTransferFrom(from, to, ids, values, data);
-    }
-
-    /**
      * @dev See {IERC165-supportsInterface}.
      *
      * This function checks if the contract implements the interface defined by
@@ -166,68 +87,6 @@ contract AssetToken is
         bytes4 interfaceId
     ) public view override(AccessControl, ERC1155, IERC165) returns (bool) {
         return super.supportsInterface(interfaceId);
-    }
-
-    /**
-     * @dev Locks a specified amount of tokens for a given account and token ID.
-     * Can only be called by an account with the ADMIN_ROLE.
-     *
-     * Emits a {TokensLocked} event.
-     *
-     * Requirements:
-     * - The caller must have the ADMIN_ROLE.
-     * - The account must have a balance of tokens greater than or equal to the sum of the amount to be locked and the already locked tokens.
-     *
-     * @param account The address of the account whose tokens are to be locked.
-     * @param id The ID of the token to be locked.
-     * @param amount The amount of tokens to be locked.
-     */
-    function lockTokens(
-        address account,
-        uint256 id,
-        uint256 amount
-    ) external onlyRole(ADMIN_ROLE) {
-        require(
-            balanceOf(account, id) >= lockedTokens[id][account] + amount,
-            "Insufficient balance to lock"
-        );
-        lockedTokens[id][account] += amount;
-        emit TokensLocked(account, id, amount);
-    }
-
-    /**
-     * @notice Unlocks a specified amount of tokens for a given account and token ID.
-     * @dev This function can only be called by an account with the ADMIN_ROLE.
-     * @param account The address of the account whose tokens are to be unlocked.
-     * @param id The ID of the token to be unlocked.
-     * @param amount The amount of tokens to be unlocked.
-     * Requirements: The account must have at least the specified amount of locked tokens.
-     * Emits: TokensUnlocked Emitted when tokens are successfully unlocked.
-     */
-    function unlockTokens(
-        address account,
-        uint256 id,
-        uint256 amount
-    ) external onlyRole(ADMIN_ROLE) {
-        require(
-            lockedTokens[id][account] >= amount,
-            "No enough tokens to unlock"
-        );
-        lockedTokens[id][account] -= amount;
-        emit TokensUnlocked(account, id, amount);
-    }
-
-    /**
-     * @notice Retrieves the amount of locked tokens for a specific account and token ID.
-     * @param account The address of the account to query.
-     * @param id The ID of the token to query.
-     * @return The amount of locked tokens for the specified account and token ID.
-     */
-    function getLockedTokens(
-        address account,
-        uint256 id
-    ) external view returns (uint256) {
-        return lockedTokens[id][account];
     }
 
     /**

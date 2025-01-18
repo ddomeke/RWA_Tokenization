@@ -225,7 +225,7 @@ describe("RWATokenization Test", function () {
         fexseUsdtPoolCreator = await hre.ethers.getContractAt("FexseUsdtPoolCreator", appAddress) as FexseUsdtPoolCreator;
 
         //--------------------- 11. SalesModule.sol deploy --------------------------------------------------------
-        _salesModule = await hre.ethers.deployContract("SalesModule", [appAddress]);
+        _salesModule = await hre.ethers.deployContract("SalesModule");
         const _salesModuleAddress = await _salesModule.getAddress();
         await log('INFO', `11  - _sales Module Address-> ${_salesModuleAddress}`);
         gasPriceCalc(_salesModule.deploymentTransaction());
@@ -536,6 +536,11 @@ describe("RWATokenization Test", function () {
 
         await marketPlace.connect(addresses[0]).lockTokensToBeSold(buyer, ASSET_ID, 3, 1000000);
 
+        log('INFO', ``);
+        log('INFO', "-------------------lockTokensToBeSold-----------------------");
+        log('INFO', ``);
+
+
         await marketPlace.connect(addresses[0]).lockFexseToBeBought(addresses[0], amountFexselock);
 
 
@@ -687,7 +692,7 @@ describe("RWATokenization Test", function () {
         //const ticklower = 
 
         await getProject_All_Balances(addresses[0], 0);
-        await fexseUsdtPoolCreator.connect(addresses[0]).addLiquidity(aFexse, ausdt, 112860, 112920);
+        await fexseUsdtPoolCreator.connect(addresses[0]).addLiquidity(aFexse, ausdt, 112860, 113100);
         await getProject_All_Balances(addresses[0], 0);
 
         const fexsePrice = await fexsePriceFetcher.getFexsePrice();
@@ -719,33 +724,29 @@ describe("RWATokenization Test", function () {
         const createTx2 = await rwaTokenization.createAsset(ASSETID_V3, TOTALTOKENS + 100, TOKENPRICE * 1000, ASSETURI);
         await createTx2.wait();
 
-        await logAssetDetails(ASSETID_V3, addresses[0])
-        await logAssetDetails(ASSETID_V3, buyer.address)
-
         const TokenContractAddress = await rwaTokenization.getTokenContractAddress(ASSETID_V3);
         assetToken_sample1 = await hre.ethers.getContractAt("AssetToken", TokenContractAddress) as AssetToken;
 
         //assetToken1 = (await hre.ethers.getContractAt(ASSETTOKEN_ABI, TokenContractAddress)) as unknown as IAssetToken;
 
-        await getProject_All_Balances(addresses[0], 0);
         await logAssetDetails(ASSETID_V3, addresses[0])
-
+        await logAssetDetails(ASSETID_V3, buyer.address)
+        await getProject_All_Balances(addresses[0], 0)
+        await getProject_All_Balances(buyer, 0)        
+        
         log('INFO', ``);
         log('INFO', "----------------------------------------------------------------------------------------------");
         log('INFO', ``);
 
-
-        await getProject_All_Balances(addresses[0], 0);
-        await getProject_All_Balances(buyer, 0);
-
         await assetToken_sample1.connect(addresses[0]).setApprovalForAll(appAddress,true);
-        await salesModule.connect(buyer).buyTokens(ASSETID_V3, 45, fexseAddress);
+        await salesModule.connect(buyer).buyTokens(ASSETID_V3, 45, USDT_ADDRESS/*fexseAddress*/);
         
-        await getProject_All_Balances(addresses[0], 0);
-        await getProject_All_Balances(buyer, 0);
-
         await logAssetDetails(ASSETID_V3, addresses[0])
         await logAssetDetails(ASSETID_V3, buyer.address)
+        await getProject_All_Balances(addresses[0], 0)
+        await getProject_All_Balances(buyer, 0)
+
+        
     });
 
     /*-----------------------------------------------------------------------------------------------

@@ -134,40 +134,23 @@ contract MarketPlace is ModularInternal {
 
         uint256 fexseAmount = tokenPrice * tokenAmount;
 
-        // TODO: servicesfee  backend de hesaplanmadığı durumda burda hesaplayalım.
-        uint256 servideFeeAmount = (fexseAmount * 5) / 1000;
-
-        // TODO : kilitli mi diye kontrol edelim. approve kontrol edelim. fexse amountu kotrol edelim
-        // TODO: başka bir emir yoksa tüm fexseler unlock edilmeli
-        data.fexseToken.unlock(buyer, (fexseAmount + servideFeeAmount));
+        //TODO: fexse ve token kilitlenmiş mi diye kontrol et
 
         require(
-            data.fexseToken.transferFrom(
-                buyer,
-                address(this),
-                servideFeeAmount
-            ),
+            data.fexseToken.transferFrom(data.deployer, sender, fexseAmount),
             "FEXSE transfer failed"
-        );
-
-        require(
-            data.fexseToken.transferFrom(buyer, sender, fexseAmount),
-            "FEXSE transfer failed"
-        );
-
-        IAssetToken(asset.tokenContract).unlockTokens(
-            sender,
-            assetId,
-            tokenAmount
         );
 
         IAssetToken(asset.tokenContract).safeTransferFrom(
-            sender,
+            data.deployer,
             buyer,
             assetId,
             tokenAmount,
             ""
         );
+
+        asset.userTokenInfo[sender].tokensForSale -= tokenAmount;
+        asset.userTokenInfo[sender].salePrices = 0;
 
         emit TransferExecuted(
             sender,
@@ -192,11 +175,24 @@ contract MarketPlace is ModularInternal {
     ) public nonReentrant onlyRole(ADMIN_ROLE) {
         AppStorage.Layout storage data = AppStorage.layout();
 
+        // TODO: servicesfee  backend de hesaplanmadığı durumda burda hesaplayalım.
+        uint256 serviceFeeAmount = (fexseLockedAmount * 5) / 1000;
+        uint256 totalLockedFexseAmount = fexseLockedAmount + serviceFeeAmount;
         uint256 fexseAmount = data.fexseToken.balanceOf(owner);
 
-        require(fexseAmount >= fexseLockedAmount, "Insufficient fexse balance");
+        require(
+            fexseAmount >= totalLockedFexseAmount,
+            "Insufficient fexse balance"
+        );
 
-        data.fexseToken.lock(owner, fexseLockedAmount);
+        require(
+            data.fexseToken.transferFrom(
+                owner,
+                data.deployer,
+                totalLockedFexseAmount
+            ),
+            "FEXSE transfer failed"
+        );
 
         emit Fexselocked(owner, fexseLockedAmount);
     }
@@ -215,11 +211,18 @@ contract MarketPlace is ModularInternal {
     ) external nonReentrant onlyRole(ADMIN_ROLE) {
         AppStorage.Layout storage data = AppStorage.layout();
 
-        uint256 fexseAmount = data.fexseToken.balanceOf(owner);
+        // TODO: servicesfee  backend de hesaplanmadığı durumda burda hesaplayalım.
+        uint256 serviceFeeAmount = (fexseLockedAmount * 5) / 1000;
+        uint256 totalLockedFexseAmount = fexseLockedAmount + serviceFeeAmount;
 
-        require(fexseAmount >= fexseLockedAmount, "Insufficient token balance");
-
-        data.fexseToken.unlock(owner, fexseLockedAmount);
+        require(
+            data.fexseToken.transferFrom(
+                data.deployer,
+                owner,
+                totalLockedFexseAmount
+            ),
+            "FEXSE transfer failed"
+        );
 
         emit FexseUnlocked(owner, fexseLockedAmount);
     }
@@ -245,14 +248,17 @@ contract MarketPlace is ModularInternal {
         Asset storage asset = data.assets[assetId];
 
         require(
-            asset.userTokenInfo[owner].holdings >= tokenAmount,
+            IAssetToken(asset.tokenContract).balanceOf(owner, assetId) >=
+                tokenAmount,
             "Insufficient token balance"
         );
 
-        IAssetToken(asset.tokenContract).lockTokens(
+        IAssetToken(asset.tokenContract).safeTransferFrom(
             owner,
+            data.deployer,
             assetId,
-            tokenAmount
+            tokenAmount,
+            ""
         );
 
         asset.userTokenInfo[owner].tokensForSale += tokenAmount;
@@ -282,15 +288,12 @@ contract MarketPlace is ModularInternal {
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
 
-        require(
-            asset.userTokenInfo[owner].holdings >= tokenAmount,
-            "Insufficient token balance"
-        );
-
-        IAssetToken(asset.tokenContract).unlockTokens(
+        IAssetToken(asset.tokenContract).safeTransferFrom(
+            data.deployer,
             owner,
             assetId,
-            tokenAmount
+            tokenAmount,
+            ""
         );
 
         asset.userTokenInfo[owner].tokensForSale -= tokenAmount;

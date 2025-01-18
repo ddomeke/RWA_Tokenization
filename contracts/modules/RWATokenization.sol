@@ -60,8 +60,8 @@ contract RWATokenization is ModularInternal {
     );
     event Claimed(
         address indexed user,
-        uint256[] assetIds, 
-        uint256 totalFexseAmount 
+        uint256[] assetIds,
+        uint256 totalFexseAmount
     );
 
     event AssetHolderBalanceUpdated(
@@ -339,12 +339,10 @@ contract RWATokenization is ModularInternal {
             address holder = asset.tokenHolders[i];
             uint256 holderTokens = asset.userTokenInfo[holder].holdings;
             uint256 holderProfit = holderTokens * profitPerToken;
-            asset.userTokenInfo[holder].pendingProfits =
-                asset.userTokenInfo[holder].pendingProfits +
-                holderProfit;
+            asset.userTokenInfo[holder].pendingProfits += holderProfit;
         }
 
-        asset.totalProfit = asset.totalProfit + profitAmount;
+        asset.totalProfit += profitAmount;
         asset.lastDistributed = block.timestamp;
 
         //uint256 fexsePrice = IFexsePriceFetcher(address(this)).getFexsePrice();
@@ -439,11 +437,7 @@ contract RWATokenization is ModularInternal {
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
 
-        require(
-            (msg.sender == address(asset.tokenContract)) ||
-                (msg.sender == address(this)),
-            "Unauthorized"
-        );
+        require((msg.sender == address(asset.tokenContract)), "Unauthorized");
 
         uint256 currentBalance = asset.userTokenInfo[account].holdings;
 

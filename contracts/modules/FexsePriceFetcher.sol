@@ -79,14 +79,7 @@ contract FexsePriceFetcher is ModularInternal {
         return facetCuts;
     }
 
-    /**
-     * @notice Fetches the current price of the Fexse token from a Uniswap V3 pool.
-     * @dev This function retrieves the pool address from the Uniswap V3 factory,
-     *      gets the slot0 data from the pool, and calculates the price based on the sqrtPriceX96 value.
-     *      If token1 is the same as token0 in the pool, the price is inverted to adjust the decimals.
-     * @return price The current price of the Fexse token.
-     * @dev The pool must exist, otherwise the function will revert with "Pool does not exist".
-     */
+
     function getFexsePrice() external view returns (uint256 price) {
         // Get the pool address
         address pool = IUniswapV3Factory(factory).getPool(
@@ -101,14 +94,12 @@ contract FexsePriceFetcher is ModularInternal {
         // Get the slot0 data
         (uint160 sqrtPriceX96, , , , , , ) = IUniswapV3Pool(pool).slot0();
         require(sqrtPriceX96 > 0, "Uninitialized pool or no liquidity");
-        
-        console.log(" sqrtPriceX96", sqrtPriceX96);
 
         // Calculate the price
         unchecked {
             price =
-                (uint256(sqrtPriceX96) * uint256(sqrtPriceX96)) /
-                (1 << 192);
+                (((uint256(sqrtPriceX96) * uint256(sqrtPriceX96))*10**18) /
+                (1 << 192));
         }
 
         console.log(" price", price);
@@ -117,7 +108,6 @@ contract FexsePriceFetcher is ModularInternal {
         if (IUniswapV3Pool(pool).token0() == token1) {
             price = (1e18 * 1e18) / price; // Adjust decimals
         }
-        console.log(" price", price);
         
     }
 }
