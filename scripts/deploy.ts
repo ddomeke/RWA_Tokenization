@@ -5,17 +5,17 @@ import * as dotenv from "dotenv";
 dotenv.config();
 
 import {
-  App,
-  AssetToken,
-  Fexse,
-  RWATokenization,
-  Compliance,
-  MarketPlace,
-  RWA_DAO,
-  SwapModule,
-  FexsePriceFetcher,
-  FexseUsdtPoolCreator,
-  SalesModule,
+    App,
+    AssetToken,
+    Fexse,
+    RWATokenization,
+    Compliance,
+    MarketPlace,
+    RWA_DAO,
+    SwapModule,
+    FexsePriceFetcher,
+    FexseUsdtPoolCreator,
+    SalesModule,
 } from "../typechain-types";
 
 /**
@@ -35,6 +35,19 @@ async function waitSec(time: any) {
 
     log('INFO', `Waiting for ${time} seconds...`);
     await delay(time * 1000); // Wait for specified seconds
+}
+
+async function verifyContract(address: string, constructorArgs: any[]) {
+    try {
+        console.log(`Verifying contract at address: ${address}`);
+        await hre.run("verify:verify", {
+            address: address,
+            constructorArguments: constructorArgs,
+        });
+        console.log(`Contract at address ${address} verified successfully!`);
+    } catch (err: any) {
+        console.error(`Verification failed for ${address}:`, err.message);
+    }
 }
 
 async function main() {
@@ -146,6 +159,7 @@ async function main() {
     const _marketPlaceAddress = await _marketPlace.getAddress();
     log('INFO', `2  - market Place contract deployed at: ${_marketPlaceAddress}`);
 
+
     await app.installModule(_marketPlaceAddress);
 
     marketPlace = await hre.ethers.getContractAt("MarketPlace", appAddress, wallet) as MarketPlace;
@@ -240,7 +254,7 @@ async function main() {
     //--------------------- 10. SalesModule.sol deploy ------------------------------------------------------------------
 
     const SalesModuleContract = await hre.ethers.getContractFactory("SalesModule", wallet);
-    _salesModule = await SalesModuleContract.deploy(appAddress) as SalesModule;
+    _salesModule = await SalesModuleContract.deploy() as SalesModule;
     await _salesModule.waitForDeployment();
     await waitSec(15);
 
@@ -255,6 +269,13 @@ async function main() {
 
     const finalBalance = await provider.getBalance(wallet.address);
     log('INFO', `Remaining Owner Balance: ----->  ${ethers.formatEther(finalBalance)} ETH`);
+
+
+
+    await verifyContract(appAddress, []); // Verify App contract
+
+
+    await verifyContract(_marketPlaceAddress, [appAddress]);
 
 
 }

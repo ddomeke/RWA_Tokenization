@@ -89,7 +89,7 @@ contract FexsePriceFetcher is ModularInternal {
         );
         require(pool != address(0), "Pool does not exist");
 
-        console.log("Pool address: ", pool);
+        //console.log("Pool address: ", pool);
 
         // Get the slot0 data
         (uint160 sqrtPriceX96, , , , , , ) = IUniswapV3Pool(pool).slot0();
@@ -102,7 +102,7 @@ contract FexsePriceFetcher is ModularInternal {
                 (1 << 192));
         }
 
-        console.log(" price", price);
+        //console.log(" price", price);
 
         // If token1 is token0, invert the price
         if (IUniswapV3Pool(pool).token0() == token1) {
