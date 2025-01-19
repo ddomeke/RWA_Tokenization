@@ -272,9 +272,8 @@ async function main() {
 
 
 
-    await verifyContract(appAddress, []); // Verify App contract
-
-
+    await verifyContract(appAddress, []); 
+    await verifyContract(_rwaTokenizationAddress, [appAddress]);
     await verifyContract(_marketPlaceAddress, [appAddress]);
 
 

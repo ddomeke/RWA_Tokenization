@@ -254,7 +254,7 @@ describe("RWATokenization Test", function () {
 
         const impersonatedSigner2 = await hre.ethers.getSigner(My_ADDRESS2);
 
-        const amountUSDT = 1500000000; // Amount to transfer (in USDC smallest unit, i.e., without decimals)
+        const amountUSDT = 150000000; // Amount to transfer (in USDC smallest unit, i.e., without decimals)
         const amountETH = ethers.parseEther("1");
         const amountFexse = ethers.parseEther("1000");
         const amountWETH = ethers.parseEther("100");
@@ -615,7 +615,9 @@ describe("RWATokenization Test", function () {
                 "0x");
         }
 
-        await rwaTokenization.connect(addresses[0]).distributeProfit(ASSET_ID, 70000000000);
+        await rwaTokenization.connect(addresses[0]).distributeProfit(ASSET_ID, 70000000000,0,3);
+        await rwaTokenization.connect(addresses[0]).distributeProfit(ASSET_ID, 70000000000,4,6);
+        await rwaTokenization.connect(addresses[0]).distributeProfit(ASSET_ID, 70000000000,7,9);
 
         for (const addr of addresses) {
             const pendingProfit = await rwaTokenization.getPendingProfits(ASSET_ID, addr);

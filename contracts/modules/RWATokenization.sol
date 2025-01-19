@@ -36,7 +36,9 @@ contract RWATokenization is ModularInternal {
     event ProfitDistributed(
         uint256 assetId,
         uint256 totalProfit,
-        uint256 amountPerToken
+        uint256 amountPerToken,
+        uint256 startIndex,
+        uint256 endIndex
     );
     event AssetUpdated(uint256 assetId, uint256 newTokenPrice);
     event TokensPurchased(
@@ -175,7 +177,7 @@ contract RWATokenization is ModularInternal {
      * @notice Retrieves the total number of tokens for a specific asset.
      * @param assetId The unique identifier of the asset.
      * @return The total number of tokens associated with the asset.
-     * @dev Reverts if the asset does not exist.
+     * Reverts if the asset does not exist.
      */
     function getTotalTokens(uint256 assetId) external view returns (uint256) {
         AppStorage.Layout storage data = AppStorage.layout();
@@ -313,20 +315,21 @@ contract RWATokenization is ModularInternal {
         return asset.userTokenInfo[holder].pendingProfits;
     }
 
+
     /**
-     * @notice Distributes profit for a specific asset to all token holders.
-     * @dev This function can only be called by an account with the ADMIN_ROLE and is protected against reentrancy.
+     * @notice Distributes profit for a specific asset to its token holders.
+     * @dev This function distributes the specified profit amount among the token holders of the given asset.
+     *      The distribution is done in a range specified by startIndex and endIndex.
      * @param assetId The ID of the asset for which the profit is being distributed.
-     * @param profitAmount The total amount of profit to be distributed among the token holders.
-     *
-     * The function calculates the profit per token and distributes it to each token holder based on their holdings.
-     * It updates the pending profits for each holder and records the total profit and the last distribution timestamp for the asset.
-     *
-     * Emits a {ProfitDistributed} event indicating the asset ID, the amount of profit distributed in FEXSE tokens, and the profit per token.
+     * @param profitAmount The total amount of profit to be distributed (in fexse currency).
+     * @param startIndex The starting index of the token holders array for distribution.
+     * @param endIndex The ending index of the token holders array for distribution.
      */
     function distributeProfit(
         uint256 assetId,
-        uint256 profitAmount
+        uint256 profitAmount,//fexse currency
+        uint256 startIndex,
+        uint256 endIndex
     ) public nonReentrant onlyRole(ADMIN_ROLE) {
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
@@ -334,23 +337,19 @@ contract RWATokenization is ModularInternal {
         // Calculate profit per token
         uint256 profitPerToken = profitAmount / asset.totalTokens;
 
-        // Distribute profit to each holder
-        for (uint256 i = 0; i < asset.tokenHolders.length; i++) {
+        for (uint256 i = startIndex; i <= endIndex; i++) {
             address holder = asset.tokenHolders[i];
             uint256 holderTokens = asset.userTokenInfo[holder].holdings;
             uint256 holderProfit = holderTokens * profitPerToken;
             asset.userTokenInfo[holder].pendingProfits += holderProfit;
         }
 
-        asset.totalProfit += profitAmount;
-        asset.lastDistributed = block.timestamp;
+        if (endIndex == asset.tokenHolders.length) {
+            asset.totalProfit += profitAmount;
+            asset.lastDistributed = block.timestamp;
+        }
 
-        //uint256 fexsePrice = IFexsePriceFetcher(address(this)).getFexsePrice();
-
-        uint256 fexse_amount = (profitAmount * FEXSE_DECIMALS) /
-            (FEXSE_PRICE_IN_USDT * (10 ** 3));
-
-        emit ProfitDistributed(assetId, fexse_amount, profitPerToken);
+        emit ProfitDistributed(assetId, profitAmount, profitPerToken, startIndex, endIndex);
     }
 
     /**
@@ -405,7 +404,7 @@ contract RWATokenization is ModularInternal {
      * @param assetId The ID of the asset to update.
      * @param newTokenPrice The new token price to set for the asset.
      * @dev The asset must exist (asset ID should not be 0).
-     * @dev Emits an {AssetUpdated} event when the asset's token price is updated.
+     * Emits an {AssetUpdated} event when the asset's token price is updated.
      */
     function updateAsset(
         uint256 assetId,
