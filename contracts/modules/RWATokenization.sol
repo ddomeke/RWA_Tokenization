@@ -58,7 +58,9 @@ contract RWATokenization is ModularInternal {
         uint256 assetId,
         address tokenContract,
         uint256 totalTokens,
-        uint256 tokenPrice
+        uint256 tokenPrice,
+        string  name,
+        string  symbol
     );
     event Claimed(
         address indexed user,
@@ -143,7 +145,9 @@ contract RWATokenization is ModularInternal {
         uint256 assetId,
         uint256 totalTokens,
         uint256 tokenPrice,
-        string memory assetUri
+        string memory assetUri,
+        string memory name,
+        string memory symbol
     ) external nonReentrant onlyRole(ADMIN_ROLE) {
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
@@ -154,6 +158,8 @@ contract RWATokenization is ModularInternal {
 
         // Deploy a new instance of AssetToken
         AssetToken token = new AssetToken(
+            name,
+            symbol,
             appAddress,
             assetUri, // URI for metadata
             address(this)
@@ -170,7 +176,7 @@ contract RWATokenization is ModularInternal {
 
         token.mint(data.deployer, assetId, totalTokens, "");
 
-        emit AssetCreated(assetId, address(token), totalTokens, tokenPrice);
+        emit AssetCreated(assetId, address(token), totalTokens, tokenPrice, name, symbol);
     }
 
     /**

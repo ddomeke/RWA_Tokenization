@@ -48,20 +48,29 @@ contract AssetToken is
 {
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
+    string public name;
+    string public symbol;
+
     address public appAddress;
     IRWATokenization public rwaContract;
 
+
     /**
      * @dev Constructor for the AssetToken contract.
+     * @param _name The name of the token.
+     * @param _symbol The symbol of the token.
      * @param _appAddress The address of the application.
-     * @param uri_ The URI for the ERC1155 token metadata.
+     * @param uri_ The URI for the token metadata.
      * @param _rwaContract The address of the RWATokenization contract.
      *
-     * Initializes the ERC1155 token with the given URI, sets the application address,
-     * initializes the RWATokenization contract, and grants the ADMIN_ROLE to the
-     * deployer and the application address.
+     * Initializes the ERC1155 contract with the given URI.
+     * Sets the application address and the RWATokenization contract address.
+     * Grants the DEFAULT_ADMIN_ROLE and ADMIN_ROLE to the deployer and the application address.
+     * Sets the name and symbol of the token.
      */
     constructor(
+        string memory _name,
+        string memory _symbol,
         address _appAddress,
         string memory uri_,
         address _rwaContract
@@ -71,6 +80,8 @@ contract AssetToken is
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(ADMIN_ROLE, msg.sender);
         _grantRole(ADMIN_ROLE, appAddress);
+        name = _name;
+        symbol = _symbol;
     }
 
     /**

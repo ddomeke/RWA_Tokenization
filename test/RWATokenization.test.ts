@@ -171,7 +171,7 @@ describe("RWATokenization Test", function () {
 
 
         //--------------------- 5. createAsset.sol deploy  ---------------------------------------------
-        const createTx = await rwaTokenization.createAsset(ASSET_ID, TOTALTOKENS, TOKENPRICE, ASSETURI);
+        const createTx = await rwaTokenization.createAsset(ASSET_ID, TOTALTOKENS, TOKENPRICE, ASSETURI, "Otel", "OT");
         await createTx.wait();
 
         const assetTokenAddress = await rwaTokenization.getTokenContractAddress(ASSET_ID);
@@ -483,7 +483,7 @@ describe("RWATokenization Test", function () {
 
         const ASSETID_V2 = ASSET_ID + 5;
 
-        const createTx1 = await rwaTokenization.createAsset(ASSETID_V2, TOTALTOKENS, TOKENPRICE, ASSETURI);
+        const createTx1 = await rwaTokenization.createAsset(ASSETID_V2, TOTALTOKENS, TOKENPRICE, ASSETURI, "Otel", "OT");
         await createTx1.wait();
 
         await logAssetDetails(ASSETID_V2, addresses[0])
@@ -723,7 +723,7 @@ describe("RWATokenization Test", function () {
         });
         const buyer = await hre.ethers.getSigner(My_ADDRESS);
 
-        const createTx2 = await rwaTokenization.createAsset(ASSETID_V3, TOTALTOKENS + 100, TOKENPRICE * 1000, ASSETURI);
+        const createTx2 = await rwaTokenization.createAsset(ASSETID_V3, TOTALTOKENS + 100, TOKENPRICE * 1000, ASSETURI, "Otel", "OT");
         await createTx2.wait();
 
         const TokenContractAddress = await rwaTokenization.getTokenContractAddress(ASSETID_V3);
