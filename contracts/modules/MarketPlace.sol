@@ -49,7 +49,6 @@ contract MarketPlace is ModularInternal {
     event Fexselocked(address sender, uint256 fexseLockedAmount);
     event FexseUnlocked(address sender, uint256 fexseLockedAmount);
 
-    event fexseContractUpdated(address oldToken, address newToken);
     event TransferExecuted(
         address sender,
         address buyer,
@@ -81,7 +80,7 @@ contract MarketPlace is ModularInternal {
      */
     function moduleFacets() external view returns (FacetCut[] memory) {
         uint256 selectorIndex = 0;
-        bytes4[] memory selectors = new bytes4[](6);
+        bytes4[] memory selectors = new bytes4[](5);
 
         // Add function selectors to the array
         selectors[selectorIndex++] = this.transferAsset.selector;
@@ -89,7 +88,6 @@ contract MarketPlace is ModularInternal {
         selectors[selectorIndex++] = this.unlockFexse.selector;
         selectors[selectorIndex++] = this.lockTokensToBeSold.selector;
         selectors[selectorIndex++] = this.unlockTokensToBeSold.selector;
-        selectors[selectorIndex++] = this.setFexseAddress.selector;
 
         // Create a FacetCut array with a single element
         FacetCut[] memory facetCuts = new FacetCut[](1);
@@ -302,28 +300,4 @@ contract MarketPlace is ModularInternal {
         emit TokensUnlocked(owner, assetId, tokenAmount, salePrice);
     }
 
-    /**
-     * @notice Sets the address of the Fexse token contract.
-     * @dev This function can only be called by an account with the ADMIN_ROLE.
-     * It ensures that the provided address is not the zero address.
-     * Emits a `fexseContractUpdated` event upon successful update.
-     * Uses the `nonReentrant` modifier to prevent reentrancy attacks.
-     * @param _fexseToken The address of the new Fexse token contract.
-     */
-    function setFexseAddress(
-        IFexse _fexseToken
-    ) external nonReentrant onlyRole(ADMIN_ROLE) {
-        require(
-            address(_fexseToken) != address(0),
-            "Invalid _fexseToken address"
-        );
-
-        AppStorage.Layout storage data = AppStorage.layout();
-
-        address oldContract = address(data.fexseToken);
-
-        data.fexseToken = _fexseToken;
-
-        emit fexseContractUpdated(oldContract, address(_fexseToken));
-    }
 }

@@ -184,7 +184,7 @@ describe("RWATokenization Test", function () {
         await log('INFO', `6  - fexse Address-> ${fexseAddress}`);
         await gasPriceCalc(fexse.deploymentTransaction());
 
-        await marketPlace.setFexseAddress(fexseAddress);
+        await rwaTokenization.setFexseAddress(fexseAddress);
 
         //--------------------- 7. RWA_DAO.sol deploy --------------------------------------------------------
         _rwa_DAO = await hre.ethers.deployContract("RWA_DAO", [appAddress]);

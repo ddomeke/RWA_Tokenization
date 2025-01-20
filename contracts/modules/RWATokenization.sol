@@ -73,6 +73,7 @@ contract RWATokenization is ModularInternal {
         uint256 assetId,
         uint256 balance
     );
+    event fexseContractUpdated(address oldToken, address newToken);
 
     address immutable _this;
 
@@ -99,7 +100,7 @@ contract RWATokenization is ModularInternal {
      */
     function moduleFacets() external view returns (FacetCut[] memory) {
         uint256 selectorIndex = 0;
-        bytes4[] memory selectors = new bytes4[](14);
+        bytes4[] memory selectors = new bytes4[](15);
 
         // Add function selectors to the array
         selectors[selectorIndex++] = this.createAsset.selector;
@@ -116,6 +117,7 @@ contract RWATokenization is ModularInternal {
         selectors[selectorIndex++] = this.claimProfit.selector;
         selectors[selectorIndex++] = this.updateAsset.selector;
         selectors[selectorIndex++] = this.updateHoldings.selector;
+        selectors[selectorIndex++] = this.setFexseAddress.selector;
 
         // Create a FacetCut array with a single element
         FacetCut[] memory facetCuts = new FacetCut[](1);
@@ -522,5 +524,30 @@ contract RWATokenization is ModularInternal {
         _removeHolder(assetId, holder);
         _removeHoldings(assetId, holder);
         _removePendingProfits(assetId, holder);
+    }
+
+        /**
+     * @notice Sets the address of the Fexse token contract.
+     * @dev This function can only be called by an account with the ADMIN_ROLE.
+     * It ensures that the provided address is not the zero address.
+     * Emits a `fexseContractUpdated` event upon successful update.
+     * Uses the `nonReentrant` modifier to prevent reentrancy attacks.
+     * @param _fexseToken The address of the new Fexse token contract.
+     */
+    function setFexseAddress(
+        IFexse _fexseToken
+    ) external nonReentrant onlyRole(ADMIN_ROLE) {
+        require(
+            address(_fexseToken) != address(0),
+            "Invalid _fexseToken address"
+        );
+
+        AppStorage.Layout storage data = AppStorage.layout();
+
+        address oldContract = address(data.fexseToken);
+
+        data.fexseToken = _fexseToken;
+
+        emit fexseContractUpdated(oldContract, address(_fexseToken));
     }
 }

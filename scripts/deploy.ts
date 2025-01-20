@@ -174,6 +174,8 @@ async function main() {
     const _rwaTokenizationAddress = await _rwaTokenization.getAddress();
     await log('INFO', `3  - RWATokenization Address-> ${_rwaTokenizationAddress}`);
     await app.installModule(_rwaTokenizationAddress);
+    
+    rwaTokenization = await hre.ethers.getContractAt("RWATokenization", appAddress, wallet) as RWATokenization;
 
     await waitSec(15);
 
@@ -196,7 +198,7 @@ async function main() {
     const fexseAddress = await fexse.getAddress();
     await log('INFO', `5  - fexse Address-> ${fexseAddress}`);
 
-    await marketPlace.setFexseAddress(fexseAddress);
+    await rwaTokenization.setFexseAddress(fexseAddress);
 
     await waitSec(15);
 
