@@ -763,7 +763,7 @@ describe("RWATokenization Test", function () {
 
         const appAddress = await app.getAddress();
         
-        const amountFexse = ethers.parseEther("100");
+        const amountFexse = ethers.parseEther("40000");
         
         await hre.network.provider.request({
             method: "hardhat_impersonateAccount",

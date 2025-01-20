@@ -20,7 +20,6 @@ import "../interfaces/IFexsePriceFetcher.sol";
 import {AssetToken} from "../token/AssetToken.sol";
 import {IRWATokenization} from "../interfaces/IRWATokenization.sol";
 
-
 /**
  * @title SalesModule
  * @dev This contract is a module for handling sales within the RWATokenization system.
@@ -42,7 +41,6 @@ contract SalesModule is ModularInternal {
         uint256 tokenPrice
     );
     address immutable _this;
-
 
     /**
      * @dev Constructor function that initializes the contract.
@@ -80,21 +78,20 @@ contract SalesModule is ModularInternal {
         return facetCuts;
     }
 
-
     /**
      * @notice Allows a user to buy tokens for a specified asset.
      * @dev This function is protected by the nonReentrant modifier to prevent reentrancy attacks.
      * @param assetId The ID of the asset for which tokens are being purchased.
      * @param tokenAmount The amount of tokens to purchase.
      * @param saleCurrency The address of the currency used for the sale.
-     * 
+     *
      * Requirements:
      * - The asset must exist (asset.id != 0).
      * - The token amount must be greater than zero.
      * - The token price must be greater than zero.
      * - The buyer must have a sufficient balance of the sale currency.
      * - The buyer must have approved the contract to spend the sale currency.
-     * 
+     *
      * Emits a {TokensSold} event.
      */
     function buyTokens(
@@ -105,16 +102,19 @@ contract SalesModule is ModularInternal {
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
 
+        // presale tokens should be usdt tokens only
         require(saleCurrency == usdtToken, "buyTokens: Invalid sale currency");
+        require(asset.id != 0, "Asset already exists");
+        require(tokenAmount > 0, "Total tokens must be greater than zero");
+        require(asset.tokenPrice > 0, "Token price must be greater than zero");
 
         address buyer = msg.sender;
         address sender = data.deployer;
         uint256 servideFeeAmount;
         uint256 cost = asset.tokenPrice * tokenAmount;
 
-        require(asset.id != 0, "Asset already exists");
-        require(tokenAmount > 0, "Total tokens must be greater than zero");
-        require(asset.tokenPrice > 0, "Token price must be greater than zero");
+        require(cost <= 20000000000, "cost should be less than 20000000000");
+
 
         //uint256 fexsePrice = IFexsePriceFetcher(address(this)).getFexsePrice();
 
@@ -147,7 +147,6 @@ contract SalesModule is ModularInternal {
         emit TokensSold(assetId, buyer, tokenAmount, asset.tokenPrice);
     }
 
-
     /**
      * @notice Allows a user to buy Fexse tokens using a specified sale currency (e.g., USDT).
      * @dev This function is non-reentrant.
@@ -167,16 +166,20 @@ contract SalesModule is ModularInternal {
     ) external nonReentrant {
         AppStorage.Layout storage data = AppStorage.layout();
 
+        // presale tokens should be usdt tokens only
         require(saleCurrency == usdtToken, "buyFexse: Invalid sale currency");
+        require(tokenAmount > FEXSE_DECIMALS, "You must buy at least 1 token");
 
         address buyer = msg.sender;
         address sender = data.deployer;
 
-        require(tokenAmount > FEXSE_DECIMALS, "You must buy at least 1 token");
-
         //uint256 fexsePrice = IFexsePriceFetcher(address(this)).getFexsePrice();
 
-        uint256 usdtAmount = (tokenAmount * FEXSE_PRICE_IN_USDT ) / FEXSE_DECIMALS; // Total USDT required
+        uint256 usdtAmount = (tokenAmount * FEXSE_PRICE_IN_USDT) /
+            FEXSE_DECIMALS; // Total USDT required
+
+
+        require(usdtAmount <= 2000000000, "usdtAmount should be less than 2000000000");
 
         // Check USDT and fexse allowance and balance
         require(
@@ -185,10 +188,10 @@ contract SalesModule is ModularInternal {
         );
 
         require(
-            IERC20(data.fexseToken).allowance(sender, address(this)) >= tokenAmount,
+            IERC20(data.fexseToken).allowance(sender, address(this)) >=
+                tokenAmount,
             "Fexse allowance too low"
         );
-        
 
         require(
             IERC20(saleCurrency).balanceOf(buyer) >= usdtAmount,
