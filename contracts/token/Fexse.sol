@@ -49,21 +49,14 @@ contract Fexse is
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
     /**
-     * @dev Constructor for the Fexse token contract.
-     * @param appAddress The address to be granted the ADMIN_ROLE.
-     *
-     * The constructor initializes the ERC20 token with the name "Fexse" and symbol "FeXSe".
-     * It also initializes the ERC20Permit with the name "Fexse".
-     * The constructor mints 2,7 billion tokens (with decimals applied) to the deployer's address.
-     * Additionally, it grants the ADMIN_ROLE to both the deployer's address and the provided appAddress.
+     * @dev Constructor function that initializes the Fexse token contract.
+     * Mints the initial supply of tokens and grants the `DEFAULT_ADMIN_ROLE` and `ADMIN_ROLE` to the deployer.
      */
     constructor(
-        address appAddress
-    ) ERC20("Fexse", "FeXSe") ERC20Permit("Fexse") {
+    ) ERC20("Fexse", "FEXSE") ERC20Permit("Fexse") {
         _mint(msg.sender, 2700000000 * 10 ** decimals());
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(ADMIN_ROLE, msg.sender);
-        _grantRole(ADMIN_ROLE, appAddress);
     }
 
     function pause() public onlyRole(ADMIN_ROLE) {

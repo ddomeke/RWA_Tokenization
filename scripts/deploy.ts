@@ -192,7 +192,7 @@ async function main() {
 
     //--------------------- 5. Fexse.sol deploy -------------------------------------------------------
     const FexseContract = await hre.ethers.getContractFactory("Fexse", wallet);
-    fexse = await FexseContract.deploy(appAddress) as Fexse;
+    fexse = await FexseContract.deploy() as Fexse;
     await fexse.waitForDeployment();
 
     const fexseAddress = await fexse.getAddress();
