@@ -106,15 +106,13 @@ contract SalesModule is ModularInternal {
         require(saleCurrency == usdtToken, "buyTokens: Invalid sale currency");
         require(asset.id != 0, "Asset already exists");
         require(tokenAmount > 0, "Total tokens must be greater than zero");
+        require(tokenAmount <= 1000, "Total tokens must be smaller than one 1000");
         require(asset.tokenPrice > 0, "Token price must be greater than zero");
 
         address buyer = msg.sender;
         address sender = data.deployer;
         uint256 servideFeeAmount;
         uint256 cost = asset.tokenPrice * tokenAmount;
-
-        require(cost <= 20000000000, "cost should be less than 20000000000");
-
 
         //uint256 fexsePrice = IFexsePriceFetcher(address(this)).getFexsePrice();
 

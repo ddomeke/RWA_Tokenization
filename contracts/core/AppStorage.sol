@@ -35,7 +35,6 @@ library AppStorage {
      */
     struct Layout {
         bool initialized; // Flag to indicate whether the contract is fully initialized
-        bool entered; // Reentrancy guard to prevent multiple calls to non-reentrant functions
         uint8 nextAssetId; // Counter for generating unique asset identifiers
         uint16 selectorCount; // The number of function selectors currently in use
         address deployer; // The address that deployed the contract (used for administrative purposes)
