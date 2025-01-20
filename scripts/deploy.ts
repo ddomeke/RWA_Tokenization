@@ -153,18 +153,18 @@ async function main() {
     await waitSec(15);
 
     //--------------------- 2. MarketPlace.sol deploy ------------------------------------------------------
-    const MarketPlaceContract = await hre.ethers.getContractFactory("MarketPlace", wallet);
-    _marketPlace = await MarketPlaceContract.deploy(appAddress) as MarketPlace;
-    await _marketPlace.waitForDeployment();
-    const _marketPlaceAddress = await _marketPlace.getAddress();
-    log('INFO', `2  - market Place contract deployed at: ${_marketPlaceAddress}`);
+    // const MarketPlaceContract = await hre.ethers.getContractFactory("MarketPlace", wallet);
+    // _marketPlace = await MarketPlaceContract.deploy(appAddress) as MarketPlace;
+    // await _marketPlace.waitForDeployment();
+    // const _marketPlaceAddress = await _marketPlace.getAddress();
+    // log('INFO', `2  - market Place contract deployed at: ${_marketPlaceAddress}`);
 
 
-    await app.installModule(_marketPlaceAddress);
+    // await app.installModule(_marketPlaceAddress);
 
-    marketPlace = await hre.ethers.getContractAt("MarketPlace", appAddress, wallet) as MarketPlace;
+    // marketPlace = await hre.ethers.getContractAt("MarketPlace", appAddress, wallet) as MarketPlace;
 
-    await waitSec(15);
+    // await waitSec(15);
 
     //--------------------- 3. RWATokenization.sol deploy --------------------------------------------------------
     const RWATokenizationContract = await hre.ethers.getContractFactory("RWATokenization", wallet);
@@ -276,7 +276,7 @@ async function main() {
 
     await verifyContract(appAddress, []); 
     await verifyContract(_rwaTokenizationAddress, [appAddress]);
-    await verifyContract(_marketPlaceAddress, [appAddress]);
+    //await verifyContract(_marketPlaceAddress, [appAddress]);
     await verifyContract(fexseAddress, [appAddress]);
     await verifyContract(_salesModuleAddress, []);
 
