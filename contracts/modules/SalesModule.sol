@@ -29,6 +29,8 @@ import {IRWATokenization} from "../interfaces/IRWATokenization.sol";
 contract SalesModule is ModularInternal {
     using AppStorage for AppStorage.Layout;
 
+    address public immutable usdtToken;
+
     uint256 private constant FEXSE_DECIMALS = 10 ** 18; // 18 decimals for FEXSE
     uint256 private constant FEXSE_PRICE_IN_USDT = 45 * 10 ** 3; // 0.045 USDT represented as 45 (scaled by 10^3)
 
@@ -46,9 +48,10 @@ contract SalesModule is ModularInternal {
      * @dev Constructor function that initializes the contract.
      * Sets the contract's address to `_this` and grants the `ADMIN_ROLE` to the deployer of the contract.
      */
-    constructor() {
+    constructor(address _usdtToken) {
         _this = address(this);
         _grantRole(ADMIN_ROLE, msg.sender);
+        usdtToken = _usdtToken;
     }
 
     /**
@@ -101,6 +104,8 @@ contract SalesModule is ModularInternal {
     ) external nonReentrant {
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
+
+        require(saleCurrency == usdtToken, "buyTokens: Invalid sale currency");
 
         address buyer = msg.sender;
         address sender = data.deployer;
@@ -161,6 +166,8 @@ contract SalesModule is ModularInternal {
         address saleCurrency
     ) external nonReentrant {
         AppStorage.Layout storage data = AppStorage.layout();
+
+        require(saleCurrency == usdtToken, "buyFexse: Invalid sale currency");
 
         address buyer = msg.sender;
         address sender = data.deployer;

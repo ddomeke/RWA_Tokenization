@@ -254,7 +254,7 @@ async function main() {
     //--------------------- 10. SalesModule.sol deploy ------------------------------------------------------------------
 
     const SalesModuleContract = await hre.ethers.getContractFactory("SalesModule", wallet);
-    _salesModule = await SalesModuleContract.deploy() as SalesModule;
+    _salesModule = await SalesModuleContract.deploy(USDT_ADDRESS) as SalesModule;
     await _salesModule.waitForDeployment();
     await waitSec(15);
 

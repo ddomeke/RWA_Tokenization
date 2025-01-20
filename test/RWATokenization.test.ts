@@ -225,7 +225,7 @@ describe("RWATokenization Test", function () {
         fexseUsdtPoolCreator = await hre.ethers.getContractAt("FexseUsdtPoolCreator", appAddress) as FexseUsdtPoolCreator;
 
         //--------------------- 11. SalesModule.sol deploy --------------------------------------------------------
-        _salesModule = await hre.ethers.deployContract("SalesModule");
+        _salesModule = await hre.ethers.deployContract("SalesModule",[USDT_ADDRESS]);
         const _salesModuleAddress = await _salesModule.getAddress();
         await log('INFO', `11  - _sales Module Address-> ${_salesModuleAddress}`);
         gasPriceCalc(_salesModule.deploymentTransaction());
