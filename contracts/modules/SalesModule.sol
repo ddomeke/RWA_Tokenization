@@ -6,19 +6,21 @@ pragma solidity ^0.8.24;
  * @dev This file is part of the RWATokenization project and contains the SalesModule contract.
  *
  * Imports:
- * - ModularInternal.sol: Provides internal modular functionality.
- * - IERC20.sol: Interface for the ERC20 standard.
- * - Strings.sol: Utility functions for string operations.
- * - AssetToken.sol: AssetToken contract for tokenized assets.
- * - IRWATokenization.sol: Interface for the RWATokenization project.
+ * - ModularInternal: Abstract contract providing internal modular functionality.
+ * - IERC20: Interface for the ERC20 standard as defined in the EIP.
+ * - Strings: Utility library for string operations.
+ * - IFexsePriceFetcher: Interface for fetching price data.
+ * - AssetToken: Contract representing an asset-backed token.
+ * - IRWATokenization: Interface for the RWATokenization project.
+ * - SafeERC20: Library for safe operations with ERC20 tokens.
  */
-
 import "../core/abstracts/ModularInternal.sol";
 import "../token/ERC20/IERC20.sol";
 import "../utils/Strings.sol";
 import "../interfaces/IFexsePriceFetcher.sol";
 import {AssetToken} from "../token/AssetToken.sol";
 import {IRWATokenization} from "../interfaces/IRWATokenization.sol";
+import {SafeERC20} from "../token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title SalesModule
@@ -135,7 +137,7 @@ contract SalesModule is ModularInternal {
             "Insufficient saleCurrency allowance"
         );
 
-        IERC20(saleCurrency).transferFrom(buyer, sender, cost);
+        SafeERC20.safeTransferFrom(IERC20(saleCurrency), buyer, sender, cost);
 
         IAssetToken(asset.tokenContract).safeTransferFrom(
             sender,
@@ -208,9 +210,11 @@ contract SalesModule is ModularInternal {
         );
 
         // Transfer USDT from buyer to contract
-        require(
-            IERC20(saleCurrency).transferFrom(buyer, sender, usdtAmount),
-            "USDT transfer failed"
+        SafeERC20.safeTransferFrom(
+            IERC20(saleCurrency),
+            buyer,
+            sender,
+            usdtAmount
         );
 
         // Transfer tokens from contract to buyer

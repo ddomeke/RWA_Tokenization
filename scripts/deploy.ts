@@ -15,7 +15,6 @@ import {
     RWA_DAO,
     SwapModule,
     FexsePriceFetcher,
-    FexseUsdtPoolCreator,
     SalesModule,
 } from "../typechain-types";
 
@@ -81,8 +80,6 @@ async function main() {
     let _swapModule: SwapModule;
     let fexsePriceFetcher: FexsePriceFetcher;
     let _fexsePriceFetcher: FexsePriceFetcher;
-    let fexseUsdtPoolCreator: FexseUsdtPoolCreator;
-    let _fexseUsdtPoolCreator: FexseUsdtPoolCreator;
     let marketPlace: MarketPlace;
     let _marketPlace: MarketPlace;
     let assetToken: AssetToken;
@@ -256,20 +253,7 @@ async function main() {
 
     // await waitSec(15);
 
-    //--------------------- 10. FexseUsdtPoolCreator.sol deploy ---------------------------------------------------------
-    // const FexseUsdtPoolCreatorContract = await hre.ethers.getContractFactory("FexseUsdtPoolCreator", wallet);
-    // _fexseUsdtPoolCreator = await FexseUsdtPoolCreatorContract.deploy(fexseAddress, USDT_ADDRESS, 3000) as FexseUsdtPoolCreator;
-    // await _fexseUsdtPoolCreator.waitForDeployment();
-
-    // const _fexseUsdtPoolCreatorAddress = await _fexseUsdtPoolCreator.getAddress();
-    // await log('INFO', `10  - _fexseUsdtPoolCreator Address-> ${_fexseUsdtPoolCreatorAddress}`);
-
-    // await app.installModule(_fexseUsdtPoolCreatorAddress);
-    // fexseUsdtPoolCreator = await hre.ethers.getContractAt("FexseUsdtPoolCreator", appAddress, wallet) as FexseUsdtPoolCreator;
-
-    // await waitSec(15);
-
-    //--------------------- 11. SalesModule.sol deploy ------------------------------------------------------------------
+    //--------------------- 10. SalesModule.sol deploy ------------------------------------------------------------------
 
     const SalesModuleContract = await hre.ethers.getContractFactory("SalesModule", wallet);
     _salesModule = await SalesModuleContract.deploy(USDT_ADDRESS) as SalesModule;

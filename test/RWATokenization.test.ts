@@ -15,7 +15,6 @@ import {
     RWA_DAO,
     SwapModule,
     FexsePriceFetcher,
-    FexseUsdtPoolCreator,
     SalesModule,
 } from "../typechain-types";
 
@@ -50,8 +49,6 @@ describe("RWATokenization Test", function () {
     let _swapModule: SwapModule;
     let fexsePriceFetcher: FexsePriceFetcher;
     let _fexsePriceFetcher: FexsePriceFetcher;
-    let fexseUsdtPoolCreator: FexseUsdtPoolCreator;
-    let _fexseUsdtPoolCreator: FexseUsdtPoolCreator;
     let marketPlace: MarketPlace;
     let _marketPlace: MarketPlace;
     let assetToken: AssetToken;
@@ -74,7 +71,6 @@ describe("RWATokenization Test", function () {
 
     const My_ADDRESS = params.My_ADDRESS;
     const My_ADDRESS2 = params.My_ADDRESS2;
-    const POSITIONMANAGER = params.POSITIONMANAGER;
     const FEXSE_ADDRESS = params.FEXSE_ADDRESS;
     const ZERO_ADDRESS = params.ZERO_ADDRESS;
     const TEST_CHAIN = params.TEST_CHAIN;
@@ -228,28 +224,20 @@ describe("RWATokenization Test", function () {
         fexsePriceFetcher = await hre.ethers.getContractAt("FexsePriceFetcher", appAddress) as FexsePriceFetcher;
 
 
-        //--------------------- 11. FexseUsdtPoolCreator.sol deploy --------------------------------------------------------
-        _fexseUsdtPoolCreator = await hre.ethers.deployContract("FexseUsdtPoolCreator", [fexseAddress, USDT_ADDRESS, 3000]);
-        const _fexseUsdtPoolCreatorAddress = await _fexseUsdtPoolCreator.getAddress();
-        await log('INFO', `11  - _fexseUsdtPoolCreator Module Address-> ${_fexseUsdtPoolCreatorAddress}`);
-        gasPriceCalc(_fexseUsdtPoolCreator.deploymentTransaction());
 
-        await app.installModule(_fexseUsdtPoolCreatorAddress);
-        fexseUsdtPoolCreator = await hre.ethers.getContractAt("FexseUsdtPoolCreator", appAddress) as FexseUsdtPoolCreator;
-
-        //--------------------- 12. SalesModule.sol deploy --------------------------------------------------------
+        //--------------------- 11. SalesModule.sol deploy --------------------------------------------------------
         _salesModule = await hre.ethers.deployContract("SalesModule",[USDT_ADDRESS]);
         const _salesModuleAddress = await _salesModule.getAddress();
-        await log('INFO', `12  - _sales Module Address-> ${_salesModuleAddress}`);
+        await log('INFO', `11  - _sales Module Address-> ${_salesModuleAddress}`);
         gasPriceCalc(_salesModule.deploymentTransaction());
 
         await app.installModule(_salesModuleAddress);
         salesModule = await hre.ethers.getContractAt("SalesModule", appAddress) as SalesModule;
 
-        //--------------------- 13. USDT ERC20   ---------------------------------------------
+        //--------------------- 12. USDT ERC20   ---------------------------------------------
         usdtContract = (await hre.ethers.getContractAt(ERC20_ABI, USDT_ADDRESS)) as unknown as IERC20;
 
-        //--------------------- 14. WETH ERC20   ---------------------------------------------
+        //--------------------- 12. WETH ERC20   ---------------------------------------------
         wethContract = (await hre.ethers.getContractAt(ERC20_ABI, WETH_ADDRESS)) as unknown as IERC20;
 
         log('INFO', "---------------------------TRANSFER - APPROVE----------------------------------------");
@@ -288,9 +276,9 @@ describe("RWATokenization Test", function () {
         for (const addr of addresses) {
 
             await usdtContract.connect(impersonatedSigner).transfer(addr.address, amountUSDT); // Transfer USDT
-            await wethContract.connect(impersonatedSigner2).transfer(addr.address, amountWETH); // Transfer WETH
+            //await wethContract.connect(impersonatedSigner2).transfer(addr.address, amountWETH); // Transfer WETH
             await usdtContract.connect(addr).approve(appAddress, hre.ethers.MaxUint256);
-            await wethContract.connect(addr).approve(appAddress, hre.ethers.MaxUint256); // Transfer WETH
+            //await wethContract.connect(addr).approve(appAddress, hre.ethers.MaxUint256); // Transfer WETH
             await fexse.connect(addresses[0]).transfer(addr.address, amountFexse); // Transfer fexse
             await fexse.connect(addr).approve(appAddress, hre.ethers.MaxUint256);
 
@@ -302,10 +290,7 @@ describe("RWATokenization Test", function () {
         await fexse.connect(addresses[0]).transfer(impersonatedSigner2, amountFexse); // Transfer fexse
 
         await assetToken.connect(addresses[0]).setApprovalForAll(_rwaTokenizationAddress, true);
-
-        await usdtContract.connect(addresses[0]).approve(appAddress, hre.ethers.MaxUint256);
         await usdtContract.connect(addresses[0]).approve(_rwaTokenizationAddress, hre.ethers.MaxUint256);
-        await usdtContract.connect(addresses[0]).approve(POSITIONMANAGER, hre.ethers.MaxUint256);
         await usdtContract.connect(impersonatedSigner).approve(appAddress, hre.ethers.MaxUint256);
         await usdtContract.connect(impersonatedSigner).approve(_rwaTokenizationAddress, hre.ethers.MaxUint256);
         await usdtContract.connect(impersonatedSigner2).approve(appAddress, hre.ethers.MaxUint256);
@@ -313,14 +298,12 @@ describe("RWATokenization Test", function () {
 
         await wethContract.connect(addresses[0]).approve(appAddress, hre.ethers.MaxUint256);
         await wethContract.connect(addresses[0]).approve(_rwaTokenizationAddress, hre.ethers.MaxUint256);
-        await wethContract.connect(addresses[0]).approve(POSITIONMANAGER, hre.ethers.MaxUint256);
         await wethContract.connect(impersonatedSigner).approve(appAddress, hre.ethers.MaxUint256);
         await wethContract.connect(impersonatedSigner).approve(_rwaTokenizationAddress, hre.ethers.MaxUint256);
         await wethContract.connect(impersonatedSigner2).approve(appAddress, hre.ethers.MaxUint256);
         await wethContract.connect(impersonatedSigner2).approve(_rwaTokenizationAddress, hre.ethers.MaxUint256);
 
         await fexse.connect(addresses[0]).approve(appAddress, hre.ethers.MaxUint256);
-        await fexse.connect(addresses[0]).approve(POSITIONMANAGER, hre.ethers.MaxUint256);
         await fexse.connect(addresses[0]).approve(_rwaTokenizationAddress, hre.ethers.MaxUint256);
         await fexse.connect(impersonatedSigner).approve(appAddress, hre.ethers.MaxUint256);
         await fexse.connect(impersonatedSigner).approve(_rwaTokenizationAddress, hre.ethers.MaxUint256);
@@ -691,38 +674,9 @@ describe("RWATokenization Test", function () {
     });
 
     /*-----------------------------------------------------------------------------------------------
-    -------------------createPool- getFexsePrice----------------------------------------------------------
-    -----------------------------------------------------------------------------------------------*/
-    it("  7  --------------> Should createPool - getFexsePrice", async function () {
-
-        log('INFO', ``);
-        log('INFO', "-----------------------------------------------createPool - getFexsePrice-----------------------------------------");
-        log('INFO', ``);
-
-        const initialPriceX96 = BigInt("3565267313141895191709477765000000000000");
-
-        await fexseUsdtPoolCreator.connect(addresses[0]).createPool(initialPriceX96);
-
-        const atoken1 = ethers.parseEther("10");
-        const aFexse = ethers.parseEther("1000");
-        const ausdt = 45000000;
-
-        //const ticklower = 
-
-        await getProject_All_Balances(addresses[0], 0);
-        await fexseUsdtPoolCreator.connect(addresses[0]).addLiquidity(aFexse, ausdt, 112860, 113100);
-        await getProject_All_Balances(addresses[0], 0);
-
-        const fexsePrice = await fexsePriceFetcher.getFexsePrice();
-        log('INFO', `fexsePrice : ${fexsePrice}`);
-
-
-    });
-
-    /*-----------------------------------------------------------------------------------------------
     -------------------buyTokens-----------------------------------------------------------
     -----------------------------------------------------------------------------------------------*/
-    it("  8  --------------> Should buyTokens", async function () {
+    it("  7  --------------> Should buyTokens", async function () {
 
         log('INFO', ``);
         log('INFO', "-----------------------------------------------buyTokens-----------------------------------------------------");
@@ -757,7 +711,7 @@ describe("RWATokenization Test", function () {
         log('INFO', ``);
 
         await assetToken_sample1.connect(addresses[0]).setApprovalForAll(appAddress,true);
-        await salesModule.connect(buyer).buyTokens(ASSETID_V3, 45, USDT_ADDRESS/*fexseAddress*/);
+        await salesModule.connect(buyer).buyTokens(ASSETID_V3, 5, USDT_ADDRESS/*fexseAddress*/);
         
         await logAssetDetails(ASSETID_V3, addresses[0])
         await logAssetDetails(ASSETID_V3, buyer.address)
@@ -770,7 +724,7 @@ describe("RWATokenization Test", function () {
     /*-----------------------------------------------------------------------------------------------
     ------------------------------buyFexse-----------------------------------------------------------
     -----------------------------------------------------------------------------------------------*/
-    it("  9  --------------> Should buyFexse", async function () {
+    it("  8  --------------> Should buyFexse", async function () {
 
         log('INFO', ``);
         log('INFO', "-----------------------------------------------buyFexse-----------------------------------------------------");
@@ -796,10 +750,13 @@ describe("RWATokenization Test", function () {
         log('INFO', ``);
 
         await fexse.connect(addresses[0]).approve(appAddress, hre.ethers.MaxUint256);
-        await usdtContract.connect(buyer).approve(appAddress, hre.ethers.MaxUint256);
+        log('INFO', `1`);
+        //await usdtContract.connect(buyer).approve(appAddress, hre.ethers.MaxUint256);
+        log('INFO', `2`);
 
         //await salesModule.connect(addresses[0]).setPrice(45000);
         await salesModule.connect(buyer).buyFexse(amountFexse, USDT_ADDRESS);
+        log('INFO', `3`);
 
         await getProject_All_Balances(addresses[0], 0);
         await getProject_All_Balances(buyer, 0);
