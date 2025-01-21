@@ -9,6 +9,7 @@ import {
     AssetToken,
     Fexse,
     RWATokenization,
+    ProfitModule,
     Compliance,
     MarketPlace,
     RWA_DAO,
@@ -39,6 +40,8 @@ describe("RWATokenization Test", function () {
     let app: App;
     let rwaTokenization: RWATokenization;
     let _rwaTokenization: RWATokenization;
+    let profitModule: ProfitModule;
+    let _profitModule: ProfitModule;
     let compliance: Compliance;
     let _compliance: Compliance;
     let rwa_DAO: RWA_DAO;
@@ -159,84 +162,93 @@ describe("RWATokenization Test", function () {
         await app.installModule(_rwaTokenizationAddress);
         rwaTokenization = await hre.ethers.getContractAt("RWATokenization", appAddress) as RWATokenization;
 
+        //--------------------- 4. ProfitModule.sol deploy --------------------------------------------------------
+        _profitModule = await hre.ethers.deployContract("ProfitModule", [appAddress]);
+        const _profitModuleAddress = await _profitModule.getAddress();
+        await log('INFO', `4  - _profitModule Address-> ${_profitModuleAddress}`);
+        gasPriceCalc(_profitModule.deploymentTransaction());
 
-        //--------------------- 4. Compliance.sol deploy --------------------------------------------------------
+        await app.installModule(_profitModuleAddress);
+        profitModule = await hre.ethers.getContractAt("ProfitModule", appAddress) as ProfitModule;
+
+
+        //--------------------- 5. Compliance.sol deploy --------------------------------------------------------
         _compliance = await hre.ethers.deployContract("Compliance", [appAddress]);
         const _complianceAddress = await _compliance.getAddress();
-        await log('INFO', `4  - _compliance Address-> ${_complianceAddress}`);
+        await log('INFO', `5  - _compliance Address-> ${_complianceAddress}`);
         gasPriceCalc(_compliance.deploymentTransaction());
 
         await app.installModule(_complianceAddress);
         compliance = await hre.ethers.getContractAt("Compliance", appAddress) as Compliance;
 
 
-        //--------------------- 5. createAsset.sol deploy  ---------------------------------------------
+        //--------------------- 6. createAsset.sol deploy  ---------------------------------------------
         const createTx = await rwaTokenization.createAsset(ASSET_ID, TOTALTOKENS, TOKENPRICE, ASSETURI, "Otel", "OT");
         await createTx.wait();
 
         const assetTokenAddress = await rwaTokenization.getTokenContractAddress(ASSET_ID);
         assetToken = await hre.ethers.getContractAt("AssetToken", assetTokenAddress) as AssetToken;
-        await log('INFO', `5  - assetToken Address -> ${assetTokenAddress}`);
+        await log('INFO', `6  - assetToken Address -> ${assetTokenAddress}`);
 
-        //--------------------- 6. Fexse.sol deploy  ---------------------------------------------
+        //--------------------- 7. Fexse.sol deploy  ---------------------------------------------
         fexse = await hre.ethers.deployContract("Fexse");
         const fexseAddress = await fexse.getAddress();
-        await log('INFO', `6  - fexse Address-> ${fexseAddress}`);
+        await log('INFO', `7  - fexse Address-> ${fexseAddress}`);
         await gasPriceCalc(fexse.deploymentTransaction());
 
         await rwaTokenization.setFexseAddress(fexseAddress);
 
-        //--------------------- 7. RWA_DAO.sol deploy --------------------------------------------------------
+        //--------------------- 8. RWA_DAO.sol deploy --------------------------------------------------------
         _rwa_DAO = await hre.ethers.deployContract("RWA_DAO", [appAddress]);
         const _rwa_DAOAddress = await _rwa_DAO.getAddress();
-        await log('INFO', `7  - _rwa_DAO Address-> ${_rwa_DAOAddress}`);
+        await log('INFO', `8  - _rwa_DAO Address-> ${_rwa_DAOAddress}`);
         gasPriceCalc(_rwa_DAO.deploymentTransaction());
 
         await app.installModule(_rwa_DAOAddress);
         rwa_DAO = await hre.ethers.getContractAt("RWA_DAO", appAddress) as RWA_DAO;
 
 
-        //--------------------- 8. SwapModule.sol deploy --------------------------------------------------------
+        //--------------------- 9. SwapModule.sol deploy --------------------------------------------------------
         _swapModule = await hre.ethers.deployContract("SwapModule", [UNISWAP_V3_ROUTER, USDT_ADDRESS, 3000]);
         const _swapModuleAddress = await _swapModule.getAddress();
-        await log('INFO', `8  - _swap Module Address-> ${_swapModuleAddress}`);
+        await log('INFO', `9  - _swap Module Address-> ${_swapModuleAddress}`);
         gasPriceCalc(_swapModule.deploymentTransaction());
 
         await app.installModule(_swapModuleAddress);
         swapModule = await hre.ethers.getContractAt("SwapModule", appAddress) as SwapModule;
 
-        //--------------------- 9. FexsePriceFetcher.sol deploy --------------------------------------------------------
+        //--------------------- 10. FexsePriceFetcher.sol deploy --------------------------------------------------------
         _fexsePriceFetcher = await hre.ethers.deployContract("FexsePriceFetcher", ["0xf97f4df75117a78c1A5a0DBb814Af92458539FB4", USDT_ADDRESS, 3000]);
         const _fexsePriceFetcherAddress = await _fexsePriceFetcher.getAddress();
-        await log('INFO', `9  - _fexsePriceFetcher Module Address-> ${_fexsePriceFetcherAddress}`);
+        await log('INFO', `10  - _fexsePriceFetcher Module Address-> ${_fexsePriceFetcherAddress}`);
         gasPriceCalc(_fexsePriceFetcher.deploymentTransaction());
 
         await app.installModule(_fexsePriceFetcherAddress);
         fexsePriceFetcher = await hre.ethers.getContractAt("FexsePriceFetcher", appAddress) as FexsePriceFetcher;
 
 
-        //--------------------- 10. FexseUsdtPoolCreator.sol deploy --------------------------------------------------------
+        //--------------------- 11. FexseUsdtPoolCreator.sol deploy --------------------------------------------------------
         _fexseUsdtPoolCreator = await hre.ethers.deployContract("FexseUsdtPoolCreator", [fexseAddress, USDT_ADDRESS, 3000]);
         const _fexseUsdtPoolCreatorAddress = await _fexseUsdtPoolCreator.getAddress();
-        await log('INFO', `10  - _fexseUsdtPoolCreator Module Address-> ${_fexseUsdtPoolCreatorAddress}`);
+        await log('INFO', `11  - _fexseUsdtPoolCreator Module Address-> ${_fexseUsdtPoolCreatorAddress}`);
         gasPriceCalc(_fexseUsdtPoolCreator.deploymentTransaction());
 
         await app.installModule(_fexseUsdtPoolCreatorAddress);
         fexseUsdtPoolCreator = await hre.ethers.getContractAt("FexseUsdtPoolCreator", appAddress) as FexseUsdtPoolCreator;
 
-        //--------------------- 11. SalesModule.sol deploy --------------------------------------------------------
+        //--------------------- 12. SalesModule.sol deploy --------------------------------------------------------
         _salesModule = await hre.ethers.deployContract("SalesModule",[USDT_ADDRESS]);
         const _salesModuleAddress = await _salesModule.getAddress();
-        await log('INFO', `11  - _sales Module Address-> ${_salesModuleAddress}`);
+        await log('INFO', `12  - _sales Module Address-> ${_salesModuleAddress}`);
         gasPriceCalc(_salesModule.deploymentTransaction());
 
         await app.installModule(_salesModuleAddress);
         salesModule = await hre.ethers.getContractAt("SalesModule", appAddress) as SalesModule;
 
-        //--------------------- 12. USDT ERC20   ---------------------------------------------
+        //--------------------- 13. USDT ERC20   ---------------------------------------------
         usdtContract = (await hre.ethers.getContractAt(ERC20_ABI, USDT_ADDRESS)) as unknown as IERC20;
 
-        //--------------------- 13. WETH ERC20   ---------------------------------------------
+        //--------------------- 14. WETH ERC20   ---------------------------------------------
         wethContract = (await hre.ethers.getContractAt(ERC20_ABI, WETH_ADDRESS)) as unknown as IERC20;
 
         log('INFO', "---------------------------TRANSFER - APPROVE----------------------------------------");
@@ -433,13 +445,13 @@ describe("RWATokenization Test", function () {
 
         const TotalTokens = await rwaTokenization.getTotalTokens(assetId);
         const TokenPrice = await rwaTokenization.getTokenPrice(assetId);
-        const TotalProfit = await rwaTokenization.getTotalProfit(assetId);
-        const LastDistributed = await rwaTokenization.getLastDistributed(assetId);
+        const TotalProfit = await profitModule.getTotalProfit(assetId);
+        const LastDistributed = await profitModule.getLastDistributed(assetId);
         const Uri = await rwaTokenization.getUri(assetId);
         const TokenContractAddress = await rwaTokenization.getTokenContractAddress(assetId);
         const TokenHolders = await rwaTokenization.getTokenHolders(assetId);
         const HolderBalance = await rwaTokenization.getHolderBalance(assetId, holderAddress);
-        const PendingProfits = await rwaTokenization.getPendingProfits(assetId, holderAddress);
+        const PendingProfits = await profitModule.getPendingProfits(assetId, holderAddress);
 
         log("INFO", `TotalTokens                        : ${TotalTokens}`);
         log("INFO", `TokenPrice                         : ${TokenPrice}`);
@@ -615,12 +627,12 @@ describe("RWATokenization Test", function () {
                 "0x");
         }
 
-        await rwaTokenization.connect(addresses[0]).distributeProfit(ASSET_ID, 70000000000,0,3);
-        await rwaTokenization.connect(addresses[0]).distributeProfit(ASSET_ID, 70000000000,4,6);
-        await rwaTokenization.connect(addresses[0]).distributeProfit(ASSET_ID, 70000000000,7,9);
+        await profitModule.connect(addresses[0]).distributeProfit(ASSET_ID, 70000000000,0,3);
+        await profitModule.connect(addresses[0]).distributeProfit(ASSET_ID, 70000000000,4,6);
+        await profitModule.connect(addresses[0]).distributeProfit(ASSET_ID, 70000000000,7,9);
 
         for (const addr of addresses) {
-            const pendingProfit = await rwaTokenization.getPendingProfits(ASSET_ID, addr);
+            const pendingProfit = await profitModule.getPendingProfits(ASSET_ID, addr);
             log('INFO', `pendingProfit for addr: ${addr.address} amount: ${pendingProfit}  `);
         }
 
@@ -648,7 +660,7 @@ describe("RWATokenization Test", function () {
         // await getProject_All_Balances(buyer, 0);
 
         for (const addr of addresses) {
-            await rwaTokenization.connect(addr).claimProfit(ASSET_IDS);
+            await profitModule.connect(addr).claimProfit(ASSET_IDS);
             await getProject_All_Balances(addr, 0);
         }
     });

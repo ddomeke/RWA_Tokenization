@@ -12,13 +12,6 @@ interface IRWATokenization {
         string memory assetUri
     ) external;
 
-    function distributeProfit(        uint256 assetId,
-        uint256 profitPerToken, //fexse currency
-        uint256 startIndex,
-        uint256 endIndex) external;
-
-    function claimProfit(uint256 assetId) external;
-
     function updateAsset(uint256 assetId, uint256 newTokenPrice) external;
 
     function getAssetId(uint256 assetId) external view returns (uint256);
@@ -27,19 +20,20 @@ interface IRWATokenization {
 
     function getTokenPrice(uint256 assetId) external view returns (uint256);
 
-    function getTotalProfit(uint256 assetId) external view returns (uint256);
-
-    function getLastDistributed(uint256 assetId) external view returns (uint256);
-
     function getUri(uint256 assetId) external view returns (string memory);
 
-    function getTokenContractAddress(uint256 assetId) external view returns (address);
+    function getTokenContractAddress(
+        uint256 assetId
+    ) external view returns (address);
 
-    function getTokenHolders(uint256 assetId) external view returns (address[] memory);
+    function getTokenHolders(
+        uint256 assetId
+    ) external view returns (address[] memory);
 
-    function getHolderBalance(uint256 assetId, address holder) external view returns (uint256);
-
-    function getPendingProfits(uint256 assetId, address holder) external view returns (uint256);
+    function getHolderBalance(
+        uint256 assetId,
+        address holder
+    ) external view returns (uint256);
 
     function updateHoldings(
         address account,

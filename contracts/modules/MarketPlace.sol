@@ -28,9 +28,6 @@ import {IMarketPlace} from "../interfaces/IMarketPlace.sol";
 contract MarketPlace is ModularInternal {
     using AppStorage for AppStorage.Layout;
 
-    uint256 private constant FEXSE_DECIMALS = 10 ** 18; // 18 decimals for FEXSE
-    uint256 private constant FEXSE_PRICE_IN_USDT = 45; // 0.045 USDT represented as 45 (scaled by 10^3)
-
     // Mapping to store assets by ID
     mapping(uint256 => Asset) public assets;
 
