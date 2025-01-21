@@ -59,9 +59,27 @@ contract Fexse is
         _grantRole(ADMIN_ROLE, msg.sender);
     }
 
+    /**
+     * @dev Triggers stopped state.
+     *
+     * Requirements:
+     *
+     * - The caller must have `ADMIN_ROLE`.
+     *
+     * Emits a {Paused} event.
+     */
     function pause() public onlyRole(ADMIN_ROLE) {
         _pause();
     }
+    /**
+     * @dev Unpauses all token transfers.
+     *
+     * Requirements:
+     *
+     * - The caller must have the `ADMIN_ROLE`.
+     *
+     * Emits a {Unpaused} event.
+     */
 
     function unpause() public onlyRole(ADMIN_ROLE) {
         _unpause();

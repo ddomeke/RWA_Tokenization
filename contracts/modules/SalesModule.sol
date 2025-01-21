@@ -106,7 +106,10 @@ contract SalesModule is ModularInternal {
         require(saleCurrency == usdtToken, "buyTokens: Invalid sale currency");
         require(asset.id != 0, "Asset already exists");
         require(tokenAmount > 0, "Total tokens must be greater than zero");
-        require(tokenAmount <= 1000, "Total tokens must be smaller than one 1000");
+        require(
+            tokenAmount <= 1000,
+            "Total tokens must be smaller than one 1000"
+        );
         require(asset.tokenPrice > 0, "Token price must be greater than zero");
 
         address buyer = msg.sender;
@@ -176,8 +179,10 @@ contract SalesModule is ModularInternal {
         uint256 usdtAmount = (tokenAmount * FEXSE_PRICE_IN_USDT) /
             FEXSE_DECIMALS; // Total USDT required
 
-
-        require(usdtAmount <= 2000000000, "usdtAmount should be less than 2000000000");
+        require(
+            usdtAmount <= 2000000000,
+            "usdtAmount should be less than 2000000000"
+        );
 
         // Check USDT and fexse allowance and balance
         require(
