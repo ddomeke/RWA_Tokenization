@@ -12,7 +12,10 @@ interface IRWATokenization {
         string memory assetUri
     ) external;
 
-    function distributeProfit(uint256 assetId, uint256 profitAmount) external;
+    function distributeProfit(        uint256 assetId,
+        uint256 profitPerToken, //fexse currency
+        uint256 startIndex,
+        uint256 endIndex) external;
 
     function claimProfit(uint256 assetId) external;
 

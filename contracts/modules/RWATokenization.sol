@@ -27,45 +27,16 @@ contract RWATokenization is ModularInternal {
 
     address public appAddress;
 
-    uint256 private constant FEXSE_DECIMALS = 10 ** 18; // 18 decimals for FEXSE
-    uint256 private constant FEXSE_PRICE_IN_USDT = 45; // 0.045 USDT represented as 45 (scaled by 10^3)
-
-    // Mapping to store assets by ID
-
     // Event to log profit distribution
-    event ProfitDistributed(
-        uint256 assetId,
-        uint256 totalProfit,
-        uint256 amountPerToken,
-        uint256 startIndex,
-        uint256 endIndex
-    );
     event AssetUpdated(uint256 assetId, uint256 newTokenPrice);
-    event TokensPurchased(
-        address buyer,
-        uint256 assetId,
-        uint256 amount,
-        uint256 cost
-    );
-    event TokensSold(
-        address buyer,
-        address seller,
-        uint256 assetId,
-        uint256 amount,
-        uint256 cost
-    );
+
     event AssetCreated(
         uint256 assetId,
         address tokenContract,
         uint256 totalTokens,
         uint256 tokenPrice,
-        string  name,
-        string  symbol
-    );
-    event Claimed(
-        address indexed user,
-        uint256[] assetIds,
-        uint256 totalFexseAmount
+        string name,
+        string symbol
     );
 
     event AssetHolderBalanceUpdated(
@@ -100,21 +71,16 @@ contract RWATokenization is ModularInternal {
      */
     function moduleFacets() external view returns (FacetCut[] memory) {
         uint256 selectorIndex = 0;
-        bytes4[] memory selectors = new bytes4[](15);
+        bytes4[] memory selectors = new bytes4[](10);
 
         // Add function selectors to the array
         selectors[selectorIndex++] = this.createAsset.selector;
         selectors[selectorIndex++] = this.getTotalTokens.selector;
         selectors[selectorIndex++] = this.getTokenPrice.selector;
-        selectors[selectorIndex++] = this.getTotalProfit.selector;
-        selectors[selectorIndex++] = this.getLastDistributed.selector;
         selectors[selectorIndex++] = this.getUri.selector;
         selectors[selectorIndex++] = this.getTokenContractAddress.selector;
         selectors[selectorIndex++] = this.getTokenHolders.selector;
         selectors[selectorIndex++] = this.getHolderBalance.selector;
-        selectors[selectorIndex++] = this.getPendingProfits.selector;
-        selectors[selectorIndex++] = this.distributeProfit.selector;
-        selectors[selectorIndex++] = this.claimProfit.selector;
         selectors[selectorIndex++] = this.updateAsset.selector;
         selectors[selectorIndex++] = this.updateHoldings.selector;
         selectors[selectorIndex++] = this.setFexseAddress.selector;
@@ -178,7 +144,14 @@ contract RWATokenization is ModularInternal {
 
         token.mint(data.deployer, assetId, totalTokens, "");
 
-        emit AssetCreated(assetId, address(token), totalTokens, tokenPrice, name, symbol);
+        emit AssetCreated(
+            assetId,
+            address(token),
+            totalTokens,
+            tokenPrice,
+            name,
+            symbol
+        );
     }
 
     /**
@@ -207,37 +180,6 @@ contract RWATokenization is ModularInternal {
 
         require(asset.id != 0, "Asset does not exist");
         return asset.tokenPrice;
-    }
-
-    /**
-     * @notice Retrieves the total profit for a given asset.
-     * @param assetId The unique identifier of the asset.
-     * @return The total profit associated with the specified asset.
-     * @dev This function reads from the AppStorage to get the asset details.
-     *      It requires that the asset with the given ID exists.
-     */
-    function getTotalProfit(uint256 assetId) external view returns (uint256) {
-        AppStorage.Layout storage data = AppStorage.layout();
-        Asset storage asset = data.assets[assetId];
-
-        require(asset.id != 0, "Asset does not exist");
-        return asset.totalProfit;
-    }
-
-    /**
-     * @notice Retrieves the timestamp of the last distribution for a given asset.
-     * @param assetId The unique identifier of the asset.
-     * @return The timestamp of the last distribution for the specified asset.
-     * @dev Reverts if the asset does not exist.
-     */
-    function getLastDistributed(
-        uint256 assetId
-    ) external view returns (uint256) {
-        AppStorage.Layout storage data = AppStorage.layout();
-        Asset storage asset = data.assets[assetId];
-
-        require(asset.id != 0, "Asset does not exist");
-        return asset.lastDistributed;
     }
 
     /**
@@ -303,106 +245,6 @@ contract RWATokenization is ModularInternal {
 
         require(asset.id != 0, "Asset does not exist");
         return asset.userTokenInfo[holder].holdings;
-    }
-
-    /**
-     * @notice Retrieves the pending profits for a specific asset holder.
-     * @param assetId The ID of the asset.
-     * @param holder The address of the asset holder.
-     * @return The amount of pending profits for the specified asset holder.
-     * @dev Reverts if the asset does not exist.
-     */
-    function getPendingProfits(
-        uint256 assetId,
-        address holder
-    ) external view returns (uint256) {
-        AppStorage.Layout storage data = AppStorage.layout();
-        Asset storage asset = data.assets[assetId];
-
-        require(asset.id != 0, "Asset does not exist");
-        return asset.userTokenInfo[holder].pendingProfits;
-    }
-
-
-    /**
-     * @notice Distributes profit for a specific asset to its token holders.
-     * @dev This function distributes the specified profit amount among the token holders of the given asset.
-     *      The distribution is done in a range specified by startIndex and endIndex.
-     * @param assetId The ID of the asset for which the profit is being distributed.
-     * @param profitAmount The total amount of profit to be distributed (in fexse currency).
-     * @param startIndex The starting index of the token holders array for distribution.
-     * @param endIndex The ending index of the token holders array for distribution.
-     */
-    function distributeProfit(
-        uint256 assetId,
-        uint256 profitAmount,//fexse currency
-        uint256 startIndex,
-        uint256 endIndex
-    ) public nonReentrant onlyRole(ADMIN_ROLE) {
-        AppStorage.Layout storage data = AppStorage.layout();
-        Asset storage asset = data.assets[assetId];
-
-        // Calculate profit per token
-        uint256 profitPerToken = profitAmount / asset.totalTokens;
-
-        for (uint256 i = startIndex; i <= endIndex; i++) {
-            address holder = asset.tokenHolders[i];
-            uint256 holderTokens = asset.userTokenInfo[holder].holdings;
-            uint256 holderProfit = holderTokens * profitPerToken;
-            asset.userTokenInfo[holder].pendingProfits += holderProfit;
-        }
-
-        if (endIndex == asset.tokenHolders.length) {
-            asset.totalProfit += profitAmount;
-            asset.lastDistributed = block.timestamp;
-        }
-
-        emit ProfitDistributed(assetId, profitAmount, profitPerToken, startIndex, endIndex);
-    }
-
-    /**
-     * @notice Allows a user to claim profit for the specified asset IDs.
-     * @dev This function is protected against reentrancy attacks using the nonReentrant modifier.
-     * @param assetIds An array of asset IDs for which the user wants to claim profit.
-     */
-    function claimProfit(uint256[] calldata assetIds) public nonReentrant {
-        AppStorage.Layout storage data = AppStorage.layout();
-
-        uint256 totalFexseAmount = 0;
-        uint256[] memory claimedAssetIds = new uint256[](assetIds.length);
-
-        for (uint256 i = 0; i < assetIds.length; i++) {
-            uint256 assetId = assetIds[i];
-
-            uint256 amount = data
-                .assets[assetId]
-                .userTokenInfo[msg.sender]
-                .pendingProfits;
-            require(amount > 0, "No profit to claim for one of the assets");
-
-            data.assets[assetId].userTokenInfo[msg.sender].pendingProfits = 0;
-
-            //uint256 fexsePrice = IFexsePriceFetcher(address(this)).getFexsePrice();
-
-            uint256 fexseAmount = (amount * FEXSE_DECIMALS) /
-                (FEXSE_PRICE_IN_USDT * (10 ** 3));
-
-            totalFexseAmount += fexseAmount;
-
-            claimedAssetIds[i] = assetId;
-        }
-
-        require(
-            totalFexseAmount > 0,
-            "Total FEXSE amount must be greater than zero"
-        );
-        data.fexseToken.transferFrom(
-            data.deployer,
-            msg.sender,
-            totalFexseAmount
-        );
-
-        emit Claimed(msg.sender, claimedAssetIds, totalFexseAmount);
     }
 
     /**
@@ -526,7 +368,7 @@ contract RWATokenization is ModularInternal {
         _removePendingProfits(assetId, holder);
     }
 
-        /**
+    /**
      * @notice Sets the address of the Fexse token contract.
      * @dev This function can only be called by an account with the ADMIN_ROLE.
      * It ensures that the provided address is not the zero address.

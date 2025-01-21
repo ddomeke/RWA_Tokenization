@@ -53,6 +53,7 @@ struct Asset {
     uint256 totalProfit;
     uint256 profitPeriod;
     uint256 lastDistributed;
+    uint256 tokenLowerLimit;
     string uri;
     IAssetToken tokenContract;
     address[] tokenHolders;
