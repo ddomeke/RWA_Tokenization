@@ -113,6 +113,7 @@ contract RWATokenization is ModularInternal {
         uint256 assetId,
         uint256 totalTokens,
         uint256 tokenPrice,
+        uint256 tokenLowerLimit,
         string memory assetUri,
         string memory name,
         string memory symbol
@@ -141,6 +142,7 @@ contract RWATokenization is ModularInternal {
         asset.tokenPrice = tokenPrice;
         asset.uri = assetUri;
         asset.tokenContract = IAssetToken(tokenAddress);
+        asset.tokenLowerLimit = tokenLowerLimit;
 
         token.mint(data.deployer, assetId, totalTokens, "");
 

@@ -68,6 +68,7 @@ describe("RWATokenization Test", function () {
     const ASSET_ID = params.ASSET_ID;
     const TOTALTOKENS = params.TOTALTOKENS;
     const TOKENPRICE = params.TOKENPRICE;
+    const TOKENLOWERLIMIT = params.TOKENLOWERLIMIT;
     const ASSETURI = params.ASSETURI;
 
 
@@ -183,7 +184,7 @@ describe("RWATokenization Test", function () {
 
 
         //--------------------- 6. createAsset.sol deploy  ---------------------------------------------
-        const createTx = await rwaTokenization.createAsset(ASSET_ID, TOTALTOKENS, TOKENPRICE, ASSETURI, "Otel", "OT");
+        const createTx = await rwaTokenization.createAsset(ASSET_ID, TOTALTOKENS, TOKENPRICE,TOKENLOWERLIMIT, ASSETURI, "Otel", "OT");
         await createTx.wait();
 
         const assetTokenAddress = await rwaTokenization.getTokenContractAddress(ASSET_ID);
@@ -495,7 +496,7 @@ describe("RWATokenization Test", function () {
 
         const ASSETID_V2 = ASSET_ID + 5;
 
-        const createTx1 = await rwaTokenization.createAsset(ASSETID_V2, TOTALTOKENS, TOKENPRICE, ASSETURI, "Otel", "OT");
+        const createTx1 = await rwaTokenization.createAsset(ASSETID_V2, TOTALTOKENS, TOKENPRICE,TOKENLOWERLIMIT, ASSETURI, "Otel", "OT");
         await createTx1.wait();
 
         await logAssetDetails(ASSETID_V2, addresses[0])
@@ -617,19 +618,22 @@ describe("RWATokenization Test", function () {
         log('INFO', "-----------------------------------------------distributeProfit-----------------------------------------------------");
         log('INFO', ``);
 
+        
+        const profitPerToken = ethers.parseEther("100");
+
 
         for (const addr of addresses) {
             await assetToken.connect(addresses[0]).safeTransferFrom(
                 addresses[0],
                 addr,
                 ASSET_ID,
-                3,
+                11,
                 "0x");
         }
 
-        await profitModule.connect(addresses[0]).distributeProfit(ASSET_ID, 70000000000,0,3);
-        await profitModule.connect(addresses[0]).distributeProfit(ASSET_ID, 70000000000,4,6);
-        await profitModule.connect(addresses[0]).distributeProfit(ASSET_ID, 70000000000,7,9);
+        await profitModule.connect(addresses[0]).distributeProfit(ASSET_ID, profitPerToken,0,3);
+        await profitModule.connect(addresses[0]).distributeProfit(ASSET_ID, profitPerToken,4,6);
+        await profitModule.connect(addresses[0]).distributeProfit(ASSET_ID, profitPerToken,7,9);
 
         for (const addr of addresses) {
             const pendingProfit = await profitModule.getPendingProfits(ASSET_ID, addr);
@@ -735,7 +739,7 @@ describe("RWATokenization Test", function () {
         });
         const buyer = await hre.ethers.getSigner(My_ADDRESS);
 
-        const createTx2 = await rwaTokenization.createAsset(ASSETID_V3, TOTALTOKENS + 100, TOKENPRICE * 1000, ASSETURI, "Otel", "OT");
+        const createTx2 = await rwaTokenization.createAsset(ASSETID_V3, TOTALTOKENS + 100, TOKENPRICE * 1000, TOKENLOWERLIMIT, ASSETURI, "Otel", "OT");
         await createTx2.wait();
 
         const TokenContractAddress = await rwaTokenization.getTokenContractAddress(ASSETID_V3);

@@ -9,7 +9,10 @@ interface IRWATokenization {
         uint256 assetId,
         uint256 totalTokens,
         uint256 tokenPrice,
-        string memory assetUri
+        uint256 tokenLowerLimit,
+        string memory assetUri,
+        string memory name,
+        string memory symbol
     ) external;
 
     function updateAsset(uint256 assetId, uint256 newTokenPrice) external;
