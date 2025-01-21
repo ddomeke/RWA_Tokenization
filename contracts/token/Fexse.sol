@@ -52,8 +52,7 @@ contract Fexse is
      * @dev Constructor function that initializes the Fexse token contract.
      * Mints the initial supply of tokens and grants the `DEFAULT_ADMIN_ROLE` and `ADMIN_ROLE` to the deployer.
      */
-    constructor(
-    ) ERC20("Fexse", "FEXSE") ERC20Permit("Fexse") {
+    constructor() ERC20("Fexse", "FEXSE") ERC20Permit("Fexse") {
         _mint(msg.sender, 2700000000 * 10 ** decimals());
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(ADMIN_ROLE, msg.sender);
@@ -71,6 +70,7 @@ contract Fexse is
     function pause() public onlyRole(ADMIN_ROLE) {
         _pause();
     }
+
     /**
      * @dev Unpauses all token transfers.
      *

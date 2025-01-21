@@ -33,19 +33,19 @@ const config: HardhatUserConfig = {
   // },
   defaultNetwork: "hardhat",
   networks: {
-    hardhat: {
-      forking: {
-        url: RPC_URL || "",        
-        blockNumber: 278070393,// arb: 278070393 // sepolia: 7468704
-      },
-      accounts: {
-        count: 32,
-      },
-    },
-    // sepolia: {
-    //   url: process.env.RPC_URL, // Your Sepolia RPC URL
-    //   accounts: [process.env.PRIVATE_KEY!], // Your wallet private key
+    // hardhat: {
+    //   forking: {
+    //     url: RPC_URL || "",        
+    //     blockNumber: 278070393,// arb: 278070393 // sepolia: 7468704
+    //   },
+    //   accounts: {
+    //     count: 32,
+    //   },
     // },
+    sepolia: {
+      url: process.env.RPC_URL, // Your Sepolia RPC URL
+      accounts: [process.env.PRIVATE_KEY!], // Your wallet private key
+    },
 
   },
   etherscan: {
