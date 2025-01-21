@@ -104,6 +104,7 @@ contract RWATokenization is ModularInternal {
      * @param assetId The unique identifier for the asset.
      * @param totalTokens The total number of tokens to be created for the asset.
      * @param tokenPrice The price per token for the asset.
+     * @param tokenLowerLimit The lower limit per holder for profit.
      * @param assetUri The URI for the asset's metadata.
      * @dev Reverts if the asset already exists.
      * @dev Reverts if the total number of tokens is zero.
@@ -124,6 +125,7 @@ contract RWATokenization is ModularInternal {
         require(asset.id == 0, "Asset already exists");
         require(totalTokens > 0, "Total tokens must be greater than zero");
         require(tokenPrice > 0, "Token price must be greater than zero");
+        require(tokenLowerLimit > 0, "Token lower limit must be greater than zero");
 
         // Deploy a new instance of AssetToken
         AssetToken token = new AssetToken(
