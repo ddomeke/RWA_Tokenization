@@ -142,144 +142,146 @@ async function main() {
     const balance = await provider.getBalance(wallet.address);
     log('INFO', `Owner Balance: -----> ${ethers.formatEther(balance)} ETH`);
     log('INFO', "");
-
-    //--------------------- 1. App.sol deploy -------------------------------------------------------------
-    const AppContract = await hre.ethers.getContractFactory("App", wallet);
-    app = await AppContract.deploy() as App;
-    await app.waitForDeployment();
-    const appAddress = await app.getAddress();
-    log('INFO', `1  - App contract deployed at: ${appAddress}`);
-
-    await waitSec(15);
-
-    //--------------------- 2. MarketPlace.sol deploy ------------------------------------------------------
-    // const MarketPlaceContract = await hre.ethers.getContractFactory("MarketPlace", wallet);
-    // _marketPlace = await MarketPlaceContract.deploy(appAddress) as MarketPlace;
-    // await _marketPlace.waitForDeployment();
-    // const _marketPlaceAddress = await _marketPlace.getAddress();
-    // log('INFO', `2  - market Place contract deployed at: ${_marketPlaceAddress}`);
-
-
-    // await app.installModule(_marketPlaceAddress);
-
-    // marketPlace = await hre.ethers.getContractAt("MarketPlace", appAddress, wallet) as MarketPlace;
-
-    // await waitSec(15);
-
-    //--------------------- 3. RWATokenization.sol deploy --------------------------------------------------------
-    const RWATokenizationContract = await hre.ethers.getContractFactory("RWATokenization", wallet);
-    _rwaTokenization = await RWATokenizationContract.deploy(appAddress) as RWATokenization;
-    await _rwaTokenization.waitForDeployment();
-
-    const _rwaTokenizationAddress = await _rwaTokenization.getAddress();
-    await log('INFO', `3  - RWATokenization Address-> ${_rwaTokenizationAddress}`);
-    await app.installModule(_rwaTokenizationAddress);
     
-    rwaTokenization = await hre.ethers.getContractAt("RWATokenization", appAddress, wallet) as RWATokenization;
-
-    await waitSec(15);
-
-    //--------------------- 4. ProfitModule.sol deploy --------------------------------------------------------
-    // const ProfitModuleContract = await hre.ethers.getContractFactory("ProfitModule", wallet);
-    // _profitModule = await ProfitModuleContract.deploy(appAddress) as ProfitModule;
-    // await _profitModule.waitForDeployment();
-
-    // const _profitModuleAddress = await _profitModule.getAddress();
-    // await log('INFO', `4  - ProfitModule Address-> ${_profitModuleAddress}`);
-    // await app.installModule(_profitModuleAddress);
+        //--------------------- 1. App.sol deploy -------------------------------------------------------------
+        const AppContract = await hre.ethers.getContractFactory("App", wallet);
+        app = await AppContract.deploy() as App;
+        await app.waitForDeployment();
+        const appAddress = await app.getAddress();
+        log('INFO', `1  - App contract deployed at: ${appAddress}`);
     
-    // profitModule = await hre.ethers.getContractAt("ProfitModule", appAddress, wallet) as ProfitModule;
+        await waitSec(30);
+    
+        //--------------------- 2. MarketPlace.sol deploy ------------------------------------------------------
+        // const MarketPlaceContract = await hre.ethers.getContractFactory("MarketPlace", wallet);
+        // _marketPlace = await MarketPlaceContract.deploy(appAddress) as MarketPlace;
+        // await _marketPlace.waitForDeployment();
+        // const _marketPlaceAddress = await _marketPlace.getAddress();
+        // log('INFO', `2  - market Place contract deployed at: ${_marketPlaceAddress}`);
+    
+    
+        // await app.installModule(_marketPlaceAddress);
+    
+        // marketPlace = await hre.ethers.getContractAt("MarketPlace", appAddress, wallet) as MarketPlace;
+    
+        // await waitSec(15);
+    
+        //--------------------- 3. RWATokenization.sol deploy --------------------------------------------------------
+        const RWATokenizationContract = await hre.ethers.getContractFactory("RWATokenization", wallet);
+        _rwaTokenization = await RWATokenizationContract.deploy(appAddress) as RWATokenization;
+        await _rwaTokenization.waitForDeployment();
+    
+        const _rwaTokenizationAddress = await _rwaTokenization.getAddress();
+        await log('INFO', `3  - RWATokenization Address-> ${_rwaTokenizationAddress}`);
+        await app.installModule(_rwaTokenizationAddress);
+        
+        rwaTokenization = await hre.ethers.getContractAt("RWATokenization", appAddress, wallet) as RWATokenization;
+    
+        await waitSec(30);
+    
+        //--------------------- 4. ProfitModule.sol deploy --------------------------------------------------------
+        // const ProfitModuleContract = await hre.ethers.getContractFactory("ProfitModule", wallet);
+        // _profitModule = await ProfitModuleContract.deploy(appAddress) as ProfitModule;
+        // await _profitModule.waitForDeployment();
+    
+        // const _profitModuleAddress = await _profitModule.getAddress();
+        // await log('INFO', `4  - ProfitModule Address-> ${_profitModuleAddress}`);
+        // await app.installModule(_profitModuleAddress);
+        
+        // profitModule = await hre.ethers.getContractAt("ProfitModule", appAddress, wallet) as ProfitModule;
+    
+        // await waitSec(15);
+    
+        //--------------------- 5. Compliance.sol deploy --------------------------------------------------------
+        // const ComplianceContract = await hre.ethers.getContractFactory("Compliance", wallet);
+        // _compliance = await ComplianceContract.deploy(appAddress) as Compliance;
+        // await _compliance.waitForDeployment();
+    
+        // const _complianceAddress = await _compliance.getAddress();
+        // await log('INFO', `5  - _compliance Address-> ${_complianceAddress}`);
+    
+        // await app.installModule(_complianceAddress);
+        // await waitSec(15);
+    
+        //--------------------- 6. Fexse.sol deploy -------------------------------------------------------
+        const FexseContract = await hre.ethers.getContractFactory("Fexse", wallet);
+        fexse = await FexseContract.deploy() as Fexse;
+        await fexse.waitForDeployment();
+    
+        const fexseAddress = await fexse.getAddress();
+        await log('INFO', `6  - fexse Address-> ${fexseAddress}`);
+    
+        await rwaTokenization.setFexseAddress(fexseAddress);
+    
+        await waitSec(30);
+    
+        //--------------------- 7. RWA_DAO.sol deploy ---------------------------------------------------------
+        // const RWA_DAO_Contract = await hre.ethers.getContractFactory("RWA_DAO", wallet);
+        // _rwa_DAO = await RWA_DAO_Contract.deploy(appAddress) as RWA_DAO;
+        // await _rwa_DAO.waitForDeployment();
+    
+        // const _rwa_DAOAddress = await _rwa_DAO.getAddress();
+        // await log('INFO', `7  - _rwa_DAO Address-> ${_rwa_DAOAddress}`);
+    
+        // await app.installModule(_rwa_DAOAddress);
+        // rwa_DAO = await hre.ethers.getContractAt("RWA_DAO", appAddress, wallet) as RWA_DAO;
+    
+        // await waitSec(15);
+    
+        //--------------------- 8. SwapModule.sol deploy  ----------------------------------------------------
+        // const SwapModuleContract = await hre.ethers.getContractFactory("SwapModule", wallet);
+        // _swapModule = await SwapModuleContract.deploy(UNISWAP_V3_ROUTER, USDT_ADDRESS, 3000) as SwapModule;
+        // await _swapModule.waitForDeployment();
+    
+        // const _swapModuleAddress = await _swapModule.getAddress();
+        // await log('INFO', `8  - _swapModule Address-> ${_swapModuleAddress}`);
+    
+        // await app.installModule(_swapModuleAddress);
+        // swapModule = await hre.ethers.getContractAt("SwapModule", appAddress, wallet) as SwapModule;
+        // await waitSec(15);
+    
+        //--------------------- 9. FexsePriceFetcher.sol deploy  -----------------------------------------------------
+        // const FexsePriceFetcherContract = await hre.ethers.getContractFactory("FexsePriceFetcher", wallet);
+        // _fexsePriceFetcher = await FexsePriceFetcherContract.deploy(fexseAddress, USDT_ADDRESS, 3000) as FexsePriceFetcher;
+        // await _fexsePriceFetcher.waitForDeployment();
+    
+        // const _fexsePriceFetcherAddress = await _fexsePriceFetcher.getAddress();
+        // await log('INFO', `9  - _fexsePriceFetcher Address-> ${_fexsePriceFetcherAddress}`);
+    
+        // await app.installModule(_fexsePriceFetcherAddress);
+        // fexsePriceFetcher = await hre.ethers.getContractAt("FexsePriceFetcher", appAddress, wallet) as FexsePriceFetcher;
+    
+        // await waitSec(15);
+    
+        //--------------------- 10. SalesModule.sol deploy ------------------------------------------------------------------
+    
+        const SalesModuleContract = await hre.ethers.getContractFactory("SalesModule", wallet);
+        _salesModule = await SalesModuleContract.deploy(USDT_ADDRESS) as SalesModule;
+        await _salesModule.waitForDeployment();
+        await waitSec(30);
+    
+        const _salesModuleAddress = await _salesModule.getAddress();
+        await log('INFO', `11  - SalesModule Address-> ${_salesModuleAddress}`);
+        await waitSec(30);
+    
+        await app.installModule(_salesModuleAddress);
+        await waitSec(15);
+    
+        //----------------------------------------------------------------
+    
+        const finalBalance = await provider.getBalance(wallet.address);
+        log('INFO', `Remaining Owner Balance: ----->  ${ethers.formatEther(finalBalance)} ETH`);
+    
+    
+    
+        await verifyContract(appAddress, []); 
+        await verifyContract(_rwaTokenizationAddress, [appAddress]);
+        //await verifyContract(_profitModuleAddress, [appAddress]);
+        //await verifyContract(_marketPlaceAddress, [appAddress]);
+        await verifyContract(fexseAddress, []);
+        await verifyContract(_salesModuleAddress, [USDT_ADDRESS]);
 
-    // await waitSec(15);
-
-    //--------------------- 5. Compliance.sol deploy --------------------------------------------------------
-    // const ComplianceContract = await hre.ethers.getContractFactory("Compliance", wallet);
-    // _compliance = await ComplianceContract.deploy(appAddress) as Compliance;
-    // await _compliance.waitForDeployment();
-
-    // const _complianceAddress = await _compliance.getAddress();
-    // await log('INFO', `5  - _compliance Address-> ${_complianceAddress}`);
-
-    // await app.installModule(_complianceAddress);
-    // await waitSec(15);
-
-    //--------------------- 6. Fexse.sol deploy -------------------------------------------------------
-    const FexseContract = await hre.ethers.getContractFactory("Fexse", wallet);
-    fexse = await FexseContract.deploy() as Fexse;
-    await fexse.waitForDeployment();
-
-    const fexseAddress = await fexse.getAddress();
-    await log('INFO', `6  - fexse Address-> ${fexseAddress}`);
-
-    await rwaTokenization.setFexseAddress(fexseAddress);
-
-    await waitSec(15);
-
-    //--------------------- 7. RWA_DAO.sol deploy ---------------------------------------------------------
-    // const RWA_DAO_Contract = await hre.ethers.getContractFactory("RWA_DAO", wallet);
-    // _rwa_DAO = await RWA_DAO_Contract.deploy(appAddress) as RWA_DAO;
-    // await _rwa_DAO.waitForDeployment();
-
-    // const _rwa_DAOAddress = await _rwa_DAO.getAddress();
-    // await log('INFO', `7  - _rwa_DAO Address-> ${_rwa_DAOAddress}`);
-
-    // await app.installModule(_rwa_DAOAddress);
-    // rwa_DAO = await hre.ethers.getContractAt("RWA_DAO", appAddress, wallet) as RWA_DAO;
-
-    // await waitSec(15);
-
-    //--------------------- 8. SwapModule.sol deploy  ----------------------------------------------------
-    // const SwapModuleContract = await hre.ethers.getContractFactory("SwapModule", wallet);
-    // _swapModule = await SwapModuleContract.deploy(UNISWAP_V3_ROUTER, USDT_ADDRESS, 3000) as SwapModule;
-    // await _swapModule.waitForDeployment();
-
-    // const _swapModuleAddress = await _swapModule.getAddress();
-    // await log('INFO', `8  - _swapModule Address-> ${_swapModuleAddress}`);
-
-    // await app.installModule(_swapModuleAddress);
-    // swapModule = await hre.ethers.getContractAt("SwapModule", appAddress, wallet) as SwapModule;
-    // await waitSec(15);
-
-    //--------------------- 9. FexsePriceFetcher.sol deploy  -----------------------------------------------------
-    // const FexsePriceFetcherContract = await hre.ethers.getContractFactory("FexsePriceFetcher", wallet);
-    // _fexsePriceFetcher = await FexsePriceFetcherContract.deploy(fexseAddress, USDT_ADDRESS, 3000) as FexsePriceFetcher;
-    // await _fexsePriceFetcher.waitForDeployment();
-
-    // const _fexsePriceFetcherAddress = await _fexsePriceFetcher.getAddress();
-    // await log('INFO', `9  - _fexsePriceFetcher Address-> ${_fexsePriceFetcherAddress}`);
-
-    // await app.installModule(_fexsePriceFetcherAddress);
-    // fexsePriceFetcher = await hre.ethers.getContractAt("FexsePriceFetcher", appAddress, wallet) as FexsePriceFetcher;
-
-    // await waitSec(15);
-
-    //--------------------- 10. SalesModule.sol deploy ------------------------------------------------------------------
-
-    const SalesModuleContract = await hre.ethers.getContractFactory("SalesModule", wallet);
-    _salesModule = await SalesModuleContract.deploy(USDT_ADDRESS) as SalesModule;
-    await _salesModule.waitForDeployment();
-    await waitSec(15);
-
-    const _salesModuleAddress = await _salesModule.getAddress();
-    await log('INFO', `11  - SalesModule Address-> ${_salesModuleAddress}`);
-    await waitSec(15);
-
-    await app.installModule(_salesModuleAddress);
-    await waitSec(15);
-
-    //----------------------------------------------------------------
-
-    const finalBalance = await provider.getBalance(wallet.address);
-    log('INFO', `Remaining Owner Balance: ----->  ${ethers.formatEther(finalBalance)} ETH`);
-
-
-
-    await verifyContract(appAddress, []); 
-    await verifyContract(_rwaTokenizationAddress, [appAddress]);
-    //await verifyContract(_profitModuleAddress, [appAddress]);
-    //await verifyContract(_marketPlaceAddress, [appAddress]);
-    await verifyContract(fexseAddress, []);
-    await verifyContract(_salesModuleAddress, [USDT_ADDRESS]);
+    //await verifyContract("0x7b5DB687022f5c514027d110c423E50c93BFED12", ["SP Villa", "SPV", "0x0000000000000000000000000000000000000000", "https://olive-bright-quelea-862.mypinata.cloud/ipfs/bafkreihmk6ienxr6jnqbfoq53ncz5wouqnrjxnxwhkgdc7vkucenubua5a","0x89E488715562c9f2200E5f277D78C5Da9E2fA41E"]);
 
 
 }
