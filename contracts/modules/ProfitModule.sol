@@ -25,11 +25,7 @@ contract ProfitModule is ModularInternal {
     address public appAddress;
 
     // Event to log profit distribution
-    event ProfitDistributed(
-        uint256 assetId,
-        uint256 startIndex,
-        uint256 endIndex
-    );
+    event ProfitDistributed(uint256 assetId, uint256 ProfitInfoLength);
     event Claimed(
         address indexed user,
         uint256[] assetIds,
@@ -134,47 +130,42 @@ contract ProfitModule is ModularInternal {
     }
 
     /**
-     * @notice Distributes profit to token holders within a specified range.
-     * @dev This function can only be called by an account with the ADMIN_ROLE and is protected against reentrancy.
-     * @param assetId The ID of the asset for which profit is being distributed.
-     * @param profitPerToken The amount of profit to be distributed per token, denominated in fexse currency.
-     * @param startIndex The starting index of the token holders array to distribute profit.
-     * @param endIndex The ending index of the token holders array to distribute profit.
+     * @notice Distributes profits to asset holders.
+     * @dev This function is protected by the `nonReentrant` and `onlyRole(ADMIN_ROLE)` modifiers.
+     * @param assetId The ID of the asset for which profits are being distributed.
+     * @param profits An array of `ProfitInfo` structs containing the holder addresses and their respective profit amounts.
      *
      * Requirements:
-     * - The caller must have the ADMIN_ROLE.
-     * - The function is non-reentrant.
+     * - The caller must have the `ADMIN_ROLE`.
+     * - The function cannot be reentered.
      *
-     * Emits a {ProfitDistributed} event.
+     * Emits a {ProfitDistributed} event indicating the asset ID and the number of profit distributions.
      */
     function distributeProfit(
         uint256 assetId,
-        uint256 profitPerToken, //fexse currency
-        uint256 startIndex,
-        uint256 endIndex
+        ProfitInfo[] calldata profits
     ) public nonReentrant onlyRole(ADMIN_ROLE) {
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
 
-        uint256 tokenLowerLimit = asset.tokenLowerLimit;
+        for (uint256 i = 0; i < profits.length; i++) {
+            address holder = profits[i].holder;
+            uint256 profitAmount = profits[i].profitAmount;
 
-        for (uint256 i = startIndex; i <= endIndex; i++) {
-            address holder = asset.tokenHolders[i];
-            uint256 holderTokens = asset.userTokenInfo[holder].holdings;
-            if (holderTokens >= tokenLowerLimit) {
-                uint256 holderProfit = holderTokens * profitPerToken;
-                asset.userTokenInfo[holder].pendingProfits += holderProfit;
-            }
+            asset.userTokenInfo[holder].pendingProfits += profitAmount;
         }
 
-        if (endIndex == asset.tokenHolders.length) {
-            asset.totalProfit += profitPerToken * asset.totalTokens;
-            asset.lastDistributed = block.timestamp;
-        }
-
-        emit ProfitDistributed(assetId, startIndex, endIndex);
+        emit ProfitDistributed(assetId, profits.length);
     }
 
+    /**
+     * @notice Updates the lower limit of tokens for a specific asset.
+     * @dev This function can only be called by an account with the ADMIN_ROLE and is protected against reentrancy.
+     * @param assetId The ID of the asset to update.
+     * @param newTokenLowerLimit The new lower limit of tokens for the asset.
+     * @dev The asset must exist (asset.id != 0).
+     * @dev Emits an {AssetLowerLimitUpdated} event when the asset's lower limit is updated.
+     */
     function updateAssetLowerLimit(
         uint256 assetId,
         uint256 newTokenLowerLimit

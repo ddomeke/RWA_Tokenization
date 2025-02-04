@@ -530,16 +530,6 @@ describe("RWATokenization Test", function () {
         await getProject_All_Balances(addresses[0], 0);
 
 
-        await marketPlace.connect(addresses[0]).lockTokensToBeSold(buyer, ASSET_ID, 3, 1000000);
-
-        log('INFO', ``);
-        log('INFO', "-------------------lockTokensToBeSold-----------------------");
-        log('INFO', ``);
-
-
-        await marketPlace.connect(addresses[0]).lockFexseToBeBought(addresses[0], amountFexselock);
-
-
         await marketPlace.connect(addresses[0]).transferAsset(
             buyer,
             addresses[0],
@@ -595,36 +585,42 @@ describe("RWATokenization Test", function () {
     /*-----------------------------------------------------------------------------------------------
     -------------------distributeProfit-----------------------------------------------------------
     -----------------------------------------------------------------------------------------------*/
-    it("  4  --------------> Should distributeProfit", async function () {
+     it("  4  --------------> Should distributeProfit", async function () {
 
         log('INFO', ``);
         log('INFO', "-----------------------------------------------distributeProfit-----------------------------------------------------");
         log('INFO', ``);
-
-        
-        const profitPerToken = ethers.parseEther("100");
-
+    
 
         for (const addr of addresses) {
             await assetToken.connect(addresses[0]).safeTransferFrom(
                 addresses[0],
                 addr,
                 ASSET_ID,
-                11,
+                10,
                 "0x");
         }
-
-        await profitModule.connect(addresses[0]).distributeProfit(ASSET_ID, profitPerToken,0,3);
-        await profitModule.connect(addresses[0]).distributeProfit(ASSET_ID, profitPerToken,4,6);
-        await profitModule.connect(addresses[0]).distributeProfit(ASSET_ID, profitPerToken,7,9);
-
+    
+        const profitAmounts = ethers.parseEther("100");
+    
+        // Profit dağıtılacak adresleri ve miktarları içeren struct array oluştur
+        const profitInfoArray = addresses.map(addr => ({
+            holder: addr,
+            profitAmount: profitAmounts
+        }));
+    
+        // distributeProfit fonksiyonunu çağır
+        await profitModule.connect(addresses[0]).distributeProfit(ASSET_ID, profitInfoArray);
+    
+        // Adreslerin güncellenmiş kazançlarını kontrol et
         for (const addr of addresses) {
             const pendingProfit = await profitModule.getPendingProfits(ASSET_ID, addr);
             log('INFO', `pendingProfit for addr: ${addr.address} amount: ${pendingProfit}  `);
         }
-
+    
         await logAssetDetails(ASSET_ID, addresses[0]);
     });
+    
 
 
     /*-----------------------------------------------------------------------------------------------

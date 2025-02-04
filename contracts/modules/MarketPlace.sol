@@ -51,8 +51,7 @@ contract MarketPlace is ModularInternal {
         address buyer,
         uint256 assetId,
         uint256 tokenAmount,
-        uint256 fexseAmount,
-        uint256 cost
+        uint256 fexseAmount
     );
 
     address immutable _this;
@@ -77,14 +76,10 @@ contract MarketPlace is ModularInternal {
      */
     function moduleFacets() external view returns (FacetCut[] memory) {
         uint256 selectorIndex = 0;
-        bytes4[] memory selectors = new bytes4[](5);
+        bytes4[] memory selectors = new bytes4[](1);
 
         // Add function selectors to the array
         selectors[selectorIndex++] = this.transferAsset.selector;
-        selectors[selectorIndex++] = this.lockFexseToBeBought.selector;
-        selectors[selectorIndex++] = this.unlockFexse.selector;
-        selectors[selectorIndex++] = this.lockTokensToBeSold.selector;
-        selectors[selectorIndex++] = this.unlockTokensToBeSold.selector;
 
         // Create a FacetCut array with a single element
         FacetCut[] memory facetCuts = new FacetCut[](1);
@@ -99,14 +94,17 @@ contract MarketPlace is ModularInternal {
     }
 
     /**
-     * @notice Transfers a specified amount of asset tokens from a sender to a buyer.
-     * @dev This function handles the transfer of asset tokens and the corresponding FEXSE token payment.
-     *      It requires the caller to be the contract owner and is protected against reentrancy.
-     * @param sender The address of the current token holder who is transferring the tokens.
-     * @param buyer The address of the recipient who is buying the tokens.
-     * @param assetId The unique identifier of the asset whose tokens are being transferred.
-     * @param tokenAmount The number of tokens to be transferred.
-     * @param tokenPrice The price per token in USDT.
+     * @notice Transfers an asset from the sender to the buyer.
+     * @dev This function can only be called by an account with the ADMIN_ROLE.
+     * It ensures that the sender and buyer addresses are valid, and that the token amount and price are greater than zero.
+     * It checks the FEXSE token allowance and balance of the buyer, and the asset token approval and balance of the sender.
+     * It then transfers the FEXSE tokens from the buyer to the sender, and the asset tokens from the sender to the buyer.
+     * Finally, it updates the asset's user token information and emits a TransferExecuted event.
+     * @param sender The address of the asset sender.
+     * @param buyer The address of the asset buyer.
+     * @param assetId The ID of the asset being transferred.
+     * @param tokenAmount The amount of asset tokens being transferred.
+     * @param tokenPrice The price of each asset token in FEXSE tokens.
      */
     function transferAsset(
         address sender,
@@ -123,21 +121,42 @@ contract MarketPlace is ModularInternal {
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
 
-        uint256 cost = tokenPrice * tokenAmount;
-
         //uint256 fexsePrice = IFexsePriceFetcher(address(this)).getFexsePrice();
 
         uint256 fexseAmount = tokenPrice * tokenAmount;
 
-        //TODO: fexse ve token kilitlenmiş mi diye kontrol et
+        require(
+            IERC20(data.fexseToken).allowance(buyer, address(this)) >=
+                fexseAmount,
+            "FEXSE allowance too low"
+        );
 
         require(
-            data.fexseToken.transferFrom(data.deployer, sender, fexseAmount),
+            IAssetToken(asset.tokenContract).isApprovedForAll(
+                sender,
+                address(this)
+            ) == true,
+            "asset is not approved"
+        );
+
+        require(
+            IERC20(data.fexseToken).balanceOf(buyer) >= fexseAmount,
+            "Insufficient fexse balance in buyer"
+        );
+
+        require(
+            IAssetToken(asset.tokenContract).balanceOf(sender, assetId) >=
+                tokenAmount,
+            "sender does not have enough asset "
+        );
+
+        require(
+            data.fexseToken.transferFrom(buyer, sender, fexseAmount),
             "FEXSE transfer failed"
         );
 
         IAssetToken(asset.tokenContract).safeTransferFrom(
-            data.deployer,
+            sender,
             buyer,
             assetId,
             tokenAmount,
@@ -147,154 +166,6 @@ contract MarketPlace is ModularInternal {
         asset.userTokenInfo[sender].tokensForSale -= tokenAmount;
         asset.userTokenInfo[sender].salePrices = 0;
 
-        emit TransferExecuted(
-            sender,
-            buyer,
-            assetId,
-            tokenAmount,
-            fexseAmount,
-            cost
-        );
+        emit TransferExecuted(sender, buyer, assetId, tokenAmount, fexseAmount);
     }
-
-    /**
-     * @notice Locks a specified amount of FEXSE tokens for a given owner.
-     * @dev This function locks a specified amount of FEXSE tokens for a given owner.
-     *      It requires the caller to have the ADMIN_ROLE and is protected against reentrancy.
-     * @param owner The address of the owner whose FEXSE tokens are to be locked.
-     * @param fexseLockedAmount The amount of FEXSE tokens to be locked.
-     */
-    function lockFexseToBeBought(
-        address owner,
-        uint256 fexseLockedAmount
-    ) public nonReentrant onlyRole(ADMIN_ROLE) {
-        AppStorage.Layout storage data = AppStorage.layout();
-
-        // TODO: servicesfee  backend de hesaplanmadığı durumda burda hesaplayalım.
-        uint256 serviceFeeAmount = (fexseLockedAmount * 5) / 1000;
-        uint256 totalLockedFexseAmount = fexseLockedAmount + serviceFeeAmount;
-        uint256 fexseAmount = data.fexseToken.balanceOf(owner);
-
-        require(
-            fexseAmount >= totalLockedFexseAmount,
-            "Insufficient fexse balance"
-        );
-
-        require(
-            data.fexseToken.transferFrom(
-                owner,
-                data.deployer,
-                totalLockedFexseAmount
-            ),
-            "FEXSE transfer failed"
-        );
-
-        emit Fexselocked(owner, fexseLockedAmount);
-    }
-
-    /**
-     * @notice Unlocks a specified amount of Fexse tokens for a given owner.
-     * @dev This function can only be called by an account with the ADMIN_ROLE.
-     * It ensures that the owner has a sufficient balance of Fexse tokens before unlocking.
-     * Emits a {FexseUnlocked} event upon successful unlocking.
-     * @param owner The address of the token owner whose tokens are to be unlocked.
-     * @param fexseLockedAmount The amount of Fexse tokens to unlock.
-     */
-    function unlockFexse(
-        address owner,
-        uint256 fexseLockedAmount
-    ) external nonReentrant onlyRole(ADMIN_ROLE) {
-        AppStorage.Layout storage data = AppStorage.layout();
-
-        // TODO: servicesfee  backend de hesaplanmadığı durumda burda hesaplayalım.
-        uint256 serviceFeeAmount = (fexseLockedAmount * 5) / 1000;
-        uint256 totalLockedFexseAmount = fexseLockedAmount + serviceFeeAmount;
-
-        require(
-            data.fexseToken.transferFrom(
-                data.deployer,
-                owner,
-                totalLockedFexseAmount
-            ),
-            "FEXSE transfer failed"
-        );
-
-        emit FexseUnlocked(owner, fexseLockedAmount);
-    }
-
-    /**
-     * @notice Locks a specified amount of tokens to be sold for a given asset.
-     * @dev This function can only be called by an account with the ADMIN_ROLE.
-     * It locks the specified amount of tokens for sale and sets the sale price.
-     * Emits a {TokensLockedForSale} event.
-     * @param owner The address of the token owner.
-     * @param assetId The ID of the asset.
-     * @param tokenAmount The amount of tokens to be locked for sale.
-     * @param salePrice The sale price for the tokens.
-     * @dev Requires the token owner's holdings to be greater than or equal to the token amount.
-     */
-    function lockTokensToBeSold(
-        address owner,
-        uint256 assetId,
-        uint256 tokenAmount,
-        uint256 salePrice
-    ) external nonReentrant onlyRole(ADMIN_ROLE) {
-        AppStorage.Layout storage data = AppStorage.layout();
-        Asset storage asset = data.assets[assetId];
-
-        require(
-            IAssetToken(asset.tokenContract).balanceOf(owner, assetId) >=
-                tokenAmount,
-            "Insufficient token balance"
-        );
-
-        IAssetToken(asset.tokenContract).safeTransferFrom(
-            owner,
-            data.deployer,
-            assetId,
-            tokenAmount,
-            ""
-        );
-
-        asset.userTokenInfo[owner].tokensForSale += tokenAmount;
-        asset.userTokenInfo[owner].salePrices = salePrice;
-
-        emit TokensLockedForSale(owner, assetId, tokenAmount, salePrice);
-    }
-
-    /**
-     * @notice Unlocks tokens to be sold by the owner.
-     * @dev This function can only be called by an account with the ADMIN_ROLE.
-     * It ensures that the owner has sufficient token balance before unlocking the tokens.
-     * The function interacts with the IAssetToken contract to unlock the tokens.
-     * It also updates the user's token information by reducing the tokens for sale and resetting the sale price.
-     * Emits a {TokensUnlocked} event.
-     * @param owner The address of the token owner.
-     * @param assetId The ID of the asset.
-     * @param tokenAmount The amount of tokens to be unlocked.
-     * @param salePrice The sale price of the tokens.
-     */
-    function unlockTokensToBeSold(
-        address owner,
-        uint256 assetId,
-        uint256 tokenAmount,
-        uint256 salePrice
-    ) external nonReentrant onlyRole(ADMIN_ROLE) {
-        AppStorage.Layout storage data = AppStorage.layout();
-        Asset storage asset = data.assets[assetId];
-
-        IAssetToken(asset.tokenContract).safeTransferFrom(
-            data.deployer,
-            owner,
-            assetId,
-            tokenAmount,
-            ""
-        );
-
-        asset.userTokenInfo[owner].tokensForSale -= tokenAmount;
-        asset.userTokenInfo[owner].salePrices = 0;
-
-        emit TokensUnlocked(owner, assetId, tokenAmount, salePrice);
-    }
-
 }

@@ -111,3 +111,13 @@ struct Stake {
     uint256 rewardDebt;
     uint256 lockTime;
 }
+
+/**
+ * @dev Struct to store information about profit distribution.
+ * @param holder The address of the profit holder.
+ * @param profitAmount The amount of profit allocated to the holder.
+ */
+struct ProfitInfo {
+    address holder;
+    uint256 profitAmount;
+}
