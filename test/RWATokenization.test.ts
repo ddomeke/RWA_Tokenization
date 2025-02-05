@@ -601,7 +601,7 @@ describe("RWATokenization Test", function () {
                 "0x");
         }
 
-        await rwaTokenization.connect(addresses[0]).pauseAsset(ASSET_ID);
+        await profitModule.connect(addresses[0]).pauseAsset(ASSET_ID);
     
         const profitAmounts = ethers.parseEther("100");
     
@@ -615,7 +615,7 @@ describe("RWATokenization Test", function () {
         await profitModule.connect(addresses[0]).distributeProfit(ASSET_ID, profitInfoArray);
 
         
-        await rwaTokenization.connect(addresses[0]).unPauseAsset(ASSET_ID);
+        await profitModule.connect(addresses[0]).unPauseAsset(ASSET_ID);
     
         // Adreslerin güncellenmiş kazançlarını kontrol et
         for (const addr of addresses) {

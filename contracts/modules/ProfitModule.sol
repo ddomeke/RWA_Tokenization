@@ -32,6 +32,8 @@ contract ProfitModule is ModularInternal {
         uint256 totalFexseAmount
     );
     event AssetLowerLimitUpdated(uint256 assetId, uint256 newTokenLowerLimit);
+    event AssetPaused(uint256 assetId);
+    event AssetUnPaused(uint256 assetId);
 
     address immutable _this;
 
@@ -58,7 +60,7 @@ contract ProfitModule is ModularInternal {
      */
     function moduleFacets() external view returns (FacetCut[] memory) {
         uint256 selectorIndex = 0;
-        bytes4[] memory selectors = new bytes4[](6);
+        bytes4[] memory selectors = new bytes4[](8);
 
         // Add function selectors to the array
         selectors[selectorIndex++] = this.getTotalProfit.selector;
@@ -67,6 +69,8 @@ contract ProfitModule is ModularInternal {
         selectors[selectorIndex++] = this.distributeProfit.selector;
         selectors[selectorIndex++] = this.updateAssetLowerLimit.selector;
         selectors[selectorIndex++] = this.claimProfit.selector;
+        selectors[selectorIndex++] = this.pauseAsset.selector;
+        selectors[selectorIndex++] = this.unPauseAsset.selector;
 
         // Create a FacetCut array with a single element
         FacetCut[] memory facetCuts = new FacetCut[](1);
@@ -221,5 +225,39 @@ contract ProfitModule is ModularInternal {
         );
 
         emit Claimed(msg.sender, claimedAssetIds, totalFexseAmount);
+    }
+
+    /**
+     * @notice Pauses the asset associated with the given asset ID.
+     * @dev This function can only be called by an account with the ADMIN_ROLE.
+     * It uses the nonReentrant modifier to prevent reentrancy attacks.
+     * @param assetId The ID of the asset to be paused.
+     */
+    function pauseAsset(
+        uint256 assetId
+    ) external nonReentrant onlyRole(ADMIN_ROLE) {
+        AppStorage.Layout storage data = AppStorage.layout();
+        Asset storage asset = data.assets[assetId];
+
+        IAssetToken(asset.tokenContract).pause();
+
+        emit AssetPaused(assetId);
+    }
+
+    /**
+     * @notice Unpauses the asset with the given assetId.
+     * @dev This function can only be called by an account with the ADMIN_ROLE.
+     * It uses the nonReentrant modifier to prevent reentrancy attacks.
+     * @param assetId The ID of the asset to unpause.
+     */
+    function unPauseAsset(
+        uint256 assetId
+    ) external nonReentrant onlyRole(ADMIN_ROLE) {
+        AppStorage.Layout storage data = AppStorage.layout();
+        Asset storage asset = data.assets[assetId];
+
+        IAssetToken(asset.tokenContract).unpause();
+
+        emit AssetUnPaused(assetId);
     }
 }
