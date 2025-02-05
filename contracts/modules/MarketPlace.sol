@@ -31,21 +31,6 @@ contract MarketPlace is ModularInternal {
     // Mapping to store assets by ID
     mapping(uint256 => Asset) public assets;
 
-    event TokensLockedForSale(
-        address seller,
-        uint256 assetId,
-        uint256 amount,
-        uint256 price
-    );
-    event TokensUnlocked(
-        address seller,
-        uint256 assetId,
-        uint256 amount,
-        uint256 price
-    );
-    event Fexselocked(address sender, uint256 fexseLockedAmount);
-    event FexseUnlocked(address sender, uint256 fexseLockedAmount);
-
     event TransferExecuted(
         address sender,
         address buyer,
@@ -163,8 +148,10 @@ contract MarketPlace is ModularInternal {
             ""
         );
 
-        asset.userTokenInfo[sender].tokensForSale -= tokenAmount;
-        asset.userTokenInfo[sender].salePrices = 0;
+        //TODO: update user token info for sender after sale
+        
+        // asset.userTokenInfo[sender].tokensForSale -= tokenAmount;
+        // asset.userTokenInfo[sender].salePrices = 0;
 
         emit TransferExecuted(sender, buyer, assetId, tokenAmount, fexseAmount);
     }
