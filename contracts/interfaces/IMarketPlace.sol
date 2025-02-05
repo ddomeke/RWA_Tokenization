@@ -7,7 +7,7 @@ import "../token/ERC20/IERC20.sol";
 interface IMarketPlace {
 
     function transferAsset(
-        address sender,
+        address seller,
         address buyer,
         uint256 assetId,
         uint256 tokenAmount,

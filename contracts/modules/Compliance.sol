@@ -117,12 +117,12 @@ contract Compliance is ModularInternal {
 
     /**
      * @notice Performs checks before a token transfer is allowed.
-     * @dev This function checks if the sender and recipient addresses are blacklisted or whitelisted.
-     * @param from The address of the sender.
+     * @dev This function checks if the seller and recipient addresses are blacklisted or whitelisted.
+     * @param from The address of the seller.
      * @param to The address of the recipient.
-     * @dev The sender address must not be blacklisted.
+     * @dev The seller address must not be blacklisted.
      * @dev The recipient address must not be blacklisted.
-     * @dev The sender address must be whitelisted.
+     * @dev The seller address must be whitelisted.
      * @dev The recipient address must be whitelisted.
      */
     function preTransferCheck(address from, address to) external view {

@@ -115,6 +115,9 @@ contract SalesModule is ModularInternal {
         require(asset.tokenPrice > 0, "Token price must be greater than zero");
 
         address buyer = msg.sender;
+
+        require(!data.isBlacklisted[buyer], "Token buyer is in blacklist");
+
         address sender = data.deployer;
         uint256 servideFeeAmount;
         uint256 cost = asset.tokenPrice * tokenAmount;
@@ -174,6 +177,9 @@ contract SalesModule is ModularInternal {
         require(tokenAmount > FEXSE_DECIMALS, "You must buy at least 1 token");
 
         address buyer = msg.sender;
+
+        require(!data.isBlacklisted[buyer], "Fexse buyer is in blacklist");
+
         address sender = data.deployer;
 
         //uint256 fexsePrice = IFexsePriceFetcher(address(this)).getFexsePrice();

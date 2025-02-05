@@ -32,7 +32,7 @@ contract MarketPlace is ModularInternal {
     mapping(uint256 => Asset) public assets;
 
     event TransferExecuted(
-        address sender,
+        address seller,
         address buyer,
         uint256 assetId,
         uint256 tokenAmount,
@@ -79,32 +79,35 @@ contract MarketPlace is ModularInternal {
     }
 
     /**
-     * @notice Transfers an asset from the sender to the buyer.
+     * @notice Transfers an asset from the seller to the buyer.
      * @dev This function can only be called by an account with the ADMIN_ROLE.
-     * It ensures that the sender and buyer addresses are valid, and that the token amount and price are greater than zero.
-     * It checks the FEXSE token allowance and balance of the buyer, and the asset token approval and balance of the sender.
-     * It then transfers the FEXSE tokens from the buyer to the sender, and the asset tokens from the sender to the buyer.
+     * It ensures that the seller and buyer addresses are valid, and that the token amount and price are greater than zero.
+     * It checks the FEXSE token allowance and balance of the buyer, and the asset token approval and balance of the seller.
+     * It then transfers the FEXSE tokens from the buyer to the seller, and the asset tokens from the seller to the buyer.
      * Finally, it updates the asset's user token information and emits a TransferExecuted event.
-     * @param sender The address of the asset sender.
+     * @param seller The address of the asset seller.
      * @param buyer The address of the asset buyer.
      * @param assetId The ID of the asset being transferred.
      * @param tokenAmount The amount of asset tokens being transferred.
      * @param tokenPrice The price of each asset token in FEXSE tokens.
      */
     function transferAsset(
-        address sender,
+        address seller,
         address buyer,
         uint256 assetId,
         uint256 tokenAmount,
         uint256 tokenPrice
     ) external nonReentrant onlyRole(ADMIN_ROLE) {
-        require(address(sender) != address(0), "Invalid sender address");
+        require(address(seller) != address(0), "Invalid seller address");
         require(address(buyer) != address(0), "Invalid buyer address");
         require(tokenAmount > 0, "Token amount must be greater than zero");
         require(tokenPrice > 0, "Token price must be greater than zero");
 
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
+
+        require(!data.isBlacklisted[seller], "seller is in blacklist");
+        require(!data.isBlacklisted[buyer], "buyer is in blacklist");
 
         //uint256 fexsePrice = IFexsePriceFetcher(address(this)).getFexsePrice();
 
@@ -118,7 +121,7 @@ contract MarketPlace is ModularInternal {
 
         require(
             IAssetToken(asset.tokenContract).isApprovedForAll(
-                sender,
+                seller,
                 address(this)
             ) == true,
             "asset is not approved"
@@ -130,29 +133,29 @@ contract MarketPlace is ModularInternal {
         );
 
         require(
-            IAssetToken(asset.tokenContract).balanceOf(sender, assetId) >=
+            IAssetToken(asset.tokenContract).balanceOf(seller, assetId) >=
                 tokenAmount,
             "sender does not have enough asset "
         );
 
         require(
-            data.fexseToken.transferFrom(buyer, sender, fexseAmount),
+            data.fexseToken.transferFrom(buyer, seller, fexseAmount),
             "FEXSE transfer failed"
         );
 
         IAssetToken(asset.tokenContract).safeTransferFrom(
-            sender,
+            seller,
             buyer,
             assetId,
             tokenAmount,
             ""
         );
 
-        //TODO: update user token info for sender after sale
-        
-        // asset.userTokenInfo[sender].tokensForSale -= tokenAmount;
-        // asset.userTokenInfo[sender].salePrices = 0;
+        //TODO: update user token info for seller after sale
 
-        emit TransferExecuted(sender, buyer, assetId, tokenAmount, fexseAmount);
+        // asset.userTokenInfo[seller].tokensForSale -= tokenAmount;
+        // asset.userTokenInfo[seller].salePrices = 0;
+
+        emit TransferExecuted(seller, buyer, assetId, tokenAmount, fexseAmount);
     }
 }

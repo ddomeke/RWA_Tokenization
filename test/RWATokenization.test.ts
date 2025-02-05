@@ -750,6 +750,11 @@ describe("RWATokenization Test", function () {
         log('INFO', "----------------------------------------------------------------------------------------------");
         log('INFO', ``);
 
+        await app.connect(addresses[0]).grantRole("0xb6f0283bd1ed00c6aa7e988a7516070240f3610a34d167391359b648eb37cefc", addresses[0]);
+        
+        // AML Test
+        //await compliance.connect(addresses[0]).blacklistAddress(buyer.address);
+
         await fexse.connect(addresses[0]).approve(appAddress, hre.ethers.MaxUint256);
         log('INFO', `1`);
         //await usdtContract.connect(buyer).approve(appAddress, hre.ethers.MaxUint256);
