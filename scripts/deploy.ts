@@ -144,27 +144,34 @@ async function main() {
     log('INFO', "");
     
         //--------------------- 1. App.sol deploy -------------------------------------------------------------
-        const AppContract = await hre.ethers.getContractFactory("App", wallet);
-        app = await AppContract.deploy() as App;
-        await app.waitForDeployment();
-        const appAddress = await app.getAddress();
-        log('INFO', `1  - App contract deployed at: ${appAddress}`);
+        // const AppContract = await hre.ethers.getContractFactory("App", wallet);
+        // app = await AppContract.deploy() as App;
+        // await app.waitForDeployment();
+        // const appAddress = await app.getAddress();
+        // log('INFO', `1  - App contract deployed at: ${appAddress}`);
     
-        await waitSec(30);
+        // await waitSec(30);
+
+
+        //After app deployed, we can use this address
+        const appAddress = "0x89E488715562c9f2200E5f277D78C5Da9E2fA41E";
+
+        const AppContract = await hre.ethers.getContractAt("App", appAddress, wallet);
+        app = AppContract as App;
     
         //--------------------- 2. MarketPlace.sol deploy ------------------------------------------------------
-        // const MarketPlaceContract = await hre.ethers.getContractFactory("MarketPlace", wallet);
-        // _marketPlace = await MarketPlaceContract.deploy(appAddress) as MarketPlace;
-        // await _marketPlace.waitForDeployment();
-        // const _marketPlaceAddress = await _marketPlace.getAddress();
-        // log('INFO', `2  - market Place contract deployed at: ${_marketPlaceAddress}`);
+        const MarketPlaceContract = await hre.ethers.getContractFactory("MarketPlace", wallet);
+        _marketPlace = await MarketPlaceContract.deploy(appAddress) as MarketPlace;
+        await _marketPlace.waitForDeployment();
+        const _marketPlaceAddress = await _marketPlace.getAddress();
+        log('INFO', `2  - market Place contract deployed at: ${_marketPlaceAddress}`);
     
     
-        // await app.installModule(_marketPlaceAddress);
+        await app.installModule(_marketPlaceAddress);
     
-        // marketPlace = await hre.ethers.getContractAt("MarketPlace", appAddress, wallet) as MarketPlace;
+        marketPlace = await hre.ethers.getContractAt("MarketPlace", appAddress, wallet) as MarketPlace;
     
-        // await waitSec(15);
+        await waitSec(15);
     
         //--------------------- 3. RWATokenization.sol deploy --------------------------------------------------------
         const RWATokenizationContract = await hre.ethers.getContractFactory("RWATokenization", wallet);
@@ -180,28 +187,28 @@ async function main() {
         await waitSec(30);
     
         //--------------------- 4. ProfitModule.sol deploy --------------------------------------------------------
-        // const ProfitModuleContract = await hre.ethers.getContractFactory("ProfitModule", wallet);
-        // _profitModule = await ProfitModuleContract.deploy(appAddress) as ProfitModule;
-        // await _profitModule.waitForDeployment();
+        const ProfitModuleContract = await hre.ethers.getContractFactory("ProfitModule", wallet);
+        _profitModule = await ProfitModuleContract.deploy(appAddress) as ProfitModule;
+        await _profitModule.waitForDeployment();
     
-        // const _profitModuleAddress = await _profitModule.getAddress();
-        // await log('INFO', `4  - ProfitModule Address-> ${_profitModuleAddress}`);
-        // await app.installModule(_profitModuleAddress);
+        const _profitModuleAddress = await _profitModule.getAddress();
+        await log('INFO', `4  - ProfitModule Address-> ${_profitModuleAddress}`);
+        await app.installModule(_profitModuleAddress);
         
-        // profitModule = await hre.ethers.getContractAt("ProfitModule", appAddress, wallet) as ProfitModule;
+        profitModule = await hre.ethers.getContractAt("ProfitModule", appAddress, wallet) as ProfitModule;
     
-        // await waitSec(15);
+        await waitSec(15);
     
         //--------------------- 5. Compliance.sol deploy --------------------------------------------------------
-        // const ComplianceContract = await hre.ethers.getContractFactory("Compliance", wallet);
-        // _compliance = await ComplianceContract.deploy(appAddress) as Compliance;
-        // await _compliance.waitForDeployment();
+        const ComplianceContract = await hre.ethers.getContractFactory("Compliance", wallet);
+        _compliance = await ComplianceContract.deploy(appAddress) as Compliance;
+        await _compliance.waitForDeployment();
     
-        // const _complianceAddress = await _compliance.getAddress();
-        // await log('INFO', `5  - _compliance Address-> ${_complianceAddress}`);
+        const _complianceAddress = await _compliance.getAddress();
+        await log('INFO', `5  - _compliance Address-> ${_complianceAddress}`);
     
-        // await app.installModule(_complianceAddress);
-        // await waitSec(15);
+        await app.installModule(_complianceAddress);
+        await waitSec(15);
     
         //--------------------- 6. Fexse.sol deploy -------------------------------------------------------
         const FexseContract = await hre.ethers.getContractFactory("Fexse", wallet);
@@ -261,7 +268,7 @@ async function main() {
         await waitSec(30);
     
         const _salesModuleAddress = await _salesModule.getAddress();
-        await log('INFO', `11  - SalesModule Address-> ${_salesModuleAddress}`);
+        await log('INFO', `10  - SalesModule Address-> ${_salesModuleAddress}`);
         await waitSec(30);
     
         await app.installModule(_salesModuleAddress);
@@ -276,8 +283,9 @@ async function main() {
     
         await verifyContract(appAddress, []); 
         await verifyContract(_rwaTokenizationAddress, [appAddress]);
-        //await verifyContract(_profitModuleAddress, [appAddress]);
-        //await verifyContract(_marketPlaceAddress, [appAddress]);
+        await verifyContract(_profitModuleAddress, [appAddress]);
+        await verifyContract(_marketPlaceAddress, [appAddress]);
+        await verifyContract(_complianceAddress, [appAddress]);
         await verifyContract(fexseAddress, []);
         await verifyContract(_salesModuleAddress, [USDT_ADDRESS]);
 

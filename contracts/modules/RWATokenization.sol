@@ -15,6 +15,7 @@ import "../token/ERC20/IERC20.sol";
 import "../utils/Strings.sol";
 import {AssetToken} from "../token/AssetToken.sol";
 import {IRWATokenization} from "../interfaces/IRWATokenization.sol";
+import "hardhat/console.sol";
 
 /**
  * @title RWATokenization
@@ -23,8 +24,6 @@ import {IRWATokenization} from "../interfaces/IRWATokenization.sol";
  */
 contract RWATokenization is ModularInternal {
     using AppStorage for AppStorage.Layout;
-
-    address public appAddress;
 
     // Event to log profit distribution
     event AssetUpdated(uint256 assetId, uint256 newTokenPrice);
@@ -57,7 +56,6 @@ contract RWATokenization is ModularInternal {
      */
     constructor(address _appAddress) {
         _this = address(this);
-        appAddress = _appAddress;
         _grantRole(ADMIN_ROLE, msg.sender);
         _grantRole(ADMIN_ROLE, _appAddress);
     }
@@ -133,7 +131,6 @@ contract RWATokenization is ModularInternal {
         AssetToken token = new AssetToken(
             name,
             symbol,
-            appAddress,
             assetUri, // URI for metadata
             address(this)
         );

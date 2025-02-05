@@ -43,6 +43,10 @@ const config: HardhatUserConfig = {
       },
     },
     // eth: {
+    //   url: process.env.RPC_URL, // Your eth RPC URL
+    //   accounts: [process.env.PRIVATE_KEY!], // Your wallet private key
+    // },
+    // sepolia: {
     //   url: process.env.RPC_URL, // Your Sepolia RPC URL
     //   accounts: [process.env.PRIVATE_KEY!], // Your wallet private key
     // },
