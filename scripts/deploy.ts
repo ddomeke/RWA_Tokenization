@@ -14,7 +14,7 @@ import {
     MarketPlace,
     RWA_DAO,
     SwapModule,
-    FexsePriceFetcher,
+    PriceFetcher,
     SalesModule,
 } from "../typechain-types";
 
@@ -78,8 +78,8 @@ async function main() {
     let _rwa_DAO: RWA_DAO;
     let swapModule: SwapModule;
     let _swapModule: SwapModule;
-    let fexsePriceFetcher: FexsePriceFetcher;
-    let _fexsePriceFetcher: FexsePriceFetcher;
+    let PriceFetcher: PriceFetcher;
+    let _PriceFetcher: PriceFetcher;
     let marketPlace: MarketPlace;
     let _marketPlace: MarketPlace;
     let assetToken: AssetToken;
@@ -247,16 +247,16 @@ async function main() {
         // swapModule = await hre.ethers.getContractAt("SwapModule", appAddress, wallet) as SwapModule;
         // await waitSec(15);
     
-        //--------------------- 9. FexsePriceFetcher.sol deploy  -----------------------------------------------------
-        // const FexsePriceFetcherContract = await hre.ethers.getContractFactory("FexsePriceFetcher", wallet);
-        // _fexsePriceFetcher = await FexsePriceFetcherContract.deploy(fexseAddress, USDT_ADDRESS, 3000) as FexsePriceFetcher;
-        // await _fexsePriceFetcher.waitForDeployment();
+        //--------------------- 9. PriceFetcher.sol deploy  -----------------------------------------------------
+        // const priceFetcherContract = await hre.ethers.getContractFactory("PriceFetcher", wallet);
+        // _priceFetcher = await priceFetcherContract.deploy(fexseAddress, USDT_ADDRESS, 3000) as PriceFetcher;
+        // await _PriceFetcher.waitForDeployment();
     
-        // const _fexsePriceFetcherAddress = await _fexsePriceFetcher.getAddress();
-        // await log('INFO', `9  - _fexsePriceFetcher Address-> ${_fexsePriceFetcherAddress}`);
+        // const _priceFetcherAddress = await _priceFetcher.getAddress();
+        // await log('INFO', `9  - _priceFetcher Address-> ${_priceFetcherAddress}`);
     
-        // await app.installModule(_fexsePriceFetcherAddress);
-        // fexsePriceFetcher = await hre.ethers.getContractAt("FexsePriceFetcher", appAddress, wallet) as FexsePriceFetcher;
+        // await app.installModule(_priceFetcherAddress);
+        // priceFetcher = await hre.ethers.getContractAt("PriceFetcher", appAddress, wallet) as PriceFetcher;
     
         // await waitSec(15);
     

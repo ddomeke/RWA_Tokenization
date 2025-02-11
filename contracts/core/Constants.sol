@@ -12,6 +12,39 @@ pragma solidity ^0.8.24;
 import "../token/ERC20/IERC20.sol";
 import {IAssetToken} from "../interfaces/IAssetToken.sol";
 
+
+interface AggregatorV3Interface {
+    function decimals() external view returns (uint8);
+
+    function description() external view returns (string memory);
+
+    function version() external view returns (uint256);
+
+    function getRoundData(
+        uint80 _roundId
+    )
+        external
+        view
+        returns (
+            uint80 roundId,
+            int256 answer,
+            uint256 startedAt,
+            uint256 updatedAt,
+            uint80 answeredInRound
+        );
+
+    function latestRoundData()
+        external
+        view
+        returns (
+            uint80 roundId,
+            int256 answer,
+            uint256 startedAt,
+            uint256 updatedAt,
+            uint80 answeredInRound
+        );
+}
+
 /**
  * @dev Constants and data structures used in the RWATokenization contracts.
  */
@@ -32,6 +65,14 @@ bytes32 constant COMPLIANCE_OFFICER_ROLE = keccak256("COMPLIANCE_OFFICER_ROLE");
  */
 bytes32 constant PAYMENT_MANAGER_ROLE = keccak256("PAYMENT_MANAGER_ROLE");
 
+uint256 constant FEXSE_DECIMALS = 10 ** 18; // 18 decimals for FEXSE
+uint256 constant FEXSE_INITIAL_IN_USDT = 45 * 10 ** 3; // 0.045 USDT represented as 45 (scaled by 10^3)
+
+address constant FACTORY = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
+
+AggregatorV3Interface constant ethPriceFeed = AggregatorV3Interface(
+    0xEe9F2375b4bdF6387aa8265dD4FB8F16512A1d46
+);
 // Asset struct
 /**
  * @dev Struct to store asset information.

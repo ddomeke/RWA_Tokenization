@@ -15,10 +15,11 @@ pragma solidity ^0.8.24;
 
 import "../core/abstracts/ModularInternal.sol";
 import "../utils/Strings.sol";
-import "../interfaces/IFexsePriceFetcher.sol";
+import "../interfaces/IPriceFetcher.sol";
 import {AssetToken} from "../token/AssetToken.sol";
 import {IAssetToken} from "../interfaces/IAssetToken.sol";
 import {IMarketPlace} from "../interfaces/IMarketPlace.sol";
+import "hardhat/console.sol";
 
 /**
  * @title MarketPlace
@@ -32,6 +33,7 @@ contract MarketPlace is ModularInternal {
     mapping(uint256 => Asset) public assets;
 
     event TransferExecuted(
+        uint256 orderId,
         address seller,
         address buyer,
         uint256 assetId,
@@ -92,12 +94,15 @@ contract MarketPlace is ModularInternal {
      * @param tokenPrice The price of each asset token in FEXSE tokens.
      */
     function transferAsset(
+        uint256 orderId,
         address seller,
         address buyer,
         uint256 assetId,
         uint256 tokenAmount,
         uint256 tokenPrice
     ) external nonReentrant onlyRole(ADMIN_ROLE) {
+        uint256 gasBefore = gasleft();
+
         require(address(seller) != address(0), "Invalid seller address");
         require(address(buyer) != address(0), "Invalid buyer address");
         require(tokenAmount > 0, "Token amount must be greater than zero");
@@ -109,13 +114,14 @@ contract MarketPlace is ModularInternal {
         require(!data.isBlacklisted[seller], "seller is in blacklist");
         require(!data.isBlacklisted[buyer], "buyer is in blacklist");
 
-        //uint256 fexsePrice = IFexsePriceFetcher(address(this)).getFexsePrice();
+        //uint256 fexsePrice = IPriceFetcher(address(this)).getFexsePrice();
 
         uint256 fexseAmount = tokenPrice * tokenAmount;
+        uint256 servideFeeAmount = (fexseAmount * 5) / 1000;
 
         require(
             IERC20(data.fexseToken).allowance(buyer, address(this)) >=
-                fexseAmount,
+                (fexseAmount + servideFeeAmount),
             "FEXSE allowance too low"
         );
 
@@ -128,8 +134,8 @@ contract MarketPlace is ModularInternal {
         );
 
         require(
-            IERC20(data.fexseToken).balanceOf(buyer) >= fexseAmount,
-            "Insufficient fexse balance in buyer"
+            IERC20(data.fexseToken).balanceOf(buyer) >=
+                (fexseAmount + servideFeeAmount)
         );
 
         require(
@@ -139,8 +145,12 @@ contract MarketPlace is ModularInternal {
         );
 
         require(
-            data.fexseToken.transferFrom(buyer, seller, fexseAmount),
-            "FEXSE transfer failed"
+            data.fexseToken.transferFrom(
+                buyer,
+                seller,
+                (fexseAmount - servideFeeAmount)
+            ),
+            "FEXSE transfer failed (seller)"
         );
 
         IAssetToken(asset.tokenContract).safeTransferFrom(
@@ -151,11 +161,54 @@ contract MarketPlace is ModularInternal {
             ""
         );
 
-        //TODO: update user token info for seller after sale
+        emit TransferExecuted(
+            orderId,
+            seller,
+            buyer,
+            assetId,
+            tokenAmount,
+            fexseAmount
+        );
 
-        // asset.userTokenInfo[seller].tokensForSale -= tokenAmount;
-        // asset.userTokenInfo[seller].salePrices = 0;
+        uint256 gasUsed = gasBefore - gasleft();
+        uint256 gasFeeinFexse = calculateGasFeeinFexse(gasUsed);
 
-        emit TransferExecuted(seller, buyer, assetId, tokenAmount, fexseAmount);
+        if (gasFeeinFexse >= ((servideFeeAmount * 30) / 100)) {
+            require(
+                data.fexseToken.transferFrom(
+                    buyer,
+                    address(this),
+                    (servideFeeAmount * 2) + gasFeeinFexse
+                ),
+                "FEXSE transfer failed (gasFeeinFexse)"
+            );
+        } else {
+            require(
+                data.fexseToken.transferFrom(
+                    buyer,
+                    address(this),
+                    servideFeeAmount * 2
+                ),
+                "FEXSE transfer failed (servideFeeAmount)"
+            );
+        }
+    }
+
+    /**
+     * @dev Calculates the gas fee in FEXSE tokens based on the gas used.
+     * @param gasUsed The amount of gas used for the transaction.
+     * @return The calculated gas fee in FEXSE tokens.
+     */
+    function calculateGasFeeinFexse(
+        uint256 gasUsed
+    ) internal view returns (uint256) {
+        uint256 gasPriceinUSDT = IPriceFetcher(address(this)).getGasPriceInUSDT(
+            gasUsed
+        );
+
+        uint256 gasFeeinFexse = (gasPriceinUSDT * FEXSE_DECIMALS) /
+            FEXSE_INITIAL_IN_USDT;
+
+        return gasFeeinFexse;
     }
 }

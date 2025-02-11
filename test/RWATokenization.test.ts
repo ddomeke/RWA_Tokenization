@@ -14,7 +14,7 @@ import {
     MarketPlace,
     RWA_DAO,
     SwapModule,
-    FexsePriceFetcher,
+    PriceFetcher,
     SalesModule,
 } from "../typechain-types";
 
@@ -47,8 +47,8 @@ describe("RWATokenization Test", function () {
     let _rwa_DAO: RWA_DAO;
     let swapModule: SwapModule;
     let _swapModule: SwapModule;
-    let fexsePriceFetcher: FexsePriceFetcher;
-    let _fexsePriceFetcher: FexsePriceFetcher;
+    let priceFetcher: PriceFetcher;
+    let _priceFetcher: PriceFetcher;
     let marketPlace: MarketPlace;
     let _marketPlace: MarketPlace;
     let assetToken: AssetToken;
@@ -214,14 +214,14 @@ describe("RWATokenization Test", function () {
         await app.installModule(_swapModuleAddress);
         swapModule = await hre.ethers.getContractAt("SwapModule", appAddress) as SwapModule;
 
-        //--------------------- 10. FexsePriceFetcher.sol deploy --------------------------------------------------------
-        _fexsePriceFetcher = await hre.ethers.deployContract("FexsePriceFetcher", ["0xf97f4df75117a78c1A5a0DBb814Af92458539FB4", USDT_ADDRESS, 3000]);
-        const _fexsePriceFetcherAddress = await _fexsePriceFetcher.getAddress();
-        await log('INFO', `10  - _fexsePriceFetcher Module Address-> ${_fexsePriceFetcherAddress}`);
-        gasPriceCalc(_fexsePriceFetcher.deploymentTransaction());
+        //--------------------- 10. PriceFetcher.sol deploy --------------------------------------------------------
+        _priceFetcher = await hre.ethers.deployContract("PriceFetcher", ["0xf97f4df75117a78c1A5a0DBb814Af92458539FB4", USDT_ADDRESS, 3000]);
+        const _priceFetcherAddress = await _priceFetcher.getAddress();
+        await log('INFO', `10  - _priceFetcher Module Address-> ${_priceFetcherAddress}`);
+        gasPriceCalc(_priceFetcher.deploymentTransaction());
 
-        await app.installModule(_fexsePriceFetcherAddress);
-        fexsePriceFetcher = await hre.ethers.getContractAt("FexsePriceFetcher", appAddress) as FexsePriceFetcher;
+        await app.installModule(_priceFetcherAddress);
+        priceFetcher = await hre.ethers.getContractAt("PriceFetcher", appAddress) as PriceFetcher;
 
 
 
@@ -531,6 +531,7 @@ describe("RWATokenization Test", function () {
 
 
         await marketPlace.connect(addresses[0]).transferAsset(
+            1897,
             buyer,
             addresses[0],
             ASSET_ID,
@@ -542,6 +543,12 @@ describe("RWATokenization Test", function () {
         log('INFO', "-------------------asset transfer -----------------------");
         log('INFO', ``);
 
+        //const fexseprice =  await priceFetcher.connect(addresses[0]).getFexsePrice();
+        //const GasPriceInUSDT =  await priceFetcher.connect(addresses[0]).getGasPriceInUSDT(136138);
+
+
+        //log("INFO", `fexseprice                     : ${fexseprice}`);
+        //log("INFO", `GasPriceInUSDT                     : ${GasPriceInUSDT}`);
 
         await getProject_All_Balances(buyer, 0);
         await getProject_All_Balances(addresses[0], 0);

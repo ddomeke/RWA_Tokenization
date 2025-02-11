@@ -9,7 +9,7 @@ pragma solidity ^0.8.24;
  * - ModularInternal: Abstract contract providing internal modular functionality.
  * - IERC20: Interface for the ERC20 standard as defined in the EIP.
  * - Strings: Utility library for string operations.
- * - IFexsePriceFetcher: Interface for fetching price data.
+ * - IPriceFetcher: Interface for fetching price data.
  * - AssetToken: Contract representing an asset-backed token.
  * - IRWATokenization: Interface for the RWATokenization project.
  * - SafeERC20: Library for safe operations with ERC20 tokens.
@@ -17,7 +17,7 @@ pragma solidity ^0.8.24;
 import "../core/abstracts/ModularInternal.sol";
 import "../token/ERC20/IERC20.sol";
 import "../utils/Strings.sol";
-import "../interfaces/IFexsePriceFetcher.sol";
+import "../interfaces/IPriceFetcher.sol";
 import {AssetToken} from "../token/AssetToken.sol";
 import {IRWATokenization} from "../interfaces/IRWATokenization.sol";
 import {SafeERC20} from "../token/ERC20/utils/SafeERC20.sol";
@@ -31,9 +31,6 @@ contract SalesModule is ModularInternal {
     using AppStorage for AppStorage.Layout;
 
     address public immutable usdtToken;
-
-    uint256 private constant FEXSE_DECIMALS = 10 ** 18; // 18 decimals for FEXSE
-    uint256 private constant FEXSE_PRICE_IN_USDT = 45 * 10 ** 3; // 0.045 USDT represented as 45 (scaled by 10^3)
 
     // Event to log profit distribution
     event TokensSold(
@@ -122,10 +119,10 @@ contract SalesModule is ModularInternal {
         uint256 servideFeeAmount;
         uint256 cost = asset.tokenPrice * tokenAmount;
 
-        //uint256 fexsePrice = IFexsePriceFetcher(address(this)).getFexsePrice();
+        //uint256 fexsePrice = IPriceFetcher(address(this)).getFexsePrice();
 
         if (saleCurrency == address(data.fexseToken)) {
-            cost = (cost * FEXSE_DECIMALS) / (FEXSE_PRICE_IN_USDT);
+            cost = (cost * FEXSE_DECIMALS) / (FEXSE_INITIAL_IN_USDT);
         } else {
             servideFeeAmount = (cost * 5) / 1000;
             cost = cost + servideFeeAmount;
@@ -182,9 +179,9 @@ contract SalesModule is ModularInternal {
 
         address sender = data.deployer;
 
-        //uint256 fexsePrice = IFexsePriceFetcher(address(this)).getFexsePrice();
+        //uint256 fexsePrice = IPriceFetcher(address(this)).getFexsePrice();
 
-        uint256 usdtAmount = (tokenAmount * FEXSE_PRICE_IN_USDT) /
+        uint256 usdtAmount = (tokenAmount * FEXSE_INITIAL_IN_USDT) /
             FEXSE_DECIMALS; // Total USDT required
 
         require(

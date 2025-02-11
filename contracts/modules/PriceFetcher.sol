@@ -1,24 +1,22 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-
 /**
- * @file FexsePriceFetcher.sol
- * @notice This file contains the implementation of the FexsePriceFetcher module.
+ * @file PriceFetcher.sol
+ * @notice This file contains the implementation of the PriceFetcher module.
  * @dev This module is responsible for fetching price data for the RWA tokenization project.
- * 
+ *
  * @import ModularInternal.sol - Provides internal modular functionalities.
- * @import IFexsePriceFetcher.sol - Interface for the FexsePriceFetcher module.
+ * @import IPriceFetcher.sol - Interface for the PriceFetcher module.
  */
 import "../core/abstracts/ModularInternal.sol";
-import "../interfaces/IFexsePriceFetcher.sol";
-import "hardhat/console.sol";
+import "../interfaces/IPriceFetcher.sol";
 
 /**
- * @title FexsePriceFetcher
+ * @title PriceFetcher
  * @dev This contract is a module that fetches price data. It inherits from the ModularInternal contract.
  */
-contract FexsePriceFetcher is ModularInternal {
+contract PriceFetcher is ModularInternal {
     using AppStorage for AppStorage.Layout;
 
     address public immutable fexseToken;
@@ -27,11 +25,9 @@ contract FexsePriceFetcher is ModularInternal {
 
     address immutable _this;
 
-    address public constant factory =
-        0x1F98431c8aD98523631AE4a59f267346ea31F984;
 
     /**
-     * @dev Constructor for the FexsePriceFetcher contract.
+     * @dev Constructor for the PriceFetcher contract.
      * @param _fexseToken The address of the Fexse token.
      * @param _token1 The address of the first token.
      * @param _fee The fee associated with the token pair.
@@ -63,10 +59,11 @@ contract FexsePriceFetcher is ModularInternal {
      */
     function moduleFacets() external view returns (FacetCut[] memory) {
         uint256 selectorIndex = 0;
-        bytes4[] memory selectors = new bytes4[](1);
+        bytes4[] memory selectors = new bytes4[](2);
 
         // Add function selectors to the array
         selectors[selectorIndex++] = this.getFexsePrice.selector;
+        selectors[selectorIndex++] = this.getGasPriceInUSDT.selector;
         // Create a FacetCut array with a single element
         FacetCut[] memory facetCuts = new FacetCut[](1);
 
@@ -79,10 +76,9 @@ contract FexsePriceFetcher is ModularInternal {
         return facetCuts;
     }
 
-
     function getFexsePrice() external view returns (uint256 price) {
         // Get the pool address
-        address pool = IUniswapV3Factory(factory).getPool(
+        address pool = IUniswapV3Factory(FACTORY).getPool(
             fexseToken,
             token1,
             fee
@@ -97,9 +93,8 @@ contract FexsePriceFetcher is ModularInternal {
 
         // Calculate the price
         unchecked {
-            price =
-                (((uint256(sqrtPriceX96) * uint256(sqrtPriceX96))*10**18) /
-                (1 << 192));
+            price = (((uint256(sqrtPriceX96) * uint256(sqrtPriceX96)) *
+                10 ** 18) / (1 << 192));
         }
 
         //console.log(" price", price);
@@ -108,6 +103,18 @@ contract FexsePriceFetcher is ModularInternal {
         if (IUniswapV3Pool(pool).token0() == token1) {
             price = (1e18 * 1e18) / price; // Adjust decimals
         }
-        
+    }
+
+    function getGasPriceInUSDT(uint256 gasUsed) external view returns (uint256) {
+        uint256 gasPrice = tx.gasprice;
+
+        uint256 gasFeeinETH = gasPrice * gasUsed;
+
+        (, int256 Price, , , ) = ethPriceFeed.latestRoundData();
+        require(Price > 0, "Invalid ETH price");
+
+        uint256 gasPriceInUSDT = (gasFeeinETH * 10 ** 6) / uint256(Price);
+
+        return gasPriceInUSDT;
     }
 }
