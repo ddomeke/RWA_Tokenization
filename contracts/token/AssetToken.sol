@@ -101,6 +101,21 @@ contract AssetToken is
     }
 
     /**
+     * @notice Burns a specified amount of tokens from a given account.
+     * @dev This function can only be called by an account with the ADMIN_ROLE.
+     * @param account The address of the account to burn tokens from.
+     * @param id The ID of the token type to burn.
+     * @param amount The amount of tokens to burn.
+     */
+    function burn(
+        address account,
+        uint256 id,
+        uint256 amount
+    ) external onlyRole(ADMIN_ROLE) {
+        _burn(account, id, amount);
+    }
+
+    /**
      * @dev Sets a new URI for the token.
      * Can only be called by an account with the `ADMIN_ROLE`.
      * @param newuri The new URI to be set.
