@@ -206,8 +206,8 @@ contract MarketPlace is ModularInternal {
             gasUsed
         );
 
-        uint256 gasFeeinFexse = (gasPriceinUSDT * FEXSE_DECIMALS) /
-            FEXSE_INITIAL_IN_USDT;
+        uint256 gasFeeinFexse = (gasPriceinUSDT * 10 ** 18) /
+            45 * 10 ** 3;
 
         return gasFeeinFexse;
     }

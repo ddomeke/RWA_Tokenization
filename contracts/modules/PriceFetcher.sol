@@ -12,6 +12,38 @@ pragma solidity ^0.8.24;
 import "../core/abstracts/ModularInternal.sol";
 import "../interfaces/IPriceFetcher.sol";
 
+interface AggregatorV3Interface {
+    function decimals() external view returns (uint8);
+
+    function description() external view returns (string memory);
+
+    function version() external view returns (uint256);
+
+    function getRoundData(
+        uint80 _roundId
+    )
+        external
+        view
+        returns (
+            uint80 roundId,
+            int256 answer,
+            uint256 startedAt,
+            uint256 updatedAt,
+            uint80 answeredInRound
+        );
+
+    function latestRoundData()
+        external
+        view
+        returns (
+            uint80 roundId,
+            int256 answer,
+            uint256 startedAt,
+            uint256 updatedAt,
+            uint80 answeredInRound
+        );
+}
+
 /**
  * @title PriceFetcher
  * @dev This contract is a module that fetches price data. It inherits from the ModularInternal contract.
@@ -24,6 +56,7 @@ contract PriceFetcher is ModularInternal {
     uint24 public immutable fee;
 
     address immutable _this;
+
 
 
     /**
@@ -78,7 +111,7 @@ contract PriceFetcher is ModularInternal {
 
     function getFexsePrice() external view returns (uint256 price) {
         // Get the pool address
-        address pool = IUniswapV3Factory(FACTORY).getPool(
+        address pool = IUniswapV3Factory(0x1F98431c8aD98523631AE4a59f267346ea31F984).getPool(
             fexseToken,
             token1,
             fee
@@ -110,7 +143,7 @@ contract PriceFetcher is ModularInternal {
 
         uint256 gasFeeinETH = gasPrice * gasUsed;
 
-        (, int256 Price, , , ) = ethPriceFeed.latestRoundData();
+        (, int256 Price, , , ) = AggregatorV3Interface(0xEe9F2375b4bdF6387aa8265dD4FB8F16512A1d46).latestRoundData();
         require(Price > 0, "Invalid ETH price");
 
         uint256 gasPriceInUSDT = (gasFeeinETH * 10 ** 6) / uint256(Price);

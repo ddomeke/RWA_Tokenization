@@ -78,8 +78,8 @@ async function main() {
     let _rwa_DAO: RWA_DAO;
     let swapModule: SwapModule;
     let _swapModule: SwapModule;
-    let PriceFetcher: PriceFetcher;
-    let _PriceFetcher: PriceFetcher;
+    let priceFetcher: PriceFetcher;
+    let _priceFetcher: PriceFetcher;
     let marketPlace: MarketPlace;
     let _marketPlace: MarketPlace;
     let assetToken: AssetToken;
@@ -144,20 +144,20 @@ async function main() {
     log('INFO', "");
     
         //--------------------- 1. App.sol deploy -------------------------------------------------------------
-        // const AppContract = await hre.ethers.getContractFactory("App", wallet);
-        // app = await AppContract.deploy() as App;
-        // await app.waitForDeployment();
-        // const appAddress = await app.getAddress();
-        // log('INFO', `1  - App contract deployed at: ${appAddress}`);
+        const AppContract = await hre.ethers.getContractFactory("App", wallet);
+        app = await AppContract.deploy() as App;
+        await app.waitForDeployment();
+        const appAddress = await app.getAddress();
+        log('INFO', `1  - App contract deployed at: ${appAddress}`);
     
-        // await waitSec(30);
+        await waitSec(30);
 
 
         //After app deployed, we can use this address
-        const appAddress = "0x89E488715562c9f2200E5f277D78C5Da9E2fA41E";
+        // const appAddress = "0x89E488715562c9f2200E5f277D78C5Da9E2fA41E";
 
-        const AppContract = await hre.ethers.getContractAt("App", appAddress, wallet);
-        app = AppContract as App;
+        // const AppContract = await hre.ethers.getContractAt("App", appAddress, wallet);
+        // app = AppContract as App;
     
         //--------------------- 2. MarketPlace.sol deploy ------------------------------------------------------
         const MarketPlaceContract = await hre.ethers.getContractFactory("MarketPlace", wallet);
@@ -248,17 +248,17 @@ async function main() {
         // await waitSec(15);
     
         //--------------------- 9. PriceFetcher.sol deploy  -----------------------------------------------------
-        // const priceFetcherContract = await hre.ethers.getContractFactory("PriceFetcher", wallet);
-        // _priceFetcher = await priceFetcherContract.deploy(fexseAddress, USDT_ADDRESS, 3000) as PriceFetcher;
-        // await _PriceFetcher.waitForDeployment();
+        const priceFetcherContract = await hre.ethers.getContractFactory("PriceFetcher", wallet);
+        _priceFetcher = await priceFetcherContract.deploy(fexseAddress, USDT_ADDRESS, 3000) as PriceFetcher;
+        await _priceFetcher.waitForDeployment();
     
-        // const _priceFetcherAddress = await _priceFetcher.getAddress();
-        // await log('INFO', `9  - _priceFetcher Address-> ${_priceFetcherAddress}`);
+        const _priceFetcherAddress = await _priceFetcher.getAddress();
+        await log('INFO', `9  - _priceFetcher Address-> ${_priceFetcherAddress}`);
     
-        // await app.installModule(_priceFetcherAddress);
-        // priceFetcher = await hre.ethers.getContractAt("PriceFetcher", appAddress, wallet) as PriceFetcher;
+        await app.installModule(_priceFetcherAddress);
+        priceFetcher = await hre.ethers.getContractAt("PriceFetcher", appAddress, wallet) as PriceFetcher;
     
-        // await waitSec(15);
+        await waitSec(15);
     
         //--------------------- 10. SalesModule.sol deploy ------------------------------------------------------------------
     
@@ -286,6 +286,7 @@ async function main() {
         await verifyContract(_profitModuleAddress, [appAddress]);
         await verifyContract(_marketPlaceAddress, [appAddress]);
         await verifyContract(_complianceAddress, [appAddress]);
+        await verifyContract(_priceFetcherAddress, [fexseAddress, USDT_ADDRESS, 3000]);
         await verifyContract(fexseAddress, []);
         await verifyContract(_salesModuleAddress, [USDT_ADDRESS]);
 

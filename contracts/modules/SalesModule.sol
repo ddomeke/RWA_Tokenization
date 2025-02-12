@@ -122,7 +122,7 @@ contract SalesModule is ModularInternal {
         //uint256 fexsePrice = IPriceFetcher(address(this)).getFexsePrice();
 
         if (saleCurrency == address(data.fexseToken)) {
-            cost = (cost * FEXSE_DECIMALS) / (FEXSE_INITIAL_IN_USDT);
+            cost = (cost * 10 ** 18) / (45 * 10 ** 3);
         } else {
             servideFeeAmount = (cost * 5) / 1000;
             cost = cost + servideFeeAmount;
@@ -171,7 +171,7 @@ contract SalesModule is ModularInternal {
 
         // presale tokens should be usdt tokens only
         require(saleCurrency == usdtToken, "buyFexse: Invalid sale currency");
-        require(tokenAmount > FEXSE_DECIMALS, "You must buy at least 1 token");
+        require(tokenAmount > 10 ** 18, "You must buy at least 1 token");
 
         address buyer = msg.sender;
 
@@ -181,8 +181,8 @@ contract SalesModule is ModularInternal {
 
         //uint256 fexsePrice = IPriceFetcher(address(this)).getFexsePrice();
 
-        uint256 usdtAmount = (tokenAmount * FEXSE_INITIAL_IN_USDT) /
-            FEXSE_DECIMALS; // Total USDT required
+        uint256 usdtAmount = (tokenAmount * 45 * 10 ** 3) /
+            10 ** 18; // Total USDT required
 
         require(
             usdtAmount <= 2000000000,
