@@ -274,6 +274,32 @@ contract RWATokenization is ModularInternal {
     }
 
     /**
+     * @notice Sends the specified amount of an asset to the real world.
+     * @dev This function burns the specified amount of tokens from the given account.
+     * @param account The address of the account from which the tokens will be burned.
+     * @param assetId The ID of the asset to be sent to the real world.
+     * @param amount The amount of the asset to be sent.
+     * @dev The asset must exist (asset.id != 0).
+     * @dev The caller must have the ADMIN_ROLE.
+     * @dev The function must not be reentrant.
+     */
+    function sendToTheRealWorld(
+        address account,
+        uint256 assetId,
+        uint256 amount
+    ) external nonReentrant onlyRole(ADMIN_ROLE) {
+        AppStorage.Layout storage data = AppStorage.layout();
+        Asset storage asset = data.assets[assetId];
+
+        require(asset.id != 0, "Asset does not exist");
+        
+        asset.totalTokens -= amount;
+
+        IAssetToken(asset.tokenContract).burn(account, assetId, amount);
+
+    }
+
+    /**
      * @notice Updates the holdings of a specific account for a given asset.
      * @dev This function can only be called by the token contract or the contract itself.
      * @param account The address of the account whose holdings are to be updated.
@@ -395,5 +421,4 @@ contract RWATokenization is ModularInternal {
 
         emit fexseContractUpdated(oldContract, address(_fexseToken));
     }
-
 }

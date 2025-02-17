@@ -38,6 +38,12 @@ interface IRWATokenization {
         address holder
     ) external view returns (uint256);
 
+    function sendToTheRealWorld(
+        address account,
+        uint256 assetId,
+        uint256 amount
+    ) external;
+
     function updateHoldings(
         address account,
         uint256 assetId,
