@@ -68,7 +68,7 @@ contract RWATokenization is ModularInternal {
      */
     function moduleFacets() external view returns (FacetCut[] memory) {
         uint256 selectorIndex = 0;
-        bytes4[] memory selectors = new bytes4[](10);
+        bytes4[] memory selectors = new bytes4[](11);
 
         // Add function selectors to the array
         selectors[selectorIndex++] = this.createAsset.selector;
@@ -78,6 +78,7 @@ contract RWATokenization is ModularInternal {
         selectors[selectorIndex++] = this.getTokenContractAddress.selector;
         selectors[selectorIndex++] = this.getTokenHolders.selector;
         selectors[selectorIndex++] = this.getHolderBalance.selector;
+        selectors[selectorIndex++] = this.sendToTheRealWorld.selector;
         selectors[selectorIndex++] = this.updateAsset.selector;
         selectors[selectorIndex++] = this.updateHoldings.selector;
         selectors[selectorIndex++] = this.setFexseAddress.selector;
