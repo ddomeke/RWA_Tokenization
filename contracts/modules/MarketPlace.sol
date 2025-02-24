@@ -201,7 +201,7 @@ contract MarketPlace is ModularInternal {
      */
     function calculateGasFeeinFexse(
         uint256 gasUsed
-    ) internal view returns (uint256) {
+    ) public view returns (uint256) {
         uint256 gasPriceinUSDT = IPriceFetcher(address(this)).getGasPriceInUSDT(
             gasUsed
         );

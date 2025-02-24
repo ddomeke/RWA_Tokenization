@@ -34,6 +34,7 @@ contract ProfitModule is ModularInternal {
     event AssetLowerLimitUpdated(uint256 assetId, uint256 newTokenLowerLimit);
     event AssetPaused(uint256 assetId);
     event AssetUnPaused(uint256 assetId);
+    event AssetProfitPeriodUpdated(uint256 assetId, uint256 newProfitPeriod);
 
     address immutable _this;
 
@@ -60,14 +61,16 @@ contract ProfitModule is ModularInternal {
      */
     function moduleFacets() external view returns (FacetCut[] memory) {
         uint256 selectorIndex = 0;
-        bytes4[] memory selectors = new bytes4[](8);
+        bytes4[] memory selectors = new bytes4[](10);
 
         // Add function selectors to the array
         selectors[selectorIndex++] = this.getTotalProfit.selector;
         selectors[selectorIndex++] = this.getLastDistributed.selector;
         selectors[selectorIndex++] = this.getPendingProfits.selector;
+        selectors[selectorIndex++] = this.getProfitPeriod.selector;
         selectors[selectorIndex++] = this.distributeProfit.selector;
         selectors[selectorIndex++] = this.updateAssetLowerLimit.selector;
+        selectors[selectorIndex++] = this.updateProfitPeriod.selector;
         selectors[selectorIndex++] = this.claimProfit.selector;
         selectors[selectorIndex++] = this.pauseAsset.selector;
         selectors[selectorIndex++] = this.unPauseAsset.selector;
@@ -89,7 +92,7 @@ contract ProfitModule is ModularInternal {
      * @param assetId The unique identifier of the asset.
      * @return The total profit associated with the specified asset.
      * @dev This function reads from the AppStorage to get the asset details.
-     *      It requires that the asset with the given ID exists.
+     * The asset with the given ID must exist.
      */
     function getTotalProfit(uint256 assetId) external view returns (uint256) {
         AppStorage.Layout storage data = AppStorage.layout();
@@ -132,6 +135,21 @@ contract ProfitModule is ModularInternal {
         require(asset.id != 0, "Asset does not exist");
         return asset.userTokenInfo[holder].pendingProfits;
     }
+    /**
+     * @notice Retrieves the profit period for a given asset.
+     * @param assetId The ID of the asset for which to retrieve the profit period.
+     * @return The profit period of the specified asset.
+     * @dev Reverts if the asset does not exist.
+     */
+    function getProfitPeriod(
+        uint256 assetId
+    ) external view returns (uint256) {
+        AppStorage.Layout storage data = AppStorage.layout();
+        Asset storage asset = data.assets[assetId];
+
+        require(asset.id != 0, "Asset does not exist");
+        return asset.profitPeriod;
+    }
 
     /**
      * @notice Distributes profits to asset holders.
@@ -151,6 +169,14 @@ contract ProfitModule is ModularInternal {
     ) public nonReentrant onlyRole(ADMIN_ROLE) {
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
+
+        uint256 timeElapsed = block.timestamp - asset.lastDistributed;
+        uint256 requiredWaitTime = (asset.profitPeriod * 86400 * 90) / 100;
+
+        require(
+            timeElapsed >= requiredWaitTime,
+            "Profit distribution too soon"
+        );
 
         for (uint256 i = 0; i < profits.length; i++) {
             address holder = profits[i].holder;
@@ -182,6 +208,28 @@ contract ProfitModule is ModularInternal {
         asset.tokenLowerLimit = newTokenLowerLimit;
 
         emit AssetLowerLimitUpdated(assetId, newTokenLowerLimit);
+    }
+
+    /**
+     * @notice Updates the profit period of a specific asset.
+     * @dev This function can only be called by an account with the ADMIN_ROLE and is protected against reentrancy.
+     * @param assetId The ID of the asset whose profit period is to be updated.
+     * @param newProfitPeriod The new profit period to be set for the asset.
+     * @dev The asset must exist (asset.id != 0).
+     * @dev Emits an {AssetProfitPeriodUpdated} when the profit period of an asset is updated.
+     */
+    function updateProfitPeriod(
+        uint256 assetId,
+        uint256 newProfitPeriod
+    ) public nonReentrant onlyRole(ADMIN_ROLE) {
+        AppStorage.Layout storage data = AppStorage.layout();
+        Asset storage asset = data.assets[assetId];
+
+        require(asset.id != 0, "Asset does not exist");
+
+        asset.profitPeriod = newProfitPeriod;
+
+        emit AssetProfitPeriodUpdated(assetId, newProfitPeriod);
     }
 
     /**
@@ -255,6 +303,8 @@ contract ProfitModule is ModularInternal {
     ) external nonReentrant onlyRole(ADMIN_ROLE) {
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
+
+        asset.lastDistributed = block.timestamp;
 
         IAssetToken(asset.tokenContract).unpause();
 
