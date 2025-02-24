@@ -63,11 +63,12 @@ contract MarketPlace is ModularInternal {
      */
     function moduleFacets() external view returns (FacetCut[] memory) {
         uint256 selectorIndex = 0;
-        bytes4[] memory selectors = new bytes4[](1);
+        bytes4[] memory selectors = new bytes4[](2);
 
         // Add function selectors to the array
         selectors[selectorIndex++] = this.transferAsset.selector;
-
+        selectors[selectorIndex++] = this.calculateGasFeeinFexse.selector;
+        
         // Create a FacetCut array with a single element
         FacetCut[] memory facetCuts = new FacetCut[](1);
 
