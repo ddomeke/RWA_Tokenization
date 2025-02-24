@@ -65,6 +65,7 @@ describe("RWATokenization Test", function () {
     const ASSET_ID = params.ASSET_ID;
     const TOTALTOKENS = params.TOTALTOKENS;
     const TOKENPRICE = params.TOKENPRICE;
+    const TOKENPROFITPERIOD = params.TOKENPROFITPERIOD;
     const TOKENLOWERLIMIT = params.TOKENLOWERLIMIT;
     const ASSETURI = params.ASSETURI;
 
@@ -180,7 +181,7 @@ describe("RWATokenization Test", function () {
 
 
         //--------------------- 6. createAsset.sol deploy  ---------------------------------------------
-        const createTx = await rwaTokenization.createAsset(ASSET_ID, TOTALTOKENS, TOKENPRICE,TOKENLOWERLIMIT, ASSETURI, "Otel", "OT");
+        const createTx = await rwaTokenization.createAsset(ASSET_ID, TOTALTOKENS, TOKENPRICE, TOKENPROFITPERIOD, TOKENLOWERLIMIT, ASSETURI, "Otel", "OT");
         await createTx.wait();
 
         const assetTokenAddress = await rwaTokenization.getTokenContractAddress(ASSET_ID);
@@ -479,7 +480,7 @@ describe("RWATokenization Test", function () {
 
         const ASSETID_V2 = ASSET_ID + 5;
 
-        const createTx1 = await rwaTokenization.createAsset(ASSETID_V2, TOTALTOKENS, TOKENPRICE,TOKENLOWERLIMIT, ASSETURI, "Otel", "OT");
+        const createTx1 = await rwaTokenization.createAsset(ASSETID_V2, TOTALTOKENS, TOKENPRICE, TOKENPROFITPERIOD, TOKENLOWERLIMIT, ASSETURI, "Otel", "OT");
         await createTx1.wait();
 
         await logAssetDetails(ASSETID_V2, addresses[0])
@@ -701,7 +702,7 @@ describe("RWATokenization Test", function () {
         });
         const buyer = await hre.ethers.getSigner(My_ADDRESS);
 
-        const createTx2 = await rwaTokenization.createAsset(ASSETID_V3, TOTALTOKENS + 100, TOKENPRICE * 1000, TOKENLOWERLIMIT, ASSETURI, "Otel", "OT");
+        const createTx2 = await rwaTokenization.createAsset(ASSETID_V3, TOTALTOKENS + 100, TOKENPRICE * 1000, TOKENPROFITPERIOD, TOKENLOWERLIMIT, ASSETURI, "Otel", "OT");
         await createTx2.wait();
 
         const TokenContractAddress = await rwaTokenization.getTokenContractAddress(ASSETID_V3);

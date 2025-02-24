@@ -3,6 +3,7 @@
     "ADDR_COUNT": 10,
     "TOTALTOKENS": 700,    
     "TOKENPRICE": 1000,   
+    "TOKENPROFITPERIOD": 90,
     "TOKENLOWERLIMIT": 10, 
     "ASSETURI":"https://tan-central-cockroach-433.mypinata.cloud/ipfs/bafkreidyghuvsnxhw4hasuv6gfbdvybixzprrmbx7wj2q57igrudnaiewu",
     "ZERO_ADDRESS": "0x0000000000000000000000000000000000000000",
