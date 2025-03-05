@@ -19,6 +19,7 @@ import "../interfaces/IPriceFetcher.sol";
 import {AssetToken} from "../token/AssetToken.sol";
 import {IAssetToken} from "../interfaces/IAssetToken.sol";
 import {IMarketPlace} from "../interfaces/IMarketPlace.sol";
+import {SafeERC20} from "../token/ERC20/utils/SafeERC20.sol";
 import "hardhat/console.sol";
 
 /**
@@ -38,10 +39,12 @@ contract MarketPlace is ModularInternal {
         address buyer,
         uint256 assetId,
         uint256 tokenAmount,
-        uint256 fexseAmount
+        uint256 amount,
+        address salecurrency
     );
 
     address immutable _this;
+    address public immutable usdtToken;
 
     /**
      * @dev Constructor for the MarketPlace contract.
@@ -49,8 +52,9 @@ contract MarketPlace is ModularInternal {
      *
      * @param appAddress The address to be granted the ADMIN_ROLE.
      */
-    constructor(address appAddress) {
+    constructor(address appAddress, address _usdtToken) {
         _this = address(this);
+        usdtToken = _usdtToken;
         _grantRole(ADMIN_ROLE, msg.sender);
         _grantRole(ADMIN_ROLE, appAddress);
     }
@@ -67,8 +71,8 @@ contract MarketPlace is ModularInternal {
 
         // Add function selectors to the array
         selectors[selectorIndex++] = this.transferAsset.selector;
-        selectors[selectorIndex++] = this.calculateGasFeeinFexse.selector;
-        
+        selectors[selectorIndex++] = this.calculateGasFee.selector;
+
         // Create a FacetCut array with a single element
         FacetCut[] memory facetCuts = new FacetCut[](1);
 
@@ -100,7 +104,8 @@ contract MarketPlace is ModularInternal {
         address buyer,
         uint256 assetId,
         uint256 tokenAmount,
-        uint256 tokenPrice
+        uint256 tokenPrice,
+        address saleCurrency
     ) external nonReentrant onlyRole(ADMIN_ROLE) {
         uint256 gasBefore = gasleft();
 
@@ -112,17 +117,23 @@ contract MarketPlace is ModularInternal {
         AppStorage.Layout storage data = AppStorage.layout();
         Asset storage asset = data.assets[assetId];
 
+        require(
+            (saleCurrency == usdtToken) ||
+                (saleCurrency == address(data.fexseToken)),
+            "buyFexse: Invalid sale currency"
+        );
+
         require(!data.isBlacklisted[seller], "seller is in blacklist");
         require(!data.isBlacklisted[buyer], "buyer is in blacklist");
 
         //uint256 fexsePrice = IPriceFetcher(address(this)).getFexsePrice();
 
-        uint256 fexseAmount = tokenPrice * tokenAmount;
-        uint256 servideFeeAmount = (fexseAmount * 5) / 1000;
+        uint256 amount = tokenPrice * tokenAmount;
+        uint256 servideFeeAmount = (amount * 5) / 1000;
 
         require(
-            IERC20(data.fexseToken).allowance(buyer, address(this)) >=
-                (fexseAmount + servideFeeAmount),
+            IERC20(saleCurrency).allowance(buyer, address(this)) >=
+                (amount + servideFeeAmount),
             "FEXSE allowance too low"
         );
 
@@ -135,8 +146,8 @@ contract MarketPlace is ModularInternal {
         );
 
         require(
-            IERC20(data.fexseToken).balanceOf(buyer) >=
-                (fexseAmount + servideFeeAmount)
+            IERC20(saleCurrency).balanceOf(buyer) >=
+                (amount + servideFeeAmount)
         );
 
         require(
@@ -145,13 +156,11 @@ contract MarketPlace is ModularInternal {
             "sender does not have enough asset "
         );
 
-        require(
-            data.fexseToken.transferFrom(
-                buyer,
-                seller,
-                (fexseAmount - servideFeeAmount)
-            ),
-            "FEXSE transfer failed (seller)"
+        SafeERC20.safeTransferFrom(
+            IERC20(saleCurrency),
+            buyer,
+            seller,
+            (amount - servideFeeAmount)
         );
 
         IAssetToken(asset.tokenContract).safeTransferFrom(
@@ -168,29 +177,26 @@ contract MarketPlace is ModularInternal {
             buyer,
             assetId,
             tokenAmount,
-            fexseAmount
+            amount,
+            saleCurrency
         );
 
         uint256 gasUsed = gasBefore - gasleft();
-        uint256 gasFeeinFexse = calculateGasFeeinFexse(gasUsed);
+        uint256 gasFee = calculateGasFee(saleCurrency,gasUsed);
 
-        if (gasFeeinFexse >= ((servideFeeAmount * 30) / 100)) {
-            require(
-                data.fexseToken.transferFrom(
-                    buyer,
-                    address(this),
-                    (servideFeeAmount * 2) + gasFeeinFexse
-                ),
-                "FEXSE transfer failed (gasFeeinFexse)"
+        if (gasFee >= ((servideFeeAmount * 30) / 100)) {
+            SafeERC20.safeTransferFrom(
+                IERC20(saleCurrency),
+                buyer,
+                address(this),
+                (servideFeeAmount * 2) + gasFee
             );
         } else {
-            require(
-                data.fexseToken.transferFrom(
-                    buyer,
-                    address(this),
-                    servideFeeAmount * 2
-                ),
-                "FEXSE transfer failed (servideFeeAmount)"
+            SafeERC20.safeTransferFrom(
+                IERC20(saleCurrency),
+                buyer,
+                address(this),
+                servideFeeAmount * 2
             );
         }
     }
@@ -200,15 +206,20 @@ contract MarketPlace is ModularInternal {
      * @param gasUsed The amount of gas used for the transaction.
      * @return The calculated gas fee in FEXSE tokens.
      */
-    function calculateGasFeeinFexse(
+    function calculateGasFee(
+        address saleCurrency,
         uint256 gasUsed
     ) public view returns (uint256) {
         uint256 gasPriceinUSDT = IPriceFetcher(address(this)).getGasPriceInUSDT(
             gasUsed
         );
 
-        uint256 gasFeeinFexse = ((gasPriceinUSDT * 10 ** 18) / (45 * 10 ** 3));
-
-        return gasFeeinFexse;
+        if (saleCurrency == usdtToken) {
+            return gasPriceinUSDT;
+        } else {
+            uint256 gasFee = ((gasPriceinUSDT * 10 ** 18) /
+                (45 * 10 ** 3));
+            return gasFee;
+        }
     }
 }

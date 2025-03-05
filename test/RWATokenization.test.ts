@@ -143,7 +143,7 @@ describe("RWATokenization Test", function () {
         await gasPriceCalc(app.deploymentTransaction());
 
         //--------------------- 2. MarketPlace.sol deploy --------------------------------------------------------
-        _marketPlace = await hre.ethers.deployContract("MarketPlace", [appAddress]);
+        _marketPlace = await hre.ethers.deployContract("MarketPlace", [appAddress,USDT_ADDRESS]);
         const _marketPlaceAddress = await _marketPlace.getAddress();
         await log('INFO', `2  - market Place Address-> ${_marketPlaceAddress}`);
         gasPriceCalc(_marketPlace.deploymentTransaction());
@@ -537,7 +537,8 @@ describe("RWATokenization Test", function () {
             addresses[0],
             ASSET_ID,
             3,
-            1000000);
+            1000000,
+        USDT_ADDRESS);
 
 
         log('INFO', ``);
