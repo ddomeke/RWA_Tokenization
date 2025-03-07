@@ -161,7 +161,7 @@ async function main() {
     
         //--------------------- 2. MarketPlace.sol deploy ------------------------------------------------------
         const MarketPlaceContract = await hre.ethers.getContractFactory("MarketPlace", wallet);
-        _marketPlace = await MarketPlaceContract.deploy(appAddress) as MarketPlace;
+        _marketPlace = await MarketPlaceContract.deploy(appAddress, USDT_ADDRESS) as MarketPlace;
         await _marketPlace.waitForDeployment();
         const _marketPlaceAddress = await _marketPlace.getAddress();
         log('INFO', `2  - market Place contract deployed at: ${_marketPlaceAddress}`);

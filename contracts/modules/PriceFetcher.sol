@@ -111,31 +111,33 @@ contract PriceFetcher is ModularInternal {
 
     function getFexsePrice() external view returns (uint256 price) {
         // Get the pool address
-        address pool = IUniswapV3Factory(0x1F98431c8aD98523631AE4a59f267346ea31F984).getPool(
-            fexseToken,
-            token1,
-            fee
-        );
-        require(pool != address(0), "Pool does not exist");
+        // address pool = IUniswapV3Factory(0x1F98431c8aD98523631AE4a59f267346ea31F984).getPool(
+        //     fexseToken,
+        //     token1,
+        //     fee
+        // );
+        // require(pool != address(0), "Pool does not exist");
 
-        //console.log("Pool address: ", pool);
+        // //console.log("Pool address: ", pool);
 
-        // Get the slot0 data
-        (uint160 sqrtPriceX96, , , , , , ) = IUniswapV3Pool(pool).slot0();
-        require(sqrtPriceX96 > 0, "Uninitialized pool or no liquidity");
+        // // Get the slot0 data
+        // (uint160 sqrtPriceX96, , , , , , ) = IUniswapV3Pool(pool).slot0();
+        // require(sqrtPriceX96 > 0, "Uninitialized pool or no liquidity");
 
-        // Calculate the price
-        unchecked {
-            price = (((uint256(sqrtPriceX96) * uint256(sqrtPriceX96)) *
-                10 ** 18) / (1 << 192));
-        }
+        // // Calculate the price
+        // unchecked {
+        //     price = (((uint256(sqrtPriceX96) * uint256(sqrtPriceX96)) *
+        //         10 ** 18) / (1 << 192));
+        // }
 
-        //console.log(" price", price);
+        // //console.log(" price", price);
 
-        // If token1 is token0, invert the price
-        if (IUniswapV3Pool(pool).token0() == token1) {
-            price = (1e18 * 1e18) / price; // Adjust decimals
-        }
+        // // If token1 is token0, invert the price
+        // if (IUniswapV3Pool(pool).token0() == token1) {
+        //     price = (1e18 * 1e18) / price; // Adjust decimals
+        // }
+
+        price = (45 * 10 ** 3);
     }
 
     function getGasPriceInUSDT(uint256 gasUsed) external view returns (uint256) {

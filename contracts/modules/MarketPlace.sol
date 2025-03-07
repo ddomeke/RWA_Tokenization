@@ -210,16 +210,16 @@ contract MarketPlace is ModularInternal {
         address saleCurrency,
         uint256 gasUsed
     ) public view returns (uint256) {
-        uint256 gasPriceinUSDT = IPriceFetcher(address(this)).getGasPriceInUSDT(
-            gasUsed
-        );
+        // uint256 gasPriceinUSDT = IPriceFetcher(address(this)).getGasPriceInUSDT(
+        //     gasUsed
+        // );
 
-        if (saleCurrency == usdtToken) {
-            return gasPriceinUSDT;
-        } else {
-            uint256 gasFee = ((gasPriceinUSDT * 10 ** 18) /
-                (45 * 10 ** 3));
-            return gasFee;
-        }
+        // if (saleCurrency == usdtToken) {
+        //     return gasPriceinUSDT;
+        // } else {
+        //     uint256 gasFee = ((gasPriceinUSDT * 10 ** 18) /
+        //         (45 * 10 ** 3));
+        //     return gasFee;
+        // }
     }
 }
